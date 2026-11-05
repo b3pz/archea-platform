@@ -107,3 +107,9 @@ html.sd-embed.sd-demo .topbar::after {
   html.sd-embed .topbar { padding: 14px 0 10px !important; }
   html.sd-embed.sd-demo .topbar::after { display: none; }
 }
+
+/* Solo chat (scheda Chat del Workspace) */
+html.sd-solo .sidebar,
+html.sd-solo .topbar { display: none !important; }
+html.sd-solo main { padding: 0 !important; }
+html.sd-solo .chat-shell { height: 100dvh; min-height: 0; border: 0; border-radius: 0; }

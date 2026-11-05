@@ -14374,6 +14374,12 @@ function Rj() {
         ServiceDeskIcon,
       ],
       [
+        "chat",
+        "Chat",
+        r ? "Messages between colleagues" : "Messaggi tra colleghi",
+        Td,
+      ],
+      [
         "bim",
         "BIM Portal",
         r
@@ -27946,16 +27952,17 @@ function DepartmentStudioIcon({ size: t = 22 }) {
 function ServiceDeskIcon({ size: t = 22 }) {
   return e.jsxs("svg", { width: t, height: t, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", children: [e.jsx("rect", { x: "3.5", y: "4.5", width: "17", height: "11", rx: "1.6" }), e.jsx("path", { d: "M9 19.5h6M12 15.5v4M7.5 10l2 2 3.5-4" })] });
 }
-function ServiceDeskScreen() {
+function ServiceDeskScreen({ view: View = "" } = {}) {
   const { viewer: n, language: l } = Y(),
     live = !!(n && n.live),
-    mode = live ? "live" : "demo";
+    mode = live ? "live" : "demo",
+    isChat = View === "chat";
   if (!live && n && window.ArcheaAuth) {
     const current = window.ArcheaAuth.getDemo();
     (!current || current.id !== n.id) &&
       window.ArcheaAuth.setDemo({ id: n.id, nome: n.nome, email: n.email, ruolo: n.sdRole || "USER" });
   }
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}`;
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${isChat ? "&view=chat&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [
@@ -27965,9 +27972,13 @@ function ServiceDeskScreen() {
           e.jsxs("div", {
             children: [
               e.jsx("small", { children: "ARCHEA PLATFORM" }),
-              e.jsx("h1", { children: "Service Desk IT" }),
+              e.jsx("h1", { children: isChat ? "Chat" : "Service Desk IT" }),
               e.jsx("p", {
-                children: live
+                children: isChat
+                  ? l === "en"
+                    ? `Messages between colleagues · ${live ? "live" : "demo"}`
+                    : `Messaggi tra colleghi · ${live ? "dati reali" : "dimostrativa"}`
+                  : live
                   ? l === "en"
                     ? "Tickets, assets and people · live data"
                     : "Ticket, asset e persone · dati reali"
@@ -27984,7 +27995,7 @@ function ServiceDeskScreen() {
           }),
         ],
       }),
-      e.jsx("iframe", { className: "servicedesk-frame", title: "Service Desk IT", src }, src),
+      e.jsx("iframe", { className: `servicedesk-frame${isChat ? " chat" : ""}`, title: isChat ? "Chat" : "Service Desk IT", src }, src),
     ],
   });
 }
@@ -28554,7 +28565,7 @@ function _v() {
                   : ie === "note"
                     ? e.jsx(vv, { notes: m, setNotes: x, projects: j })
                     : ie === "chat"
-                      ? e.jsx(Tv, { messages: O, setMessages: k })
+                      ? e.jsx(ServiceDeskScreen, { view: "chat" })
                       : ie === "calendario"
                         ? e.jsx(Ev, { events: p, setEvents: y, tasks: o })
                         : ie === "contabilita"
@@ -29062,10 +29073,10 @@ function Vv() {
       : DepartmentHead
       ? ["note", DeptType, "departmentmanager", "inarchea", "servicedesk"]
       : x
-      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"]
+      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"]
       : m
       ? ["servicedesk"]
-      : ["calendario", "prenota", "servicedesk", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"],
+      : ["calendario", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"],
     p = v.some(([E]) => E === b) ? b : h.includes(b) ? "altro" : v[0][0],
     y = Math.max(
       0,
@@ -29097,6 +29108,8 @@ function Vv() {
     n &&
     (b === "servicedesk"
       ? e.jsx(ServiceDeskScreen, {})
+      : b === "chat"
+      ? e.jsx(ServiceDeskScreen, { view: "chat" })
       : Reception && b === "oggi"
       ? e.jsxs(e.Fragment, {
           children: [

@@ -221,6 +221,10 @@
       data_conflicts: [
         { id: 1, source_type: 'DEVICE', conflict_type: 'ASSEGNATARIO DIVERSO', conflict_key: 'A4016', status: 'APERTO', details: { excel: 'Luca Ricci', portale: 'Chiara Moretti' }, created_at: iso(8) }
       ],
+      chat_messages: [
+        { id: 1, sender_id: IT1.id, recipient_id: IT2.id, body: 'Oggi pomeriggio sostituisco il plotter al 2° piano.', created_at: iso(0, 9), read_at: iso(0, 9) },
+        { id: 2, sender_id: IT2.id, recipient_id: IT1.id, body: 'Perfetto, io seguo i nuovi ingressi.', created_at: iso(0, 10), read_at: null }
+      ],
       conflict_resolution_requests: [],
       deletion_requests: [],
       notifications: [
@@ -274,6 +278,9 @@
       else if (key === 'order') q.order = decodeURIComponent(val).split(',');
       else if (key === 'limit') q.limit = +val;
       else if (key === 'offset') q.offset = +val;
+      else if (key === 'or') q.or = decodeURIComponent(val).replace(/^\(|\)$/g, '').split(',').map(function (c) {
+        var i = c.indexOf('.'); return { col: c.slice(0, i), expr: c.slice(i + 1) };
+      });
       else q.filters.push({ col: key, expr: val });
     });
     return q;
@@ -353,7 +360,8 @@
 
   function filtered(table, q) {
     return rows(table).filter(function (r) {
-      return q.filters.every(function (f) { return test(r, f.col, f.expr); });
+      return q.filters.every(function (f) { return test(r, f.col, f.expr); }) &&
+        (!q.or || q.or.some(function (f) { return test(r, f.col, f.expr); }));
     });
   }
 
@@ -434,6 +442,11 @@
   function label(t) { return (t.numero_ticket || tkt(t.id)) + ' · ' + (t.oggetto || ''); }
 
   function onInsert(table, r) {
+    if (table === 'chat_messages') {
+      var sender = rows('profiles').find(function (p) { return p.id === r.sender_id; });
+      notify([r.recipient_id], null, 'Nuovo messaggio', ((sender && sender.nome) || 'Collega') + ': ' + String(r.body || '').slice(0, 120));
+      return;
+    }
     if (table === 'tickets') {
       notify(itIds(), r, 'Nuovo ticket', (r.richiedente_nome || r.richiedente_email || '') + ' · ' + (r.oggetto || ''));
       return;
@@ -492,6 +505,11 @@
 
     var m = path.match(/^\/rest\/v1\/([^?]+)\??(.*)$/);
     if (!m) throw new Error('Percorso non gestito in demo: ' + path);
+    if (m[1] === 'rpc/chat_contacts') {
+      return rows('profiles').filter(function (p) { return p.id !== me.id; })
+        .map(function (p) { return { id: p.id, nome: p.nome || p.email, ruolo: p.ruolo }; })
+        .sort(function (a, b) { return String(a.nome).localeCompare(String(b.nome), 'it'); });
+    }
     if (m[1].indexOf('rpc/') === 0) return null;
     return clone(rest(method, m[1], m[2], body, opts.headers));
   }

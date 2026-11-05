@@ -8,7 +8,8 @@
 <link rel="icon" type="image/svg+xml" href="../icons/favicon-v023.svg">
 <link rel="icon" type="image/png" sizes="32x32" href="../icons/favicon-32-v023.png">
 <link rel="stylesheet" href="styles.css?v=9000">
-<link rel="stylesheet" href="embed.css?v=9000">
+<link rel="stylesheet" href="start-chat.css?v=9100">
+<link rel="stylesheet" href="embed.css?v=9100">
 </head>
 <body>
 <div id="toast" class="toast hidden"></div>
@@ -61,11 +62,15 @@
       <div class="nav-section-label">NAVIGAZIONE</div>
 
       <nav id="userNav" class="hidden">
+        <button data-view="start">Inizio</button>
         <button data-view="new">Apri ticket</button>
         <button data-view="mine">I miei ticket</button>
+        <button data-view="chat">Chat</button>
       </nav>
 
       <nav id="hrNav" class="hidden">
+        <button data-view="start">Inizio</button>
+        <button data-view="chat">Chat</button>
         <button data-view="new">Apri ticket</button>
         <button data-view="mine">I miei ticket</button>
         <button data-view="persone">Persone</button>
@@ -75,6 +80,7 @@
       </nav>
 
       <nav id="itNav" class="hidden">
+        <button data-view="start">Inizio</button>
         <button data-view="home">Dashboard</button>
         <button data-view="new">Nuovo ticket</button>
         <button data-view="it">Gestione IT</button>
@@ -85,6 +91,7 @@
         <button data-view="censimento">Censimento</button>
         <button data-view="mappa">Mappa</button>
         <button data-view="eliminazioni">Eliminazioni</button>
+        <button data-view="chat">Chat</button>
       </nav>
     </div>
 
@@ -152,7 +159,7 @@
     <div id="content"></div>
 
     <footer class="app-footer">
-      <span>Archea Service Desk · V9.0 · ARCHEA Platform</span>
+      <span>Archea Service Desk · V9.1 · ARCHEA Platform</span>
       <span>Sviluppato dal Dipartimento IT · Archea Associati</span>
     </footer>
   </main>
@@ -163,6 +170,7 @@
 <script defer src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script src="../config/platform.js?v=1.0.0"></script>
 <script src="demo-backend.js?v=9000"></script>
-<script src="app.js?v=9000"></script>
+<script src="app.js?v=9100"></script>
+<script src="start-chat.js?v=9100"></script>
 </body>
 </html>

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 — Inizio e Chat
+
+- **Inizio**: il Service Desk si apre sempre con un saluto ("Buongiorno, Giuseppe! Cosa facciamo?") e i pulsanti delle azioni possibili per il ruolo, cioè utente, HR o IT. Per l'IT ci sono anche i contatori (non assegnati, urgenti, assegnati a te).
+- **Chat tra utenti**, reale su Supabase: rubrica dei colleghi, conversazioni 1 a 1, non letti, "letto", aggiornamento ogni 4 secondi, notifica nella campanella. La scheda Chat del Workspace usa questa chat.
+- Nuovo script `supabase/migrations/20261106_chat.sql`, da eseguire una volta.
+- Nuovo script `supabase/crea_utente.sql` per abilitare un collega.
+- La demo supporta chat e notifiche dei messaggi.
+
 ## 1.0.0 — ARCHEA Platform (prima versione unificata)
 
 Unione di **ARCHEA Workspace 0.14.5** e **ARCHEA Service Desk 8.3**.

@@ -9,6 +9,7 @@ const EMBED=SD_PARAMS.get('embed')==='1'&&window.parent!==window;
 const DEMO=SD_PARAMS.get('mode')==='demo'&&!!window.SDDemo;
 if(EMBED)document.documentElement.classList.add('sd-embed');
 if(DEMO)document.documentElement.classList.add('sd-demo');
+if(EMBED&&SD_PARAMS.get('solo')==='1')document.documentElement.classList.add('sd-solo');
 let session=null,user=null,profile=null;
 let currentView=null;
 let previousView=null;
@@ -35,14 +36,14 @@ function updateBackButton(){
 function openSubView(kind,fn){
   navigationEpoch++;
   if(currentView!==kind){
-    previousView=currentView || (isITRole()?'home':'mine');
+    previousView=currentView || 'start';
     currentView=kind;
   }
   updateBackButton();
   return fn();
 }
 function goBack(){
-  const target=previousView || (isITRole()?'home':'mine');
+  const target=previousView || 'start';
   previousView=null;
   currentView=null;
   nav(target);
@@ -321,9 +322,9 @@ async function refreshNotifications(){
   const d=await select('notifications',`select=*&user_id=eq.${user.id}&order=created_at.desc&limit=30`);
   const unread=d.filter(n=>!n.is_read).length;
   $('bellCount').textContent=unread;$('bellCount').classList.toggle('hidden',unread===0);
-  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}">
+  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'1':''}">
     <b>${esc(n.title)}</b><div>${esc(n.message)}</div><small>${fmt(n.created_at)}</small></div>`).join(''):'<div class="empty">Nessuna notifica</div>';
-  document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);refreshNotifications()});
+  document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);else if(x.dataset.chatn)nav('chat');refreshNotifications()});
 }
 $('bellBtn').onclick=()=>{$('notificationPanel').classList.toggle('hidden');if(!$('notificationPanel').classList.contains('hidden'))refreshNotifications()}
 $('markAllRead').onclick=async()=>{await update('notifications',`user_id=eq.${user.id}&is_read=eq.false`,{is_read:true});refreshNotifications()}
@@ -447,7 +448,8 @@ function ageClass(d){
 
 
 
-async function userHome(){const epoch=navigationEpoch;page('Service Desk','Apri una richiesta o controlla i tuoi ticket');const d=await select('tickets',`select=*&richiedente_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc&limit=5`);if(epoch!==navigationEpoch)return;$('content').innerHTML=`<div class="userhero"><h3>Come possiamo aiutarti?</h3><p>Puoi aprire ticket e vedere solo le tue richieste.</p><button id="openNow" class="primary">Apri un ticket</button></div><div class="panel"><h3>Le tue richieste recenti</h3>${table(d)}</div>`;$('openNow').onclick=()=>nav('new');wire()}
+async function userHome(){if(typeof start==='function')return start();return legacyUserHome()}
+async function legacyUserHome(){const epoch=navigationEpoch;page('Service Desk','Apri una richiesta o controlla i tuoi ticket');const d=await select('tickets',`select=*&richiedente_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc&limit=5`);if(epoch!==navigationEpoch)return;$('content').innerHTML=`<div class="userhero"><h3>Come possiamo aiutarti?</h3><p>Puoi aprire ticket e vedere solo le tue richieste.</p><button id="openNow" class="primary">Apri un ticket</button></div><div class="panel"><h3>Le tue richieste recenti</h3>${table(d)}</div>`;$('openNow').onclick=()=>nav('new');wire()}
 async function home(){
   const epoch=navigationEpoch;
   if(!isITRole())return userHome();
@@ -3238,7 +3240,9 @@ const NAV_ICON_PATHS={
   eliminazioni:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>',
   'hr-new':'<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M19 8v6M16 11h6"/>',
   'hr-history':'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
-  'hr-stats':'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>'
+  'hr-stats':'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>'
 };
 function navIconKey(view){return view==='calendar'?'calendar':view==='movimenti'?'movimenti':view==='persone'?'persone':view==='prenotazioni'?'prenotazioni':view==='censimento'?'censimento':view==='mappa'?'mappa':view==='eliminazioni'?'eliminazioni':view}
 function installNavIcons(){
@@ -3271,6 +3275,9 @@ function nav(v){
   }
 
   setActiveNavigation(v);
+  if(v!=='chat'&&typeof chatStop==='function')chatStop();
+  if(v==='start')return start();
+  if(v==='chat')return chatView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
@@ -3298,7 +3305,7 @@ function nav(v){
 }
 async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
-$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=isITRole()?'home':(isHR()?'persone':'mine');previousView=null;setActiveNavigation(currentView);isITRole()?home():(isHR()?people():userHome());updateBackButton();
+$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=SD_PARAMS.get('view')==='chat'?'chat':'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 refreshNotifications();
 setInterval(refreshNotifications,30000);
 setInterval(async()=>{
@@ -3340,4 +3347,5 @@ if($('backBtn')) $('backBtn').onclick=goBack;
 if($('themeToggle')) $('themeToggle').onclick=()=>applyTheme(document.documentElement.dataset.theme==='dark'?'light':'dark');
 installNavIcons();
 initTheme();
-boot();
+// avvio dopo il caricamento di tutti gli script (start-chat.js incluso)
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();

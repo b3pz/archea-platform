@@ -35,6 +35,15 @@ Il database demo è **condiviso tra gli account di prova** nello stesso browser:
 | `HR` | HR Manager |
 | `USER` | Architect, oppure il profilo dell'account demo con la stessa email |
 
+## Attivare la chat (una volta sola)
+
+Supabase → **SQL Editor** → New query → incolla `supabase/migrations/20261106_chat.sql` → **Run**.
+
+## Aggiungere un collega reale
+
+1. Supabase → **Authentication** → **Users** → **Add user** → *Create new user*: email, password, spunta **Auto Confirm User**.
+2. SQL Editor: incolla `supabase/crea_utente.sql`, cambia email/nome/ruolo, **Run**.
+
 ## Struttura
 
 ```
