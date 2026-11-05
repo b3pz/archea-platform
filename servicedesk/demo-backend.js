@@ -19,6 +19,8 @@
     var d = new Date();
     d.setDate(d.getDate() - (daysAgo || 0));
     d.setHours(hour == null ? 9 : hour, (daysAgo * 7) % 60, 0, 0);
+    var limit = Date.now() - 20 * 60000; // mai date nel futuro
+    if (d.getTime() > limit) d = new Date(limit - (hour || 0) * 60000);
     return d.toISOString();
   }
   function day(offset) {
@@ -35,7 +37,12 @@
     var IT1 = { id: 'demo-it-1', nome: 'Giulia Ferri', email: 'giulia.ferri@demo.archea.it', ruolo: 'SUPER_IT' };
     var IT2 = { id: 'demo-it-2', nome: 'Davide Conti', email: 'davide.conti@demo.archea.it', ruolo: 'IT' };
     var HR1 = { id: 'demo-hr-1', nome: 'Sara Galli', email: 'sara.galli@demo.archea.it', ruolo: 'HR' };
-    var profiles = [IT1, IT2, HR1];
+    // Profili degli account di prova del Workspace che hanno un ruolo nel Service Desk
+    var profiles = [
+      { id: 'demo-itdesk', nome: 'Reparto IT', email: 'it@archea.it', ruolo: 'SUPER_IT' },
+      IT1, IT2, HR1,
+      { id: 'demo-epietrelli', nome: 'Elisabetta Pietrelli', email: 'elisabetta.pietrelli@archea.it', ruolo: 'HR' }
+    ];
     if (!profiles.some(function (p) { return p.email === me.email; })) {
       profiles.unshift({ id: me.id, nome: me.nome, email: me.email, ruolo: me.ruolo });
     }
@@ -217,8 +224,8 @@
       conflict_resolution_requests: [],
       deletion_requests: [],
       notifications: [
-        { id: 1, user_id: me.id, ticket_id: 1, title: 'Ticket aggiornato', message: 'Nuovo commento su TKT-' + new Date().getFullYear() + '-00001', is_read: false, created_at: iso(0, 11) },
-        { id: 2, user_id: me.id, ticket_id: 5, title: 'Appuntamento confermato', message: 'Installazione Enscape · remoto', is_read: false, created_at: iso(1, 16) },
+        { id: 1, user_id: me.id, ticket_id: 2, title: 'Stato aggiornato: APERTO', message: tkt(2) + ' · Wi-Fi lento in sala riunioni 2', is_read: false, created_at: iso(0, 11) },
+        { id: 2, user_id: IT1.id, ticket_id: 5, title: 'Appuntamento confermato', message: 'Installazione Enscape · remoto', is_read: false, created_at: iso(1, 16) },
         { id: 3, user_id: me.id, ticket_id: 4, title: 'Ticket chiuso', message: 'Accesso cartella P48 concesso', is_read: true, created_at: iso(6, 17) }
       ]
     };
@@ -370,6 +377,7 @@
         if (table === 'people') { r.normalized_name_key = r.normalized_name_key || norm((r.first_name || '') + (r.surname || '')); }
         rows(table).push(r);
         touchTicket(r.ticket_id, table);
+        onInsert(table, r);
         return r;
       });
       persist();
@@ -378,7 +386,9 @@
     if (method === 'PATCH') {
       var hit = filtered(table, q);
       hit.forEach(function (r) {
+        var before = clone(r);
         Object.assign(r, clone(body));
+        onUpdate(table, before, r);
         if (table === 'tickets') {
           r.updated_at = now;
           if (body && body.stato === 'CHIUSO' && !r.closed_at) r.closed_at = now;
@@ -396,6 +406,66 @@
       return null;
     }
     throw new Error('Metodo non supportato in demo: ' + method);
+  }
+
+  // ---------- notifiche (in produzione le crea il database) ----------
+  function ticketById(id) { return rows('tickets').find(function (t) { return String(t.id) === String(id); }); }
+  function profileIdByEmail(email) {
+    var p = rows('profiles').find(function (x) { return x.email && email && x.email.toLowerCase() === String(email).toLowerCase(); });
+    return p ? p.id : null;
+  }
+  function itIds() { return rows('profiles').filter(function (p) { return p.ruolo === 'IT' || p.ruolo === 'SUPER_IT'; }).map(function (p) { return p.id; }); }
+  function teamOf(t) {
+    var ids = rows('ticket_collaborators').filter(function (c) { return String(c.ticket_id) === String(t.id); }).map(function (c) { return c.user_id; });
+    if (t.assigned_to) ids.unshift(t.assigned_to);
+    return ids.length ? ids : itIds();
+  }
+  function notify(userIds, t, title, message) {
+    var seen = {};
+    userIds.forEach(function (uid) {
+      if (!uid || seen[uid] || uid === me.id) return; // chi compie l'azione non riceve la notifica
+      seen[uid] = true;
+      rows('notifications').push({
+        id: nextId('notifications'), user_id: uid, ticket_id: t ? t.id : null,
+        title: title, message: message, is_read: false, created_at: new Date().toISOString()
+      });
+    });
+  }
+  function label(t) { return (t.numero_ticket || tkt(t.id)) + ' · ' + (t.oggetto || ''); }
+
+  function onInsert(table, r) {
+    if (table === 'tickets') {
+      notify(itIds(), r, 'Nuovo ticket', (r.richiedente_nome || r.richiedente_email || '') + ' · ' + (r.oggetto || ''));
+      return;
+    }
+    var t = r.ticket_id ? ticketById(r.ticket_id) : null;
+    if (!t) return;
+    var requester = profileIdByEmail(t.richiedente_email);
+    if (table === 'comments') {
+      if (r.nota_interna) return notify(teamOf(t), t, 'Nota interna IT', label(t));
+      var fromRequester = r.autore_email && t.richiedente_email && r.autore_email.toLowerCase() === t.richiedente_email.toLowerCase();
+      notify(fromRequester ? teamOf(t) : [requester], t, 'Nuovo commento', label(t));
+    } else if (table === 'appointments') {
+      notify([requester], t, 'Proposta di appuntamento', label(t) + ' · ' + (r.modalita || ''));
+    } else if (table === 'ticket_collaborators') {
+      notify([r.user_id], t, 'Sei stato aggiunto come collaboratore', label(t));
+    }
+  }
+
+  function onUpdate(table, before, r) {
+    if (table === 'tickets') {
+      var requester = profileIdByEmail(r.richiedente_email);
+      if (r.assigned_to && r.assigned_to !== before.assigned_to) {
+        notify([requester], r, 'Ticket preso in carico', label(r) + ' · ' + (r.assegnato_a || 'IT'));
+        notify([r.assigned_to], r, 'Ticket assegnato a te', label(r));
+      }
+      if (r.stato && r.stato !== before.stato) {
+        notify([requester], r, r.stato === 'CHIUSO' ? 'Ticket chiuso' : 'Stato aggiornato: ' + r.stato, label(r));
+      }
+    } else if (table === 'appointments' && r.status !== before.status && /CONFERMATO|RIFIUTATO/.test(r.status || '')) {
+      var t = ticketById(r.ticket_id);
+      if (t) notify([r.created_by].concat(teamOf(t)), t, 'Appuntamento ' + r.status.toLowerCase(), label(t));
+    }
   }
 
   function touchTicket(ticketId, table) {
