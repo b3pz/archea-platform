@@ -1,0 +1,12 @@
+V6.0.3 FINAL FIX
+
+1. CORREZIONE e MOVIMENTO sono due azioni diverse.
+   - Correggi dati: audit CORREZIONE_DATO, nessuna statistica/movimento HR.
+   - Registra movimento: evento reale con data effettiva e storico.
+
+2. ELIMINAZIONE
+   - Tutti gli IT possono richiederla.
+   - Solo SUPER_IT può approvare o rifiutare.
+   - Nessuna eliminazione diretta dal frontend.
+   - I guard di integrità V6.0.2 restano obbligatori.
+   - Le eliminazioni effettive restano in deletion_audit.

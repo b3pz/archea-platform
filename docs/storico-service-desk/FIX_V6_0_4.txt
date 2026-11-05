@@ -1,0 +1,18 @@
+V6.0.4 - Controlled Values & Empty-State Fix
+
+- Dipartimento e Profilo separati semanticamente.
+- ICT DEPARTMENT -> IT nel master operativo; raw PDF invariato nelle Fonti.
+- Le qualifiche pubbliche PDF (Professional, Partner, Responsible, ecc.) non popolano più il menu Profilo operativo.
+- La scheda persona mostra separatamente Ruolo PDF e Funzione/Sezione PDF.
+- HEAD OF STUDIO / TECHNICAL DIRECTOR / PERSONAL ASSISTANTS non sono più valori approvati come Dipartimento.
+- Menu persona sostituiti con dropdown coerenti con UI Archea e ricerca integrata.
+- Censimento mostra chiaramente quando il foglio Device non è ancora stato importato.
+- Movimenti mostra chiaramente quando lo storico HR non è ancora stato importato.
+- Scheda persona spiega che l'assenza di asset è normale prima dell'import Device.
+- Nessun dato raw PDF/HR viene cancellato o riscritto.
+
+Upgrade da V6.0.3 già installata:
+1. Eseguire sql/07_migration_v6_0_4_controlled_values.sql
+2. Sostituire su GitHub index.html, app.js, styles.css (logo invariato)
+3. Ctrl+F5
+4. Non serve ridistribuire le Edge Functions.

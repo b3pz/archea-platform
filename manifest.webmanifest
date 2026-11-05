@@ -1,0 +1,30 @@
+{
+  "name": "Archea Workspace",
+  "short_name": "Archea",
+  "description": "Workspace dimostrativa installabile per portfolio, pianificazione, task, risorse, ore e attività ARCHEA.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#ffffff",
+  "theme_color": "#222624",
+  "lang": "it",
+  "icons": [
+    {
+      "src": "icons/icon-192-v023.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512-v023.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icons/icon-512-v023.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

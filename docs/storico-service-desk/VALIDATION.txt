@@ -1,0 +1,8 @@
+ARCHEA SERVICE DESK V6.0.4 - VALIDATION
+- app.js syntax: checked with node --check
+- controlled-values migration added as sql/07_migration_v6_0_4_controlled_values.sql
+- raw PDF/HR source records are never updated by the migration
+- PDF public roles separated from operational Profile
+- ICT DEPARTMENT normalized to IT in master only
+- census / HR / person asset empty states clarified before import
+- Edge Functions unchanged from V6.0.3
