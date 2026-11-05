@@ -2,33 +2,33 @@
 <html lang="it">
   <head>
     <meta charset="utf-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover"
-    />
-    <title>Archea Workspace</title>
-    <meta
-      name="description"
-      content="Task, progetti, cantiere, calendario e strumenti dello studio ARCHEA."
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Archea Platform</title>
+    <meta name="description" content="Workspace e Service Desk IT dello studio ARCHEA: task, progetti, agenda, ticket, asset e persone." />
     <meta name="theme-color" content="#222624" />
     <meta name="color-scheme" content="light" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-title" content="Archea" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <link rel="manifest" href="./manifest.webmanifest?v=0.14.5" />
+    <link rel="manifest" href="./manifest.webmanifest?v=1.0.0" />
     <link rel="apple-touch-icon" href="./icons/apple-touch-icon-v023.png" />
     <link rel="icon" type="image/svg+xml" href="./icons/favicon-v023.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32-v023.png" />
     <link rel="shortcut icon" href="./icons/favicon-v023.ico" />
-    <script type="module" crossorigin src="./assets/index-o7haKe_J.js?v=0.14.5-agenda1"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-B8pu6Xm7.css">
-    <link rel="stylesheet" href="./archea-update-0142.css?v=0.14.5-agenda1">
-    <link rel="stylesheet" href="./archea-update-0143.css?v=0.14.5-agenda1">
-    <link rel="stylesheet" href="./planning-suite.css?v=0.14.5-agenda1">
-    <script type="module" src="./planning-suite.js?v=0.14.5-agenda1"></script>
-    <script type="module" src="./archea-update-0143.js?v=0.14.5-agenda1"></script>
+
+    <!-- Configurazione condivisa (Supabase + accesso unico) -->
+    <script src="./config/platform.js?v=1.0.0"></script>
+
+    <!-- Workspace -->
+    <script type="module" crossorigin src="./assets/workspace.js?v=1.0.0"></script>
+    <link rel="stylesheet" crossorigin href="./assets/workspace.css?v=1.0.0" />
+    <link rel="stylesheet" href="./assets/archea-update-0142.css?v=1.0.0" />
+    <link rel="stylesheet" href="./assets/archea-update-0143.css?v=1.0.0" />
+    <link rel="stylesheet" href="./assets/planning-suite.css?v=1.0.0" />
+    <link rel="stylesheet" href="./assets/platform.css?v=1.0.0" />
+    <script type="module" src="./assets/planning-suite.js?v=1.0.0"></script>
+    <script type="module" src="./assets/archea-update-0143.js?v=1.0.0"></script>
   </head>
   <body>
     <div id="root"></div>

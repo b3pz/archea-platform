@@ -1,6 +1,14 @@
 
-const BASE='https://igfpkpcksllmofqfoxkf.supabase.co';
-const KEY='sb_publishable_wuq5rwy4w6ca7nvJTbrXzA_izhCmrf9';
+// Configurazione condivisa con il Workspace: ../config/platform.js
+const BASE=(window.ARCHEA_CONFIG&&window.ARCHEA_CONFIG.supabaseUrl)||'https://igfpkpcksllmofqfoxkf.supabase.co';
+const KEY=(window.ARCHEA_CONFIG&&window.ARCHEA_CONFIG.supabaseKey)||'sb_publishable_wuq5rwy4w6ca7nvJTbrXzA_izhCmrf9';
+// ARCHEA Platform: ?embed=1 quando il Service Desk è aperto dentro il Workspace,
+// ?mode=demo per usare il backend dimostrativo (demo-backend.js) al posto di Supabase.
+const SD_PARAMS=new URLSearchParams(location.search);
+const EMBED=SD_PARAMS.get('embed')==='1'&&window.parent!==window;
+const DEMO=SD_PARAMS.get('mode')==='demo'&&!!window.SDDemo;
+if(EMBED)document.documentElement.classList.add('sd-embed');
+if(DEMO)document.documentElement.classList.add('sd-demo');
 let session=null,user=null,profile=null;
 let currentView=null;
 let previousView=null;
@@ -233,7 +241,15 @@ async function refreshSession(){
   return refreshPromise;
 }
 
+// Dentro il Workspace l'accesso è unico: niente form di login qui.
+function showEmbedSignedOut(msg){
+  const box=document.querySelector('.login-form-panel');
+  if(!box)return;
+  box.innerHTML=`<div class="login-form-heading"><span class="eyebrow">ARCHEA PLATFORM</span><h1>Accesso richiesto</h1></div><p>${esc(msg||'Per usare il Service Desk entra nel Workspace con il tuo account ARCHEA.')}</p><button type="button" class="primary login-submit" id="embedRelogin">Torna al login</button>`;
+  $('embedRelogin').onclick=()=>{try{window.ArcheaAuth&&window.ArcheaAuth.signOut()}catch{}window.top.location.reload()};
+}
 function showSessionExpired(){
+  if(EMBED){$('app')?.classList.add('hidden');$('login')?.classList.remove('hidden');showEmbedSignedOut('La sessione è scaduta. Accedi di nuovo dal Workspace: il ticket che stavi compilando è stato conservato.');return}
   const login=$('login'), appEl=$('app');
   if(appEl) appEl.classList.add('hidden');
   if(login) login.classList.remove('hidden');
@@ -243,6 +259,7 @@ function showSessionExpired(){
 }
 
 async function api(path,{method='GET',body=null,auth=true,headers={},_retry=true}={}){
+  if(DEMO)return window.SDDemo.api(path,{method,body,headers});
   const h={'apikey':KEY,'Content-Type':'application/json',...headers};
   if(auth&&session?.access_token) h.Authorization='Bearer '+session.access_token;
 
@@ -3279,7 +3296,7 @@ function nav(v){
 
   updateBackButton();
 }
-async function boot(){const raw=localStorage.getItem('archea_sd_session');if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
+async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
 $('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=isITRole()?'home':(isHR()?'persone':'mine');previousView=null;setActiveNavigation(currentView);isITRole()?home():(isHR()?people():userHome());updateBackButton();
 refreshNotifications();
@@ -3293,7 +3310,7 @@ setInterval(async()=>{
 },10*60*1000);
 }
 $('loginForm').onsubmit=async e=>{e.preventDefault();$('loginErr').textContent='';try{const d=await api('/auth/v1/token?grant_type=password',{method:'POST',auth:false,body:{email:$('email').value.trim(),password:$('password').value}});save(d);user=d.user;await boot()}catch(err){$('loginErr').textContent=err.message}}
-$('logout').onclick=()=>{clear();location.reload()};
+$('logout').onclick=()=>{if(EMBED){try{window.ArcheaAuth&&window.ArcheaAuth.signOut()}catch{}window.top.location.reload();return}clear();location.reload()};
 function closeMobileNav(){
   const sidebar=$('sidebar');
   const backdrop=$('mobileNavBackdrop');

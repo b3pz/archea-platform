@@ -1,0 +1,60 @@
+/* ARCHEA Platform · integrazione Service Desk nel Workspace */
+
+.platform-auth-check { display: grid; place-items: center; min-height: 100dvh; }
+
+.servicedesk-host { display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+
+.servicedesk-host-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.servicedesk-host-head small {
+  display: block;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .14em;
+  color: var(--ink3, #8b948f);
+}
+.servicedesk-host-head h1 { margin: 4px 0 2px; font-size: 30px; font-weight: 600; letter-spacing: -.02em; }
+.servicedesk-host-head p { margin: 0; color: var(--ink2, #5d6661); }
+
+.servicedesk-mode {
+  flex: none;
+  padding: 6px 11px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .12em;
+}
+.servicedesk-mode.live { background: #e4efe7; color: #2d5a3c; }
+.servicedesk-mode.live::before {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px;
+  margin-right: 7px;
+  border-radius: 50%;
+  background: #3f8a58;
+  vertical-align: 1px;
+}
+.servicedesk-mode.demo { background: var(--orange-bg, #fff0d9); color: var(--orange, #b0600d); }
+
+.servicedesk-frame {
+  display: block;
+  width: 100%;
+  height: calc(100dvh - 228px);
+  min-height: 560px;
+  border: 1px solid var(--line, #e5e8e5);
+  border-radius: 18px;
+  background: #f1f0eb;
+}
+
+/* Mobile: header in alto e tabbar in basso */
+.mobile-scene .servicedesk-host-head h1 { font-size: 26px; }
+.mobile-scene .servicedesk-frame {
+  height: calc(100dvh - 250px - var(--safe-b, 0px));
+  min-height: 460px;
+  border-radius: 16px;
+}
+.mobile-scene .servicedesk-host-head p { display: none; }

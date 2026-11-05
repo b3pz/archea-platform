@@ -1,0 +1,109 @@
+/*
+ * Service Desk dentro il Workspace (ARCHEA Platform)
+ * Attivo solo con ?embed=1 (classe .sd-embed su <html>).
+ * La barra laterale scura diventa una fila di schede in alto, come il Workspace.
+ */
+html.sd-embed,
+html.sd-embed body { background: #f6f6f3; }
+html.sd-embed body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+/* login: nel Workspace c'è già, qui resta solo un messaggio */
+html.sd-embed .login { min-height: 100dvh; padding: 18px; background: #f6f6f3; }
+html.sd-embed .login-logo-panel,
+html.sd-embed .login-signature { display: none; }
+
+/* layout */
+html.sd-embed .app { display: block !important; min-height: 100dvh; }
+html.sd-embed .app.hidden { display: none !important; }
+html.sd-embed .mobile-menu-btn,
+html.sd-embed .mobile-nav-backdrop,
+html.sd-embed .workspace-topline,
+html.sd-embed .app-footer,
+html.sd-embed .theme-toggle,
+html.sd-embed .sidebar .brand,
+html.sd-embed .sidebar .nav-section-label,
+html.sd-embed .sidebar .service-mark,
+html.sd-embed .sidebar .account-user { display: none !important; }
+
+html.sd-embed .sidebar {
+  position: sticky !important;
+  top: 0;
+  z-index: 950;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  min-height: 0;
+  transform: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 10px 14px !important;
+  background: #222624 !important;
+  border: 0 !important;
+  overflow: visible;
+}
+html.sd-embed .sidebar-top { flex: 1 1 auto; min-width: 0; overflow: visible; display: block; }
+html.sd-embed .sidebar-top nav:not(.hidden) {
+  display: flex !important;
+  flex-direction: row;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0;
+  scrollbar-width: none;
+}
+html.sd-embed .sidebar-top nav::-webkit-scrollbar { display: none; }
+html.sd-embed .sidebar nav button {
+  flex: none;
+  min-height: 38px !important;
+  padding: 8px 13px !important;
+  gap: 8px;
+  border-radius: 999px;
+  font-size: 13.5px !important;
+  white-space: nowrap;
+  color: #d9ddd9;
+}
+html.sd-embed .sidebar nav button::before,
+html.sd-embed .sidebar nav button::after { display: none !important; }
+html.sd-embed .sidebar nav button .nav-icon { width: 17px; height: 17px; }
+html.sd-embed .sidebar nav button.active { background: #e9ebe8; color: #1d2320; font-weight: 650; }
+html.sd-embed .sidebar nav button.active .nav-icon { color: #1d2320; }
+/* l'uscita si fa dal Workspace */
+html.sd-embed .sidebar-bottom { display: none !important; }
+
+html.sd-embed main { max-width: none; margin: 0; padding: 0 26px 28px !important; }
+html.sd-embed .topbar {
+  position: static !important;
+  margin: 0 0 6px !important;
+  padding: 20px 0 14px !important;
+  background: transparent !important;
+  border: 0 !important;
+  backdrop-filter: none !important;
+}
+html.sd-embed .page-heading .eyebrow { display: none; }
+html.sd-embed .page-heading h2 { font-size: 24px; }
+
+/* banner modalità demo */
+html.sd-embed.sd-demo .topbar::after {
+  content: "DEMO · dati finti salvati solo in questo browser";
+  align-self: center;
+  margin-left: auto;
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #fff0d9;
+  color: #b0600d;
+  font-size: 11px;
+  font-weight: 650;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  html.sd-embed .sidebar { padding: 8px 10px !important; }
+  html.sd-embed main { padding: 0 12px calc(24px + env(safe-area-inset-bottom)) !important; }
+  html.sd-embed .topbar { padding: 14px 0 10px !important; }
+  html.sd-embed.sd-demo .topbar::after { display: none; }
+}

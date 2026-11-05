@@ -1,5 +1,16 @@
-const CACHE_NAME = 'archea-workspace-v0.14.5-agenda1';
-const APP_SHELL = ['./', './assets/index-o7haKe_J.js?v=0.14.5-agenda1', './planning-suite.js?v=0.14.5-agenda1', './planning-suite.css?v=0.14.5-agenda1', './archea-update-0142.css?v=0.14.5-agenda1', './archea-update-0143.css?v=0.14.5-agenda1', './archea-update-0143.js?v=0.14.5-agenda1'];
+const CACHE_NAME = 'archea-platform-v1.0.0';
+const APP_SHELL = [
+  './',
+  './config/platform.js?v=1.0.0',
+  './assets/workspace.js?v=1.0.0',
+  './assets/workspace.css?v=1.0.0',
+  './assets/platform.css?v=1.0.0',
+  './assets/planning-suite.js?v=1.0.0',
+  './assets/planning-suite.css?v=1.0.0',
+  './assets/archea-update-0142.css?v=1.0.0',
+  './assets/archea-update-0143.css?v=1.0.0',
+  './assets/archea-update-0143.js?v=1.0.0',
+];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE_NAME).then(cache => cache.addAll(APP_SHELL)));
@@ -9,7 +20,7 @@ self.addEventListener('install', event => {
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys()
-      .then(keys => Promise.all(keys.filter(key => key.startsWith('archea-workspace-') && key !== CACHE_NAME).map(key => caches.delete(key))))
+      .then(keys => Promise.all(keys.filter(key => (key.startsWith('archea-workspace-') || key.startsWith('archea-platform-')) && key !== CACHE_NAME).map(key => caches.delete(key))))
       .then(() => self.clients.claim()),
   );
 });
@@ -25,10 +36,10 @@ self.addEventListener('fetch', event => {
       fetch(request)
         .then(response => {
           const copy = response.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put('./', copy));
+          if (response.ok) caches.open(CACHE_NAME).then(cache => cache.put(request, copy));
           return response;
         })
-        .catch(() => caches.match('./')),
+        .catch(() => caches.match(request, { ignoreSearch: true }).then(hit => hit || caches.match('./'))),
     );
     return;
   }
