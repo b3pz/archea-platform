@@ -13,6 +13,7 @@ const START_ACTIONS = {
   booking:        ['Prenota materiale', 'Matterport, iPad, laptop…', 'prenotazioni'],
   chat:           ['Chat', 'Scrivi a un collega o al reparto IT', 'chat'],
   utenti:         ['Utenti e gruppi', 'Aggiungi colleghi, ruoli e permessi', 'utenti'],
+  cantiere:       ['Foto cantiere', 'Scatta e archivia le foto per commessa', 'cantiere'],
   offtopic:       ['Off topic', 'Eventi, consigli, mercatino: due chiacchiere', 'offtopic'],
   agenda:         ['Calendario comune', 'Appuntamenti, sale e auto di tutti', 'agenda'],
   appt:           ['Fissa un appuntamento', 'Invita i colleghi: ricevono la notifica', 'agenda'],
@@ -38,9 +39,9 @@ function startActionsForRole() {
   return [...startActionsBase(), ...extra];
 }
 function startActionsBase() {
-  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'planimetrie', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'planimetrie', 'hr-stats', 'offtopic', 'new', 'mine'];
-  return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
+  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'cantiere', 'planimetrie', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
+  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'cantiere', 'hr-history', 'planimetrie', 'hr-stats', 'offtopic', 'new', 'mine'];
+  return ['new', 'mine', 'cantiere', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
 }
 
 function greetingWord() {
@@ -93,6 +94,7 @@ async function start() {
     ${summary}`;
 
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startAction(b.dataset.start));
+  if (typeof fotoFlushQueue === 'function') fotoFlushQueue();
   document.querySelectorAll('[data-open-ticket]').forEach(b => b.onclick = () => openSubView('ticket-detail', () => detail(+b.dataset.openTicket)));
 }
 

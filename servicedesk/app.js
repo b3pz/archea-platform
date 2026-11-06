@@ -3251,6 +3251,7 @@ const NAV_ICON_PATHS={
   start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
   chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>',
   agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3v3H8z"/>',
+  cantiere:'<path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/>',
   planimetrie:'<path d="M3 4h18v16H3z"/><path d="M3 11h7v9M10 4v4M14 11h7M14 11v4"/>',
   utenti:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 11l1.5 1.5L22 9"/>',
   offtopic:'<path d="M4 5h16v10H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/><circle cx="18.5" cy="5.5" r="2.5"/>',
@@ -3295,6 +3296,7 @@ function nav(v){
   if(v==='offtopic')return offtopicView();
   if(v==='utenti')return usersView();
   if(v==='planimetrie')return planimetrieView();
+  if(v==='cantiere')return cantiereView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
@@ -3322,7 +3324,7 @@ function nav(v){
 }
 async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];try{if(typeof loadPerms==='function')await loadPerms()}catch{}$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
-$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
+$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic','cantiere'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');
 if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
 refreshNotifications();

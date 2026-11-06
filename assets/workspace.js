@@ -14380,6 +14380,12 @@ function Rj() {
         Td,
       ],
       [
+        "fotocantiere",
+        "Foto cantiere",
+        r ? "Site photos by project" : "Scatta e archivia le foto per commessa",
+        CameraIcon,
+      ],
+      [
         "offtopic",
         "Off topic",
         r ? "Events, tips and marketplace" : "Eventi, consigli e mercatino",
@@ -27961,9 +27967,14 @@ function ServiceDeskIcon({ size: t = 22 }) {
 function OffTopicIcon({ size: t = 22 }) {
   return e.jsxs("svg", { width: t, height: t, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", children: [e.jsx("path", { d: "M4 5h16v10H9l-5 4V5Z" }), e.jsx("path", { d: "M8 9h8M8 12h5" })] });
 }
+function CameraIcon({ size: t = 22 }) {
+  return e.jsxs("svg", { width: t, height: t, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", children: [e.jsx("path", { d: "M4 8h3l2-3h6l2 3h3v11H4z" }), e.jsx("circle", { cx: "12", cy: "13", r: "3.5" })] });
+}
 const OffTopicEntry = ["offtopic", "Off topic", OffTopicIcon, "Eventi, consigli e mercatino tra colleghi"];
+const FotoCantiereEntry = ["fotocantiere", "Foto cantiere", CameraIcon, "Scatta e archivia le foto per commessa"];
 function withOffTopic(list) {
-  return list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
+  let out = list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
+  return out.some((V) => V[0] === "fotocantiere") ? out : [...out, FotoCantiereEntry];
 }
 function ServiceDeskScreen({ view: View = "" } = {}) {
   const { viewer: n, language: l } = Y(),
@@ -27971,7 +27982,8 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
     mode = live ? "live" : "demo",
     isChat = View === "chat",
     isAgenda = View === "agenda",
-    isOff = View === "offtopic";
+    isOff = View === "offtopic",
+    isFoto = View === "cantiere";
   if (!live && n && window.ArcheaAuth) {
     const current = window.ArcheaAuth.getDemo();
     (!current || current.id !== n.id) &&
@@ -27985,7 +27997,7 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
         return "";
       }
     })();
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : isOff ? "&view=offtopic&solo=1" : ""}`;
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : isOff ? "&view=offtopic&solo=1" : isFoto ? "&view=cantiere&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [
@@ -27995,9 +28007,11 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           e.jsxs("div", {
             children: [
               e.jsx("small", { children: "ARCHEA PLATFORM" }),
-              e.jsx("h1", { children: isOff ? "Off topic" : isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
+              e.jsx("h1", { children: isFoto ? "Foto cantiere" : isOff ? "Off topic" : isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
               e.jsx("p", {
-                children: isOff
+                children: isFoto
+                  ? `Scatta in cantiere, archivio per commessa · ${live ? "dati reali" : "dimostrativo"}`
+                  : isOff
                   ? `Due chiacchiere tra colleghi · ${live ? "dati reali" : "dimostrativo"}`
                   : isAgenda
                   ? l === "en"
@@ -28024,7 +28038,13 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           }),
         ],
       }),
-      e.jsx("iframe", { className: `servicedesk-frame${isChat ? " chat" : ""}`, title: isChat ? "Chat" : isAgenda ? "Calendario comune" : "Service Desk IT", src }, src),
+      e.jsx("iframe", {
+        className: `servicedesk-frame${isChat ? " chat" : ""}`,
+        title: isChat ? "Chat" : isAgenda ? "Calendario comune" : "Service Desk IT",
+        src,
+        // senza questi permessi il browser blocca fotocamera (scanner etichette, foto cantiere) e posizione
+        allow: "camera; geolocation; clipboard-write; fullscreen",
+      }, src),
     ],
   });
 }
@@ -28520,6 +28540,7 @@ function _v() {
       ["servicedesk", "Service Desk", ServiceDeskIcon, "Inizio, ticket, asset e persone"],
       ["calendario", "Calendario", Wt, "Appuntamenti, sale meeting e auto"],
       ["chat", "Chat", Td, "Messaggi tra colleghi"],
+      FotoCantiereEntry,
       OffTopicEntry,
     ],
     M = withOffTopic(n.live
@@ -28534,7 +28555,7 @@ function _v() {
         ]
       : RoleCatalog),
     q = n.live
-      ? ["servicedesk", "calendario", "chat", "offtopic"]
+      ? ["servicedesk", "calendario", "chat", "fotocantiere", "offtopic"]
       : ITManager
       ? ["servicedesk", "calendario", "chat", "prenota"]
       : Reception
@@ -28587,6 +28608,8 @@ function _v() {
         ? e.jsx(ServiceDeskScreen, {})
         : ie === "offtopic"
         ? e.jsx(ServiceDeskScreen, { view: "offtopic" })
+        : ie === "fotocantiere"
+        ? e.jsx(ServiceDeskScreen, { view: "cantiere" })
         : Reception && ie === "oggi"
         ? e.jsxs(e.Fragment, {
             children: [e.jsx(ReceptionTodayDemo, {}), e.jsx(PersonalAgendaPanel, {})],
@@ -29089,7 +29112,7 @@ function Vv() {
     DeptType = departmentTypeForViewer(n),
     f = ["avanzamento", "contabilita", "insight", "calendario", "bio"],
     g = ["avanzamento", "bio"],
-    b = s === "servicedesk" || s === "offtopic"
+    b = s === "servicedesk" || s === "offtopic" || s === "fotocantiere"
       ? s
       : n && n.live
       ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
@@ -29123,20 +29146,20 @@ function Vv() {
         : s,
     v = n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
     h = n && n.live
-      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico", "offtopic"]
+      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico", "offtopic", "fotocantiere"]
       : ITManager
-      ? ["prenota", "inarchea", "bim", "fornitori", "materioteca", "offtopic"]
+      ? ["prenota", "inarchea", "bim", "fornitori", "materioteca", "offtopic", "fotocantiere"]
       : Reception
-      ? ["prenota", "servicedesk", "fornitori", "materioteca", "offtopic"]
+      ? ["prenota", "servicedesk", "fornitori", "materioteca", "offtopic", "fotocantiere"]
       : HRManager
-      ? ["inarchea", "prenota", "servicedesk", "offtopic"]
+      ? ["inarchea", "prenota", "servicedesk", "offtopic", "fotocantiere"]
       : DepartmentHead
-      ? ["note", DeptType, "departmentmanager", "inarchea", "servicedesk", "offtopic"]
+      ? ["note", DeptType, "departmentmanager", "inarchea", "servicedesk", "offtopic", "fotocantiere"]
       : x
-      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic"]
+      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic", "fotocantiere"]
       : m
-      ? ["servicedesk", "offtopic"]
-      : ["calendario", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic"],
+      ? ["servicedesk", "offtopic", "fotocantiere"]
+      : ["calendario", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic", "fotocantiere"],
     p = v.some(([E]) => E === b) ? b : h.includes(b) ? "altro" : v[0][0],
     y = Math.max(
       0,
@@ -29172,6 +29195,8 @@ function Vv() {
       ? e.jsx(ServiceDeskScreen, { view: "chat" })
       : b === "offtopic"
       ? e.jsx(ServiceDeskScreen, { view: "offtopic" })
+      : b === "fotocantiere"
+      ? e.jsx(ServiceDeskScreen, { view: "cantiere" })
       : Reception && b === "oggi"
       ? e.jsxs(e.Fragment, {
           children: [

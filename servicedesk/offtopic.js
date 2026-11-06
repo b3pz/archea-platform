@@ -64,7 +64,7 @@ function otRenderList() {
         return `<button class="ot-topic" data-ot="${t.id}">
           <span class="chat-avatar">${esc(chatInitials(t.author_nome))}</span>
           <span class="ot-topic-main">
-            <span class="ot-topic-title">${(otState.polls || []).includes(t.id) ? '<em class="ot-poll-tag">Sondaggio</em>' : ''}${t.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${t.locked ? '<em class="ot-lock">Chiuso</em>' : ''}<b>${esc(t.titolo)}</b></span>
+            <span class="ot-topic-title">${(t.immagini || []).length ? `<em class="ot-poll-tag">📷 ${t.immagini.length}</em>` : ''}${(otState.polls || []).includes(t.id) ? '<em class="ot-poll-tag">Sondaggio</em>' : ''}${t.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${t.locked ? '<em class="ot-lock">Chiuso</em>' : ''}<b>${esc(t.titolo)}</b></span>
             <small><span class="ot-cat ${c.cls}">${c.label}</span> · ${esc(t.author_nome || 'Collega')} · ${otWhen(t.created_at)}</small>
           </span>
           <span class="ot-count"><b>${t.replies_count || 0}</b><small>risposte</small><small>${otWhen(t.last_activity_at || t.created_at)}</small></span>
@@ -90,6 +90,7 @@ function otForm() {
         <label>Categoria<select id="otCat">${Object.entries(OT_CATS).map(([k, c]) => `<option value="${k}" ${otState.cat === k ? 'selected' : ''}>${c.label}</option>`).join('')}</select></label>
         <label class="full">Titolo<input id="otTitle" required minlength="3" maxlength="160" placeholder="Es. Calcetto giovedì sera, chi c'è?"></label>
         <label class="full">Messaggio<textarea id="otBodyText" rows="6" required maxlength="8000" placeholder="Scrivi qui…"></textarea></label>
+        <div class="full">${fotoPickerHtml('otPhotos', 'Aggiungi foto')}</div>
         <div class="full ot-poll-box">
           <label class="ot-poll-toggle"><input type="checkbox" id="otPollOn" style="width:auto"> <b>Aggiungi un sondaggio</b> <small>(es. "Che giorno facciamo la festa?")</small></label>
           <div id="otPollFields" class="hidden formgrid">
@@ -105,6 +106,7 @@ function otForm() {
       </form>
     </div>`;
   $('otBack').onclick = otRenderList;
+  const getPhotos = fotoPickerWire('otPhotos');
   setTimeout(() => $('otTitle')?.focus(), 30);
   const addOpt = (val = '') => {
     const n = document.querySelectorAll('#otPollOpts .ot-opt').length + 1;
@@ -127,7 +129,11 @@ function otForm() {
     }
     $('otSave').disabled = true;
     try {
+      const photos = getPhotos();
+      if (photos.length) $('otResult').textContent = `Invio ${photos.length} foto…`;
+      const immagini = photos.length ? await fotoUploadMany('offtopic', photos) : [];
       const rows = await insert('forum_topics', {
+        immagini,
         categoria: $('otCat').value,
         titolo: $('otTitle').value.trim(),
         corpo: $('otBodyText').value.trim(),
@@ -186,6 +192,7 @@ async function otOpen(id) {
         </div>
         <h3>${topic.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${topic.locked ? '<em class="ot-lock">Chiuso</em>' : ''}${esc(topic.titolo)}</h3>
         <div class="ot-text">${otBody(topic.corpo)}</div>
+        ${fotoGridHtml(topic.immagini)}
         ${poll ? otPollHtml(poll, pollOpts, pollVotes, topic) : ''}
         <div class="button-row ot-actions">
           ${canMod ? `<button class="secondary compact" id="otPin">${topic.pinned ? 'Togli evidenza' : 'Metti in evidenza'}</button>
@@ -200,25 +207,32 @@ async function otOpen(id) {
             <div><b>${esc(r.author_nome || 'Collega')}</b><small>${otWhen(r.created_at)}</small></div>
             ${canMod || otMine(r) ? `<button class="text-btn ot-del" data-otdel="${r.id}">Elimina</button>` : ''}
           </div>
-          <div class="ot-text">${otBody(r.corpo)}</div>
+          ${r.corpo && r.corpo !== '📷' ? `<div class="ot-text">${otBody(r.corpo)}</div>` : ''}
+          ${fotoGridHtml(r.immagini, { small: true })}
         </article>`).join('')}
       ${canReply ? `<form id="otReplyForm" class="panel ot-reply">
-          <label>Rispondi<textarea id="otReply" rows="3" required maxlength="8000" placeholder="Scrivi una risposta…"></textarea></label>
-          <button class="primary">Invia risposta</button>
+          <label>Rispondi<textarea id="otReply" rows="3" maxlength="8000" placeholder="Scrivi una risposta…"></textarea></label>
+          ${fotoPickerHtml('otReplyPhotos', 'Aggiungi foto')}
+          <button class="primary" id="otReplySend">Invia risposta</button>
         </form>` : '<p class="muted-line">Questo argomento è chiuso: non si possono aggiungere risposte.</p>'}
     </div>`;
 
   $('otBackList').onclick = offtopicView;
   if (poll) otWirePoll(poll, pollOpts, pollVotes, topic);
+  const getReplyPhotos = fotoPickerWire('otReplyPhotos');
   if ($('otReplyForm')) $('otReplyForm').onsubmit = async e => {
     e.preventDefault();
     const text = $('otReply').value.trim();
-    if (!text) return;
+    const photos = getReplyPhotos();
+    if (!text && !photos.length) return toast('Scrivi qualcosa o aggiungi una foto');
+    $('otReplySend').disabled = true;
     try {
-      await insert('forum_replies', { topic_id: topic.id, corpo: text, author_id: user.id, author_nome: profile?.nome || user.email }, false);
+      const immagini = photos.length ? await fotoUploadMany('offtopic', photos) : [];
+      await insert('forum_replies', { topic_id: topic.id, corpo: text || '📷', immagini, author_id: user.id, author_nome: profile?.nome || user.email }, false);
       otOpen(topic.id);
-    } catch (err) { toast(err.message); }
+    } catch (err) { toast(err.message); $('otReplySend').disabled = false; }
   };
+  fotoHydrate($('content'));
   if ($('otPin')) $('otPin').onclick = async () => { await update('forum_topics', `id=eq.${topic.id}`, { pinned: !topic.pinned }); otOpen(topic.id); };
   if ($('otLock')) $('otLock').onclick = async () => { await update('forum_topics', `id=eq.${topic.id}`, { locked: !topic.locked }); otOpen(topic.id); };
   if ($('otDelTopic')) $('otDelTopic').onclick = () => {

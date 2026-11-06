@@ -1,5 +1,18 @@
 # Changelog
 
+## 1.7.0 — Foto cantiere, foto in Off topic, fotocamera sbloccata
+
+- **Foto cantiere** (per tutti):
+  - scegli o scrivi il cantiere o la commessa (il sito ricorda l'ultimo usato), una nota facoltativa e la posizione GPS se vuoi;
+  - "Scatta foto" apre direttamente la fotocamera del telefono;
+  - le foto vengono ridotte (circa 300–600 KB) e salvate nello **spazio privato "foto" di Supabase Storage**;
+  - l'archivio si sfoglia per cantiere e per giorno, con foto a schermo intero, autore, ora, nota e posizione;
+  - **senza rete** le foto restano in coda sul telefono e partono da sole appena torna la connessione.
+- **Foto in Off topic**: fino a 6 foto per argomento o risposta.
+- **Fotocamera sbloccata nella piattaforma**: il riquadro interno del Service Desk non aveva il permesso per fotocamera e posizione, quindi lo scanner delle etichette non poteva funzionare. Ora funziona.
+- **Corretto**: `SETUP_COMPLETO.sql` rieseguito una seconda volta si bloccava sul permesso delle planimetrie. Ora è provato tre volte di fila senza errori.
+- Migrazione `supabase/migrations/20261106_foto.sql` (bucket privato, regole di accesso, tabella `site_photos`).
+
 ## 1.6.0 — Icona "archea" e telefono più leggibile
 
 - Nuova icona **archea**:

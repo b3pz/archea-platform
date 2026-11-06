@@ -261,6 +261,7 @@
         { group_id: 1, user_id: 'demo-itdesk' }, { group_id: 1, user_id: IT1.id }, { group_id: 1, user_id: IT2.id },
         { group_id: 2, user_id: HR1.id }
       ],
+      site_photos: [],
       forum_polls: [
         { topic_id: 1, domanda: 'Che giorno preferite per la partita?', multipla: false, chiude_at: null, created_at: iso(1, 18) }
       ],
@@ -297,7 +298,7 @@
       var stored = raw ? JSON.parse(raw) : null;
       if (stored && stored._meta && stored.tickets) {
         var fresh = seed(me);
-        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages', 'forum_topics', 'forum_replies', 'access_groups', 'access_group_members', 'forum_polls', 'forum_poll_options', 'forum_poll_votes'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
+        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages', 'forum_topics', 'forum_replies', 'access_groups', 'access_group_members', 'forum_polls', 'forum_poll_options', 'forum_poll_votes', 'site_photos'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
         return stored;
       }
     } catch (e) {}
@@ -670,6 +671,7 @@
     if (path.indexOf('/auth/v1/user') === 0) return { id: me.id, email: me.email };
     if (path.indexOf('/auth/v1/') === 0) throw new Error('In modalità demo l\'accesso avviene dal Workspace.');
 
+    if (path.indexOf('/storage/v1/') === 0) return [];
     if (path.indexOf('/functions/v1/') === 0) {
       var fn = path.slice('/functions/v1/'.length);
       if (fn.indexOf('telegram') === 0) return { ok: true, demo: true };
@@ -690,7 +692,33 @@
     return clone(rest(method, m[1], m[2], body, opts.headers));
   }
 
+  // ---------- foto (in produzione: Supabase Storage). In demo: IndexedDB del browser ----------
+  function idb() {
+    return new Promise(function (resolve, reject) {
+      var r = indexedDB.open('archea-demo-foto', 1);
+      r.onupgradeneeded = function () { r.result.createObjectStore('files'); };
+      r.onsuccess = function () { resolve(r.result); };
+      r.onerror = function () { reject(r.error); };
+    });
+  }
+  function idbOp(mode, fn) {
+    return idb().then(function (d) {
+      return new Promise(function (resolve, reject) {
+        var tx = d.transaction('files', mode), req = fn(tx.objectStore('files'));
+        req.onsuccess = function () { resolve(req.result); };
+        req.onerror = function () { reject(req.error); };
+      });
+    });
+  }
+  var demoUrls = {};
+
   window.SDDemo = {
+    storagePut: function (path, blob) { return idbOp('readwrite', function (st) { return st.put(blob, path); }).then(function () { return path; }); },
+    storageGet: function (path) {
+      if (demoUrls[path]) return Promise.resolve(demoUrls[path]);
+      return idbOp('readonly', function (st) { return st.get(path); }).then(function (b) { return b ? (demoUrls[path] = URL.createObjectURL(b)) : null; });
+    },
+    storageDel: function (path) { return idbOp('readwrite', function (st) { return st.delete(path); }); },
     start: function (account) {
       me = {
         id: account.id ? 'demo-' + account.id : 'demo-user',
