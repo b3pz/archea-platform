@@ -507,7 +507,7 @@ create table if not exists public.access_groups (
 );
 alter table public.access_groups drop constraint if exists access_groups_permessi_validi;
 alter table public.access_groups add constraint access_groups_permessi_validi
-  check (permessi <@ array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe']::text[]);
+  check (permessi <@ array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe', 'gestione_progetti']::text[]);
 
 create table if not exists public.access_group_members (
   group_id   bigint not null references public.access_groups(id) on delete cascade,
@@ -696,7 +696,7 @@ create table if not exists public.floor_plans (
 -- Nuovo permesso: disegnare e modificare le planimetrie
 alter table public.access_groups drop constraint if exists access_groups_permessi_validi;
 alter table public.access_groups add constraint access_groups_permessi_validi
-  check (permessi <@ array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe']::text[]);
+  check (permessi <@ array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe', 'gestione_progetti']::text[]);
 
 create or replace function public.my_permissions()
 returns text[] language sql stable security definer set search_path = public as $$
