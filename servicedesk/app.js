@@ -329,7 +329,7 @@ async function refreshNotifications(){
   const d=await select('notifications',`select=*&user_id=eq.${user.id}&order=created_at.desc&limit=30`);
   const unread=d.filter(n=>!n.is_read).length;
   $('bellCount').textContent=unread;$('bellCount').classList.toggle('hidden',unread===0);
-  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'chat':/appuntamento/i.test(n.title||'')&&!n.ticket_id?'agenda':''}">
+  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'chat':/^off topic/i.test(n.title||'')?'offtopic':/appuntamento/i.test(n.title||'')&&!n.ticket_id?'agenda':''}">
     <b>${esc(n.title)}</b><div>${esc(n.message)}</div><small>${fmt(n.created_at)}</small></div>`).join(''):'<div class="empty">Nessuna notifica</div>';
   document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);else if(x.dataset.chatn)nav(x.dataset.chatn);refreshNotifications()});
 }
@@ -3251,6 +3251,7 @@ const NAV_ICON_PATHS={
   start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
   chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>',
   agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3v3H8z"/>',
+  offtopic:'<path d="M4 5h16v10H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/><circle cx="18.5" cy="5.5" r="2.5"/>',
   room:'<path d="M3 21h18M5 21V6l7-3 7 3v15M9 21v-5h6v5M9 10h.01M15 10h.01"/>',
   car:'<path d="M5 17h14v-5l-2-5H7l-2 5v5Z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/><path d="M5 12h14"/>'
 };
@@ -3289,6 +3290,7 @@ function nav(v){
   if(v==='start')return start();
   if(v==='chat')return chatView();
   if(v==='agenda')return agendaView();
+  if(v==='offtopic')return offtopicView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
@@ -3316,7 +3318,7 @@ function nav(v){
 }
 async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
-$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
+$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');
 if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
 refreshNotifications();

@@ -241,6 +241,17 @@
         { event_id: 1, user_id: IT2.id, risposta: 'ACCETTATO', created_at: iso(5) },
         { event_id: 3, user_id: IT2.id, risposta: 'IN ATTESA', created_at: iso(3) }
       ],
+      forum_topics: [
+        { id: 1, categoria: 'EVENTI', titolo: 'Calcetto giovedì sera, chi c\'è?', corpo: 'Campo prenotato alle 20:30 a Coverciano. Mancano 3 persone!', author_id: IT2.id, author_nome: IT2.nome, pinned: false, locked: false, replies_count: 2, last_activity_at: iso(0, 10), created_at: iso(1, 18) },
+        { id: 2, categoria: 'CONSIGLI', titolo: 'Plugin Revit per le quote automatiche?', corpo: 'Qualcuno usa un plugin che consiglierebbe? Ne ho provati due ma niente di convincente.', author_id: HR1.id, author_nome: 'Sara Galli', pinned: false, locked: false, replies_count: 1, last_activity_at: iso(1, 16), created_at: iso(2, 11) },
+        { id: 3, categoria: 'GENERALE', titolo: 'Regole della sezione Off topic', corpo: 'Spazio libero per tutto lo studio: eventi, consigli, mercatino. Niente dati riservati di lavoro o personali, per quelli ci sono chat e ticket. Grazie!', author_id: IT1.id, author_nome: IT1.nome, pinned: true, locked: true, replies_count: 0, last_activity_at: iso(5, 9), created_at: iso(5, 9) },
+        { id: 4, categoria: 'MERCATINO', titolo: 'Vendo bici da città', corpo: 'Bici in ottimo stato, 21 marce, con cestino. 120 €. Scrivetemi in chat.', author_id: IT1.id, author_nome: IT1.nome, pinned: false, locked: false, replies_count: 0, last_activity_at: iso(3, 12), created_at: iso(3, 12) }
+      ],
+      forum_replies: [
+        { id: 1, topic_id: 1, corpo: 'Io ci sono!', author_id: IT1.id, author_nome: IT1.nome, created_at: iso(1, 19) },
+        { id: 2, topic_id: 1, corpo: 'Porto anche un amico, così siamo in 10.', author_id: HR1.id, author_nome: 'Sara Galli', created_at: iso(0, 10) },
+        { id: 3, topic_id: 2, corpo: 'Prova Ideate Software, la demo è gratuita.', author_id: IT2.id, author_nome: IT2.nome, created_at: iso(1, 16) }
+      ],
       chat_messages: [
         { id: 1, sender_id: IT1.id, recipient_id: IT2.id, body: 'Oggi pomeriggio sostituisco il plotter al 2° piano.', created_at: iso(0, 9), read_at: iso(0, 9) },
         { id: 2, sender_id: IT2.id, recipient_id: IT1.id, body: 'Perfetto, io seguo i nuovi ingressi.', created_at: iso(0, 10), read_at: null }
@@ -266,7 +277,7 @@
       var stored = raw ? JSON.parse(raw) : null;
       if (stored && stored._meta && stored.tickets) {
         var fresh = seed(me);
-        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
+        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages', 'forum_topics', 'forum_replies'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
         return stored;
       }
     } catch (e) {}
@@ -432,6 +443,14 @@
       return wantRows ? clone(hit) : null;
     }
     if (method === 'DELETE') {
+      if (table === 'forum_replies') filtered(table, q).forEach(function (r) {
+        var t1 = rows('forum_topics').find(function (t) { return t.id === r.topic_id; });
+        if (t1) t1.replies_count = Math.max(0, (t1.replies_count || 0) - 1);
+      });
+      if (table === 'forum_topics') {
+        var gone = filtered(table, q).map(function (t) { return t.id; });
+        db.forum_replies = rows('forum_replies').filter(function (r) { return gone.indexOf(r.topic_id) < 0; });
+      }
       var keep = rows(table).filter(function (r) {
         return !q.filters.every(function (f) { return test(r, f.col, f.expr); });
       });
@@ -479,6 +498,16 @@
   function label(t) { return (t.numero_ticket || tkt(t.id)) + ' · ' + (t.oggetto || ''); }
 
   function onInsert(table, r) {
+    if (table === 'forum_replies') {
+      var t0 = rows('forum_topics').find(function (t) { return t.id === r.topic_id; });
+      if (!t0) return;
+      t0.replies_count = (t0.replies_count || 0) + 1;
+      t0.last_activity_at = r.created_at;
+      var people = [t0.author_id].concat(rows('forum_replies').filter(function (x) { return x.topic_id === t0.id; }).map(function (x) { return x.author_id; }));
+      notify(people.filter(function (id) { return id !== r.author_id; }), null, 'Off topic · nuova risposta', (r.author_nome || 'Un collega') + ' ha risposto a "' + String(t0.titolo).slice(0, 80) + '"');
+      return;
+    }
+    if (table === 'forum_topics') { r.replies_count = 0; r.pinned = false; r.locked = false; r.last_activity_at = r.created_at; return; }
     if (table === 'calendar_attendees') {
       var ev = rows('calendar_events').find(function (e) { return e.id === r.event_id; });
       if (ev) notify([r.user_id], null, 'Nuovo appuntamento', (ev.organizer_nome || 'Un collega') + ' ti ha invitato: ' + ev.titolo + ' · ' + fmtShort(ev.start_at));

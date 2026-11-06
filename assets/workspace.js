@@ -14380,6 +14380,12 @@ function Rj() {
         Td,
       ],
       [
+        "offtopic",
+        "Off topic",
+        r ? "Events, tips and marketplace" : "Eventi, consigli e mercatino",
+        OffTopicIcon,
+      ],
+      [
         "bim",
         "BIM Portal",
         r
@@ -27952,12 +27958,20 @@ function DepartmentStudioIcon({ size: t = 22 }) {
 function ServiceDeskIcon({ size: t = 22 }) {
   return e.jsxs("svg", { width: t, height: t, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", children: [e.jsx("rect", { x: "3.5", y: "4.5", width: "17", height: "11", rx: "1.6" }), e.jsx("path", { d: "M9 19.5h6M12 15.5v4M7.5 10l2 2 3.5-4" })] });
 }
+function OffTopicIcon({ size: t = 22 }) {
+  return e.jsxs("svg", { width: t, height: t, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: "1.7", strokeLinecap: "round", strokeLinejoin: "round", children: [e.jsx("path", { d: "M4 5h16v10H9l-5 4V5Z" }), e.jsx("path", { d: "M8 9h8M8 12h5" })] });
+}
+const OffTopicEntry = ["offtopic", "Off topic", OffTopicIcon, "Eventi, consigli e mercatino tra colleghi"];
+function withOffTopic(list) {
+  return list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
+}
 function ServiceDeskScreen({ view: View = "" } = {}) {
   const { viewer: n, language: l } = Y(),
     live = !!(n && n.live),
     mode = live ? "live" : "demo",
     isChat = View === "chat",
-    isAgenda = View === "agenda";
+    isAgenda = View === "agenda",
+    isOff = View === "offtopic";
   if (!live && n && window.ArcheaAuth) {
     const current = window.ArcheaAuth.getDemo();
     (!current || current.id !== n.id) &&
@@ -27971,7 +27985,7 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
         return "";
       }
     })();
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : ""}`;
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : isOff ? "&view=offtopic&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [
@@ -27981,9 +27995,11 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           e.jsxs("div", {
             children: [
               e.jsx("small", { children: "ARCHEA PLATFORM" }),
-              e.jsx("h1", { children: isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
+              e.jsx("h1", { children: isOff ? "Off topic" : isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
               e.jsx("p", {
-                children: isAgenda
+                children: isOff
+                  ? `Due chiacchiere tra colleghi · ${live ? "dati reali" : "dimostrativo"}`
+                  : isAgenda
                   ? l === "en"
                     ? `Meetings, rooms and cars · ${live ? "live" : "demo"}`
                     : `Appuntamenti, sale meeting e auto · ${live ? "dati reali" : "dimostrativo"}`
@@ -28504,8 +28520,9 @@ function _v() {
       ["servicedesk", "Service Desk", ServiceDeskIcon, "Inizio, ticket, asset e persone"],
       ["calendario", "Calendario", Wt, "Appuntamenti, sale meeting e auto"],
       ["chat", "Chat", Td, "Messaggi tra colleghi"],
+      OffTopicEntry,
     ],
-    M = n.live
+    M = withOffTopic(n.live
       ? [
           ...LiveCore,
           ...RoleCatalog.filter((V) => !["servicedesk", "calendario", "chat", "prenota"].includes(V[0])).map((V) => [
@@ -28515,9 +28532,9 @@ function _v() {
             `Anteprima demo · ${V[3]}`,
           ]),
         ]
-      : RoleCatalog,
+      : RoleCatalog),
     q = n.live
-      ? ["servicedesk", "calendario", "chat"]
+      ? ["servicedesk", "calendario", "chat", "offtopic"]
       : ITManager
       ? ["servicedesk", "calendario", "chat", "prenota"]
       : Reception
@@ -28568,6 +28585,8 @@ function _v() {
     R =
       ie === "servicedesk"
         ? e.jsx(ServiceDeskScreen, {})
+        : ie === "offtopic"
+        ? e.jsx(ServiceDeskScreen, { view: "offtopic" })
         : Reception && ie === "oggi"
         ? e.jsxs(e.Fragment, {
             children: [e.jsx(ReceptionTodayDemo, {}), e.jsx(PersonalAgendaPanel, {})],
@@ -29070,7 +29089,7 @@ function Vv() {
     DeptType = departmentTypeForViewer(n),
     f = ["avanzamento", "contabilita", "insight", "calendario", "bio"],
     g = ["avanzamento", "bio"],
-    b = s === "servicedesk"
+    b = s === "servicedesk" || s === "offtopic"
       ? s
       : n && n.live
       ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
@@ -29104,20 +29123,20 @@ function Vv() {
         : s,
     v = n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
     h = n && n.live
-      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico"]
+      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico", "offtopic"]
       : ITManager
-      ? ["prenota", "inarchea", "bim", "fornitori", "materioteca"]
+      ? ["prenota", "inarchea", "bim", "fornitori", "materioteca", "offtopic"]
       : Reception
-      ? ["prenota", "servicedesk", "fornitori", "materioteca"]
+      ? ["prenota", "servicedesk", "fornitori", "materioteca", "offtopic"]
       : HRManager
-      ? ["inarchea", "prenota", "servicedesk"]
+      ? ["inarchea", "prenota", "servicedesk", "offtopic"]
       : DepartmentHead
-      ? ["note", DeptType, "departmentmanager", "inarchea", "servicedesk"]
+      ? ["note", DeptType, "departmentmanager", "inarchea", "servicedesk", "offtopic"]
       : x
-      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"]
+      ? ["ore", "calendario", "insight", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic"]
       : m
-      ? ["servicedesk"]
-      : ["calendario", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico"],
+      ? ["servicedesk", "offtopic"]
+      : ["calendario", "prenota", "servicedesk", "chat", "inarchea", "bim", "visual", "interior", "concept", "fornitori", "materioteca", "abacotecnico", "offtopic"],
     p = v.some(([E]) => E === b) ? b : h.includes(b) ? "altro" : v[0][0],
     y = Math.max(
       0,
@@ -29151,6 +29170,8 @@ function Vv() {
       ? e.jsx(ServiceDeskScreen, {})
       : b === "chat"
       ? e.jsx(ServiceDeskScreen, { view: "chat" })
+      : b === "offtopic"
+      ? e.jsx(ServiceDeskScreen, { view: "offtopic" })
       : Reception && b === "oggi"
       ? e.jsxs(e.Fragment, {
           children: [

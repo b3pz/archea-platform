@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0 — Off topic
+
+- Nuova sezione **Off topic**: ogni utente apre argomenti in 5 categorie (Generale, Eventi, Consigli, Mercatino, Svago) e risponde. Ci sono ricerca e filtri, e i link sono cliccabili.
+- Notifica all'autore e a chi ha già risposto.
+- Moderazione IT: mette in evidenza, chiude alle risposte, elimina. Ognuno può eliminare i propri messaggi.
+- Migrazione `supabase/migrations/20261106_offtopic.sql`.
+
 ## 1.2.1 — Calendario: viste Giorno, Settimana e Mese
 
 - Selettore **Giorno / Settimana / Mese**; la scelta viene ricordata.

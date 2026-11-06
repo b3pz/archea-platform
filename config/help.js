@@ -95,6 +95,11 @@
     agPeopleSearch: 'Scrivi il nome di un collega per trovarlo nell\'elenco.',
     agNotes: 'Ordine del giorno, materiale da portare, altre indicazioni.',
     chatSearch: 'Scrivi il nome di un collega per trovarlo.',
+    otSearch: 'Scrivi una parola per trovare un argomento.',
+    otCat: 'Scegli dove pubblicarlo: aiuta i colleghi a trovarlo.',
+    otTitle: 'Una frase breve e chiara, ad esempio "Calcetto giovedì sera, chi c\'è?".',
+    otBodyText: 'Il messaggio per tutto lo studio. I link che iniziano con https:// diventano cliccabili.',
+    otReply: 'La tua risposta: chi ha aperto l\'argomento e chi ha risposto ricevono una notifica.',
     chatText: 'Scrivi il messaggio. Invio per mandarlo, Maiusc+Invio per andare a capo.'
   };
 

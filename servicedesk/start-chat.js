@@ -12,6 +12,7 @@ const START_ACTIONS = {
   mine:           ['I miei ticket', 'Segui lo stato delle tue richieste', 'mine'],
   booking:        ['Prenota materiale', 'Matterport, iPad, laptop…', 'prenotazioni'],
   chat:           ['Chat', 'Scrivi a un collega o al reparto IT', 'chat'],
+  offtopic:       ['Off topic', 'Eventi, consigli, mercatino: due chiacchiere', 'offtopic'],
   agenda:         ['Calendario comune', 'Appuntamenti, sale e auto di tutti', 'agenda'],
   appt:           ['Fissa un appuntamento', 'Invita i colleghi: ricevono la notifica', 'agenda'],
   room:           ['Prenota sala meeting', 'Controlla se è libera e prenota', 'room'],
@@ -31,9 +32,9 @@ const START_ACTIONS = {
 };
 
 function startActionsForRole() {
-  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'hr-stats', 'new', 'mine'];
-  return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'booking'];
+  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
+  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'hr-stats', 'offtopic', 'new', 'mine'];
+  return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
 }
 
 function greetingWord() {

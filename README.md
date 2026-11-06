@@ -40,6 +40,7 @@ Il database demo è **condiviso tra gli account di prova** nello stesso browser:
 Supabase → **SQL Editor** → New query. Incolla ed esegui (**Run**), in quest'ordine:
 1. `supabase/migrations/20261106_chat.sql`
 2. `supabase/migrations/20261106_calendario.sql`
+3. `supabase/migrations/20261106_offtopic.sql`
 
 Sale e auto si modificano da Supabase → Table Editor → `calendar_resources`.
 
