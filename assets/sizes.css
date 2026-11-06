@@ -1,0 +1,678 @@
+/* GENERATO da tools/genera_sizes.py: testi minuscoli resi leggibili (min ~11px). */
+html .src { font-size: 12px }
+html .foot { font-size: 13px }
+html .chip i { font-size: 13px }
+html .tc-proj { font-size: 13px }
+html .y span { font-size: 12.5px }
+html .bar-col em { font-size: 12.5px }
+html .tabbar button { font-size: 13px }
+html .count { font-size: 13px }
+html .photo-grid figcaption { font-size: 13px }
+html .drawing-thumb>span { font-size: 11.5px }
+html .drawing-info small { font-size: 12.5px }
+html .drawing-info em { font-size: 12.5px }
+html .drawing-count { font-size: 12.5px }
+html .inspection-summary small { font-size: 12px }
+html .inspection-summary em { font-size: 12px }
+html .summary-index { font-size: 13px }
+html .plan-viewer-head small { font-size: 12px }
+html .sync-badge { font-size: 11.5px }
+html .gesture-toolbar>span { font-size: 12.5px }
+html .gesture-toolbar>b { font-size: 12.5px }
+html .gesture-toolbar>button, html .gesture-toolbar>button:nth-child(3) { font-size: 13px }
+html .plan-marker span { font-size: 12px }
+html .plan-hint b { font-size: 13px }
+html .plan-hint small { font-size: 12px }
+html .plan-viewer-foot { font-size: 12px }
+html .plan-action-sheet>small { font-size: 12px }
+html .plan-action-sheet button small { font-size: 13px }
+html .annotation-detail article>small { font-size: 12px }
+html .annotation-detail p { font-size: 13px }
+html .login-card-head>span { font-size: 12px }
+html .login-card form label { font-size: 13px }
+html .login-error { font-size: 13px }
+html .demo-accounts>div small { font-size: 12px }
+html .demo-accounts>button span { font-size: 13px }
+html .demo-accounts>button small { font-size: 12px }
+html .desk-sidebar nav button { font-size: 13px }
+html .desk-demo-dot { font-size: 11px }
+html .desk-user>i { font-size: 12px }
+html .desk-user b { font-size: 12px }
+html .desk-user small { font-size: 11px }
+html .desk-user-menu b { font-size: 12.5px }
+html .desk-user-menu span { font-size: 11px }
+html .desk-user-menu button { font-size: 11.5px }
+html .desk-topbar>div:first-child span { font-size: 12px }
+html .desk-demo-label, html .desk-installed { font-size: 11px }
+html .desk-install { font-size: 11.5px }
+html .desk-heading small, html .desk-panel header small, html .desk-chart header small { font-size: 11px }
+html .desk-heading p { font-size: 12.5px }
+html .desk-primary { font-size: 12px }
+html .desk-stat span { font-size: 11.5px }
+html .desk-panel header strong { font-size: 12.5px }
+html .desk-link { font-size: 11.5px }
+html .desk-row b, html .desk-file-row b { font-size: 12px }
+html .desk-row small, html .desk-file-row small { font-size: 11px }
+html .desk-badge { font-size: 11px }
+html .desk-project-summary span, html .desk-bars span { font-size: 11.5px }
+html .desk-project-summary small, html .desk-bars small { font-size: 11px }
+html .desk-project-summary b, html .desk-bars b { font-size: 11.5px }
+html .desk-empty { font-size: 12px }
+html .desk-segments button { font-size: 11.5px }
+html .desk-search { font-size: 12px }
+html .desk-table th { font-size: 11px }
+html .desk-table td { font-size: 11.5px }
+html .desk-table td small { font-size: 11px }
+html .desk-person i { font-size: 11px }
+html .desk-inspector-title small { font-size: 11px }
+html .desk-inspector-title span { font-size: 11px }
+html .desk-form label, html .desk-entry-form>label, html .desk-site-controls label { font-size: 11px }
+html .desk-form input, html .desk-form select, html .desk-form textarea, html .desk-entry-form input, html .desk-entry-form select, html .desk-entry-form textarea, html .desk-site-controls select { font-size: 12px }
+html .desk-upload b { font-size: 11.5px }
+html .desk-upload small { font-size: 11px }
+html .desk-upload button { font-size: 11px }
+html .desk-check { font-size: 11.5px !important }
+html .desk-site-controls>span { font-size: 11.5px }
+html .desk-small-button { font-size: 11px }
+html .desk-file-row em { font-size: 11px }
+html .desk-site-task b { font-size: 12px }
+html .desk-site-task small { font-size: 11px }
+html .desk-status-chart b { font-size: 11.5px }
+html .desk-status-chart span { font-size: 11px }
+html .desk-donut small { font-size: 11px }
+html .desk-legend span { font-size: 11.5px }
+html .desk-footer { font-size: 11px }
+@media (max-width:979px) {
+  html .glass-prototype .glass-tabbar button { font-size: 12px }
+}
+html .event-row time small { font-size: 12px }
+html .community-row>span { font-size: 12.5px }
+@media (max-width:390px) {
+  html .tabbar button { font-size: 12px }
+}
+html .d-proj { font-size: 13px }
+html .dataset-summary small { font-size: 13px }
+html .account-total small { font-size: 12.5px }
+html .account-kpis small { font-size: 12.5px }
+html .contract-file small { font-size: 13px }
+html .contract-file button { font-size: 13px }
+html .payment-main small, html .paid-date { font-size: 13px }
+html .payment-status { font-size: 12.5px }
+html .payment-values small { font-size: 12px }
+html .cost-list small { font-size: 13px }
+html .cost-list .cost-detail { font-size: 13px }
+html .property-title small { font-size: 12.5px }
+html .breadcrumbs { font-size: 12.5px }
+html .mini-statuses i { font-size: 12px }
+html .hours-badge { font-size: 12.5px }
+html .member-avatar { font-size: 13px }
+html .bio-contract small { font-size: 12.5px }
+html .bio-contract button { font-size: 13px }
+html .embedded-title small { font-size: 12px }
+html .studio-finance-list>button>div:nth-child(2) small { font-size: 11.5px }
+html .studio-finance-list>button>div:nth-child(2) b { font-size: 13px }
+html .finance-projects small { font-size: 12px }
+html .finance-projects span:not(:first-child) b { font-size: 13px }
+html .project-page-title small { font-size: 12px }
+html .followed-projects article small { font-size: 12px }
+html .insight-total>small { font-size: 12px }
+html .insight-total>div { font-size: 12.5px }
+html .insight-kpis small { font-size: 12.5px }
+html .insight-kpis span { font-size: 12px }
+html .insight-heading p { font-size: 13px }
+html .chart-legend { font-size: 12px }
+html .insight-chart article header b { font-size: 13px }
+html .insight-chart article header span { font-size: 12px }
+html .insight-leaders small { font-size: 11.5px }
+html .insight-leaders b { font-size: 13px }
+html .insight-ranking article>span { font-size: 12.5px }
+html .insight-ranking article>div b { font-size: 13px }
+html .insight-ranking article>div small { font-size: 11.5px }
+html .insight-ranking article>strong { font-size: 13px }
+html .portal-title small, html .visual-title small { font-size: 11.5px }
+html .bim-feature small { font-size: 11.5px }
+html .bim-feature p { font-size: 12.5px }
+html .bim-feature>button { font-size: 12.5px }
+html .bim-list article>button small { font-size: 11.5px }
+html .bim-code { font-size: 12.5px }
+html .bim-list article>div p { font-size: 13px }
+html .visual-kpis article span { font-size: 12px }
+html .visual-project small { font-size: 12px }
+html .render-number small, html .visual-due small { font-size: 11px }
+html .visual-due b { font-size: 12.5px }
+html .visual-assignment small { font-size: 11px }
+html .visual-assignment b { font-size: 12px }
+html .visual-status { font-size: 11.5px }
+html .visual-detail small { font-size: 11px }
+html .visual-detail p { font-size: 13px }
+@media (max-width:979px) {
+  html .today-team-filters .avatar, html .today-team-filters .team-filter { font-size: 12px }
+  html .today-team-filters .team-filter.all { font-size: 11px }
+}
+html .notification-button>span { font-size: 11px }
+html .notification-summary span { font-size: 13px }
+html .notification-card small { font-size: 11px }
+html .notification-card p { font-size: 12.5px }
+html .notification-action { font-size: 12px }
+html .ring-graphic small { font-size: 11px }
+html .insight-ring>strong { font-size: 12.5px }
+html .archeai-feature-copy>small { font-size: 11px }
+html .archeai-feature-copy>p { font-size: 12.5px }
+html .archeai-intro p { font-size: 13px }
+html .archeai-suggestions button { font-size: 13px }
+html .archeai-bubble { font-size: 13px }
+html .archeai-bubble small { font-size: 11.5px }
+html .manager-insight-title>span { font-size: 11px }
+html .manager-insight-periods button { font-size: 12.5px }
+html .manager-insight-kpis small { font-size: 12px }
+html .manager-insight-kpis span { font-size: 11.5px }
+html .manager-trend-legend { font-size: 11.5px }
+html .manager-trend-labels { font-size: 11px }
+html .manager-pressure article>span b { font-size: 12px }
+html .manager-pressure article>span small { font-size: 11px }
+html .manager-pressure article>strong { font-size: 12px }
+html .manager-status-donut small { font-size: 11px }
+html .manager-status p { font-size: 11.5px }
+html .manager-team article>span { font-size: 11.5px }
+html .manager-team article>div b { font-size: 12.5px }
+html .manager-team article>strong { font-size: 12px }
+html .manager-deadlines span { font-size: 12px }
+html .desk-select-field { font-size: 11px }
+html .desk-select-trigger { font-size: 12px }
+html .desk-modal>header small { font-size: 11px }
+html .desk-modal>header p { font-size: 12px }
+html .desk-modal-search { font-size: 12.5px }
+html .desk-select-options b { font-size: 12px }
+html .desk-select-options small { font-size: 11px }
+html .desk-upload-action { font-size: 11px }
+html .desk-image-strip small { font-size: 11px }
+html .desk-priority { font-size: 11px }
+html .desk-hour-counter>span { font-size: 11px }
+html .desk-hour-counter b small { font-size: 12.5px }
+html .desk-hour-counter>small { font-size: 11px }
+html .desk-date-nav input { font-size: 11.5px }
+html .desk-hour-bars b { font-size: 11px }
+html .desk-hour-bars small { font-size: 11px }
+html .desk-recent-hours time { font-size: 11px }
+html .desk-recent-hours b { font-size: 11.5px }
+html .desk-recent-hours small { font-size: 11px }
+html .desk-recent-hours strong { font-size: 11.5px }
+html .desk-project-grid header small { font-size: 11px }
+html .project-state { font-size: 11px }
+html .desk-project-grid>button>div small { font-size: 11px }
+html .desk-project-grid footer { font-size: 11px }
+html .desk-back { font-size: 11.5px }
+html .desk-note-row b { font-size: 11.5px }
+html .desk-note-row small { font-size: 11px }
+html .desk-note-row p { font-size: 11.5px }
+html .desk-project-picker small { font-size: 11px }
+html .desk-project-picker b { font-size: 12.5px }
+html .desk-note-list article i { font-size: 11px }
+html .desk-note-list article b { font-size: 11.5px }
+html .desk-note-list article time { font-size: 11px }
+html .desk-note-list article p { font-size: 12px }
+html .desk-note-list article>button { font-size: 11px }
+html .desk-new-note label { font-size: 11px }
+html .desk-new-note textarea { font-size: 12.5px }
+html .desk-new-note>div>button:not(.desk-primary) { font-size: 11.5px }
+html .desk-more-grid b { font-size: 12.5px }
+html .desk-more-grid small { font-size: 11px }
+html .desk-archeai-fab>span { font-size: 11px }
+html .desk-line-chart>div:last-child span { font-size: 11px }
+html .desk-status-donuts small { font-size: 11px }
+html .desk-triple-metric span, html .desk-deadline-grid span { font-size: 11px }
+html .desk-progress-summary span { font-size: 11px }
+html .desk-finance-kpis span { font-size: 11px }
+html .desk-chart.movable header strong { font-size: 11px }
+html .desk-account-project-title small { font-size: 11px }
+html .desk-contract-file b { font-size: 12px }
+html .desk-contract-file small { font-size: 11px }
+html .desk-client-data dt { font-size: 11px }
+html .desk-client-data dd { font-size: 11.5px }
+html .desk-cost-table>div { font-size: 11.5px }
+html .desk-cost-table small { font-size: 11px }
+html .desk-muted-label { font-size: 11px }
+html .desk-payment-table>div>span { font-size: 11px }
+html .desk-payment-status { font-size: 11px }
+html .desk-account-total small { font-size: 11px }
+html .desk-studio-account-grid header small { font-size: 11px }
+html .desk-studio-account-grid>button>div small { font-size: 11px }
+html .desk-studio-account-grid>button>div b { font-size: 12.5px }
+html .desk-studio-account-grid footer { font-size: 11px }
+html .desk-calendar-toolbar button { font-size: 11.5px }
+html .desk-calendar-toolbar>span { font-size: 11px }
+html .desk-calendar>header span { font-size: 11px }
+html .desk-calendar-day { font-size: 11.5px }
+html .desk-calendar-event span { font-size: 11px }
+html .desk-more-events { font-size: 11px }
+html .desk-event-form>label, html .desk-event-form .desk-form-row>label { font-size: 11px }
+html .desk-event-form input { font-size: 12px }
+html .desk-modal-actions>button:not(.desk-primary) { font-size: 11.5px }
+html .desk-chat-search input { font-size: 11.5px }
+html .desk-chat>aside button>i, html .desk-chat-thread>header>i { font-size: 11px }
+html .desk-chat>aside button b { font-size: 11.5px }
+html .desk-chat>aside button small { font-size: 11px }
+html .desk-chat-thread>header b { font-size: 12px }
+html .desk-chat-thread>header small { font-size: 11px }
+html .desk-message p { font-size: 12px }
+html .desk-chat-empty b { font-size: 12.5px }
+html .desk-chat-empty span { font-size: 11px }
+html .desk-chat-thread>form input { font-size: 12px }
+html .desk-chat-thread>form button { font-size: 11.5px }
+html .desk-mini-week b { font-size: 11px }
+html .desk-mini-week small { font-size: 11px }
+html .desk-home-status small { font-size: 11px }
+html .desk-home-status p { font-size: 11px }
+html .desk-home-metrics span { font-size: 11px }
+html .desk-notification-button>i { font-size: 11px }
+html .desk-notification-popover header small { font-size: 11px }
+html .desk-notification-popover article small { font-size: 11px }
+html .desk-notification-popover article b { font-size: 11.5px }
+html .desk-notification-popover article p { font-size: 11px }
+html .desk-resource-list>button>i { font-size: 11px }
+html .desk-resource-list b { font-size: 12px }
+html .desk-resource-list small { font-size: 11px }
+html .desk-resource-list em { font-size: 11px }
+html .desk-bim-manual small { font-size: 11px }
+html .desk-bim-manual p { font-size: 11.5px }
+html .desk-guide-table>button>i { font-size: 11px }
+html .desk-guide-table b { font-size: 11.5px }
+html .desk-guide-table small, html .desk-guide-table em { font-size: 11px }
+html .desk-event-form textarea { font-size: 12px }
+html .desk-community-report small { font-size: 11px }
+html .desk-community-report p { font-size: 12px }
+html .desk-community-events i { font-size: 11px }
+html .desk-community-events b { font-size: 11.5px }
+html .desk-community-events small { font-size: 11px }
+html .desk-community-events button { font-size: 11px }
+html .desk-poll-options button { font-size: 11.5px }
+html .desk-saved { font-size: 11px }
+html .desk-task-filters>label:last-child { font-size: 11px }
+html .desk-flow-dot { font-size: 11.5px }
+html .desk-task-flow>header small { font-size: 11px }
+html .desk-task-flow>header b { font-size: 11px }
+html .desk-task-flow>div i { font-size: 11px }
+html .desk-task-flow>div b { font-size: 11px }
+html .desk-task-flow>p { font-size: 11px }
+html .desk-review-button { font-size: 11px }
+html .desk-delete-button { font-size: 11.5px }
+html .desk-delete-confirm p { font-size: 12px }
+html .desk-delete-confirm>div>button:not(.desk-delete-button) { font-size: 11.5px }
+html .desk-user-time b { font-size: 11.5px }
+html .desk-work-clock span { font-size: 11px }
+html .desk-user-menu .desk-work-clock button { font-size: 11px }
+html .desk-property-studios header small { font-size: 11px }
+html .desk-property-studios>button>div small { font-size: 11px }
+html .desk-property-studios footer { font-size: 11px }
+html .desk-property-toolbar>span { font-size: 11px }
+html .desk-property-members>button>i { font-size: 11px }
+html .desk-property-members>button b { font-size: 11.5px }
+html .desk-property-members>button small { font-size: 11px }
+html .desk-person-identity p, html .desk-member-project p { font-size: 11.5px }
+html .desk-task-proposal small { font-size: 11px }
+html .desk-task-proposal b { font-size: 12px }
+html .desk-task-proposal p { font-size: 11px }
+html .desk-settings-button { font-size: 11.5px }
+html .desktop-app.compact-menu .desk-sidebar nav button { font-size: 12.5px }
+html .desk-status-ring small, html .desk-project-progress-ring small { font-size: 11px }
+html .desk-priority-bars>div { font-size: 11.5px }
+html .desk-project-task-filters>span { font-size: 11px }
+html .desk-project-task-detail small { font-size: 11px }
+html .desk-project-task-detail b, html .desk-project-task-detail p { font-size: 12px }
+html .desk-pm-project-list b { font-size: 11.5px }
+html .desk-pm-project-list small { font-size: 11px }
+html .desk-pm-hero>p { font-size: 11.5px }
+html .desk-pm-status>small { font-size: 11px }
+html .desk-pm-status button { font-size: 11px }
+html .desk-pm-team>button>i { font-size: 11px }
+html .desk-pm-team b { font-size: 11.5px }
+html .desk-pm-team small { font-size: 11px }
+html .desk-pm-team em { font-size: 11px }
+html .desk-settings>nav button { font-size: 11.5px }
+html .desk-settings-content>header small, html .desk-settings-form .sub small { font-size: 11px }
+html .desk-settings-content>header p, html .desk-settings-form .sub p { font-size: 11.5px }
+html .desk-menu-config b { font-size: 11.5px }
+html .desk-menu-config small { font-size: 11px }
+html .desk-menu-config article>button { font-size: 11px }
+html .desk-menu-order button { font-size: 13px }
+html .desk-settings-form>label, html .desk-settings-form .desk-form-row>label { font-size: 11px }
+html .desk-settings-form input, html .desk-settings-form select, html .desk-event-form select { font-size: 12px }
+html .desk-profile-projects b { font-size: 11px }
+html .desk-profile-projects small { font-size: 11px }
+html .desk-setting-options b { font-size: 11.5px }
+html .desk-setting-options small { font-size: 11px }
+html .desk-safari-tip b, html .desk-install-guide b { font-size: 11.5px }
+html .desk-safari-tip p, html .desk-install-guide p { font-size: 11px }
+html .desk-widget-sizer button { font-size: 11px }
+html .desk-widget-add { font-size: 11px }
+html .desk-widget-library b { font-size: 11.5px }
+html .desk-widget-library small { font-size: 11px }
+html .desk-widget-library i { font-size: 13px }
+html .desk-radar text { font-size: 11px }
+html .desk-radar-summary>div { font-size: 11px }
+html .desk-radar-summary b { font-size: 13px }
+html .desk-project-note-detail>header i { font-size: 11px }
+html .desk-project-note-detail time, html .desk-project-note-detail footer small { font-size: 11px }
+html .desk-project-note-detail article { font-size: 12.5px }
+html .desk-pm-project-main b { font-size: 12px }
+html .desk-pm-project-main small { font-size: 11px }
+html .desk-pm-project-list .project-state { font-size: 11px }
+html .desk-pm-team-panel>header .desk-primary { font-size: 11px }
+html .desk-settings-button { font-size: 13px }
+html .desktop-app.compact-menu .desk-settings-button { font-size: 12.5px }
+html .desk-pm-project-grid .desk-pm-project-main small { font-size: 11px }
+html .desk-pm-project-grid .desk-pm-project-main b { font-size: 12px }
+html .desk-pm-project-grid .desk-pm-project-main span { font-size: 11px }
+html .desk-pm-project-grid .project-state { font-size: 11px }
+html .desk-panel-intro { font-size: 11px }
+html .desk-pm-team>article>button:first-child>i { font-size: 11px }
+html .desk-pm-team>article>button:first-child b { font-size: 11.5px }
+html .desk-pm-team>article>button:first-child small { font-size: 11px }
+html .desk-pm-team>article>button:first-child em { font-size: 11px }
+html .desk-delete-project { font-size: 11px }
+html .desk-pm-team-panel>header .desk-primary { font-size: 12px }
+html .desk-developer-button { font-size: 13px }
+html .desktop-app.compact-menu .desk-developer-button { font-size: 12.5px }
+html .desk-auto-task-code span { font-size: 11px }
+html .desk-auto-task-code small { font-size: 11px }
+html .desk-flow-dot { font-size: 12px }
+html .desk-empty-state b { font-size: 13px }
+html .desk-empty-state span { font-size: 11.5px }
+html .desk-text-scale-setting em { font-size: 11px }
+html .desk-heading>:is(.desk-small-button,.desk-primary), html .desk-heading-actions>:is(.desk-small-button,.desk-primary,.desk-widget-add) { font-size: 11px }
+html .widget-small.desk-work-status .desk-radar-summary span { font-size: 11px }
+html .desk-accounting-snapshot>header small { font-size: 11px }
+html .desk-accounting-snapshot>header>span { font-size: 11px }
+html .desk-accounting-snapshot article span { font-size: 11.5px }
+html .desk-accounting-snapshot article small { font-size: 11px }
+html .demo-accounts button span em { font-size: 11px }
+html .dev-console-title b { font-size: 12.5px }
+html .dev-console>aside nav button { font-size: 11.5px }
+html .dev-console>aside nav button>i { font-size: 11px }
+html .dev-owner>i { font-size: 11px }
+html .dev-owner b { font-size: 11px }
+html .dev-heading small { font-size: 11px }
+html .dev-heading p { font-size: 11.5px }
+html .dev-primary { font-size: 11px }
+html .dev-live { font-size: 11px }
+html .dev-stat>span { font-size: 11px }
+html .dev-stat>small { font-size: 11px }
+html .dev-panel>header>button { font-size: 11px }
+html .dev-panel>header>span { font-size: 11px }
+html .dev-services b { font-size: 11px }
+html .dev-services small { font-size: 11px }
+html .dev-services strong { font-size: 11px }
+html .dev-error-compact b { font-size: 11px }
+html .dev-error-compact small { font-size: 11px }
+html .dev-error-compact em { font-size: 11px }
+html .dev-audit-preview b { font-size: 11px }
+html .dev-release>div b { font-size: 11.5px }
+html .dev-release>div small { font-size: 11px }
+html .dev-release footer { font-size: 11px }
+html .dev-filterbar button { font-size: 11px }
+html .dev-table td { font-size: 11px }
+html .dev-table td>b { font-size: 11px }
+html .dev-user-tools input { font-size: 11px }
+html .dev-user-tools>div { font-size: 11px }
+html .dev-user-cell>i { font-size: 11px }
+html .dev-modal>header small { font-size: 11px }
+html .dev-modal>header p { font-size: 11px }
+html .dev-error-detail b, html .dev-error-detail p { font-size: 11.5px }
+html .dev-error-detail code { font-size: 11px }
+html .dev-modal-actions button { font-size: 11px }
+html .dev-master-note b { font-size: 11.5px }
+html .dev-master-note small { font-size: 11px }
+html .dev-form-grid label { font-size: 11px }
+html .dev-form-grid input, html .dev-form-grid select { font-size: 11.5px }
+html .dev-permission-grid>div>span b { font-size: 11px }
+html .dev-permission-grid button i { font-size: 11px }
+html .dev-security-callout b { font-size: 11.5px }
+html .dev-security-callout p { font-size: 11px }
+html .dev-audit-list time, html .dev-audit-list small, html .dev-audit-list p, html .dev-audit-list em { font-size: 11px }
+html .dev-audit-list b, html .dev-audit-list strong { font-size: 11px }
+html .dev-flags b { font-size: 11px }
+html .dev-flags small { font-size: 11px }
+html .dev-system-info dt { font-size: 11px }
+html .dev-system-info dd { font-size: 11px }
+html .dev-danger button b { font-size: 11px }
+html .dev-danger button small { font-size: 11px }
+html .dev-denied p { font-size: 11.5px }
+html .widget-small.desk-work-status .desk-radar-summary span { font-size: 11px }
+html .today-agenda-times span { font-size: 11px }
+html .agenda-event b { font-size: 11.5px }
+html .agenda-event span, html .agenda-event small { font-size: 11px }
+html .agenda-personal-label { font-size: 12px }
+html .mobile-today-agenda .agenda-event b { font-size: 12.5px }
+html .mobile-today-agenda .agenda-event span, html .mobile-today-agenda .agenda-event small { font-size: 11.5px }
+html .login-watermark { font-size: 11.5px }
+html .login-watermark span:first-child { font-size: 11px }
+html .v143-agenda>aside span { font-size: 11px }
+html .v143-agenda time { font-size: 11px }
+html .v143-agenda button b { font-size: 11.5px }
+html .v143-agenda button span { font-size: 11px }
+html .v143-modal header small { font-size: 11px }
+html .v143-modal footer button { font-size: 11.5px }
+html .v143-form label { font-size: 11px }
+html .v143-toolbar button { font-size: 11px }
+html .v143-month>header span { font-size: 11px }
+html .v143-month article>button:first-child { font-size: 11.5px }
+html .v143-chip span { font-size: 11px }
+html .v143-week-body aside span { font-size: 11px }
+html .v143-week-body b { font-size: 11px }
+html .v143-note small { font-size: 11px }
+html .v143-task-filters label span { font-size: 11px }
+html .v143-task-filters select { font-size: 11px }
+html .v143-more { font-size: 11px }
+html .v143-hr-kpi small { font-size: 11px }
+html .v143-hr-kpi span { font-size: 11px }
+html .v143-hr-grid header small { font-size: 11px }
+html .v143-hr-grid>section>label { font-size: 11px }
+html .v143-toolbar button { font-size: 11.5px !important }
+html .v143-month>header span { font-size: 11px !important }
+html .v143-month .v143-date-number { font-size: 12px !important }
+html .v143-chip time { font-size: 11px !important }
+html .v143-chip span { font-size: 11px !important }
+html .v143-more-events { font-size: 11px !important }
+html .v143-week>header>span { font-size: 11px }
+html .v143-week>header button small { font-size: 11px !important }
+html .v143-all-day>span { font-size: 11px }
+html .v143-all-day button { font-size: 11px }
+html .v143-week-body aside span { font-size: 11px !important }
+html .v143-week-body time { font-size: 11px !important }
+html .v143-week-body b { font-size: 11px !important }
+html .v143-week-body small { font-size: 11px !important }
+html .v143-day>header small { font-size: 11px !important }
+html .v143-agenda time { font-size: 11px !important }
+html .v143-agenda button b { font-size: 12px !important }
+html .v143-agenda button span { font-size: 11px !important }
+html .v143-task-filters select { font-size: 11.5px !important }
+@media (max-width:979px) {
+  html .v143-month>header span { font-size: 11px !important }
+  html .v143-month .v143-date-number { font-size: 11px !important }
+}
+html .aps-wordmark span { font-size: 11px }
+html .aps-nav nav button { font-size: 13px }
+html .aps-nav-foot { font-size: 11px }
+html .aps-top small { font-size: 11px }
+html .aps-role { font-size: 11.5px }
+html .aps-heading p { font-size: 12.5px }
+html .aps-primary, html .aps-secondary, html .aps-link { font-size: 11.5px }
+html .aps-project-select span, html .aps-filterbar label>span { font-size: 11px }
+html .aps-project-select select, html .aps-filterbar select { font-size: 11.5px }
+html .aps-stat small { font-size: 11px }
+html .aps-stat span { font-size: 11px }
+html .aps-panel>header small { font-size: 11px }
+html .aps-status { font-size: 11px }
+html .aps-ring small { font-size: 11px }
+html .aps-health-lines p { font-size: 11px }
+html .aps-project-list b { font-size: 12px }
+html .aps-project-list small { font-size: 11px }
+html .aps-project-list strong { font-size: 11.5px }
+html .aps-capacity-bars span { font-size: 11.5px }
+html .aps-capacity-bars small { font-size: 11px }
+html .aps-capacity-bars b { font-size: 11px }
+html .aps-segments button { font-size: 11px }
+html .aps-table { font-size: 11px }
+html .aps-table th { font-size: 11px }
+html .aps-table td b { font-size: 11.5px }
+html .aps-table td small { font-size: 11px }
+html .aps-wbs { font-size: 11px }
+html .aps-progress b { font-size: 11px !important }
+html .aps-gantt-labels header { font-size: 11px }
+html .aps-gantt-labels button span { font-size: 11px }
+html .aps-gantt-canvas>header span { font-size: 11px }
+html .aps-gantt-bar>span { font-size: 11px }
+html .aps-board>section>header { font-size: 11.5px }
+html .aps-board>section>header b { font-size: 11px }
+html .aps-board button small { font-size: 11px }
+html .aps-board button b { font-size: 11.5px }
+html .aps-board button span { font-size: 11px }
+html .aps-legend { font-size: 11px }
+html .aps-capacity-head { font-size: 11px }
+html .aps-capacity-table>button b { font-size: 11.5px }
+html .aps-capacity-table>button small { font-size: 11px }
+html .aps-capacity-table>button>i { font-size: 11px }
+html .aps-request-list b { font-size: 11.5px }
+html .aps-request-list small { font-size: 11px }
+html .aps-request-list em { font-size: 11px }
+html .aps-donut-set small { font-size: 11px }
+html .aps-baseline-banner small { font-size: 11px }
+html .aps-baseline-banner>span:nth-child(2), html .aps-baseline-banner em { font-size: 11px }
+html .aps-variance { font-size: 11px }
+html .aps-share-grid small { font-size: 11px }
+html .aps-share-grid b { font-size: 13px }
+html .aps-share-grid p { font-size: 11px }
+html .aps-share-grid em { font-size: 11px }
+html .aps-governance b { font-size: 11.5px }
+html .aps-governance span { font-size: 11px }
+html .aps-dialog>header small { font-size: 11px }
+html .aps-dialog>header p { font-size: 11.5px }
+html .aps-cancel { font-size: 11.5px }
+html .aps-form-grid label { font-size: 11px }
+html .aps-form-grid input, html .aps-form-grid select { font-size: 11.5px }
+html .aps-resource-detail small { font-size: 11px }
+html .aps-resource-detail b { font-size: 13px }
+html .aps-resource-detail span { font-size: 11px }
+html .aps-toast { font-size: 11.5px }
+html .aps-desktop-launcher { font-size: 13px !important }
+@media (max-width:900px) {
+  html .aps-top>div:first-child b { font-size: 13px }
+  html .aps-heading p { font-size: 12px }
+  html .aps-table { font-size: 11px }
+  html .aps-gantt-labels button span { font-size: 11px }
+}
+html .aps-role { font-size: 11px }
+html .aps-group-row td { font-size: 11px }
+html .aps-group-row b { font-size: 11px !important }
+html .aps-mini { font-size: 11px }
+html .aps-copy { font-size: 11.5px }
+html .aps-studio-finance span b { font-size: 11.5px }
+html .aps-studio-finance span small { font-size: 11px }
+html .aps-studio-finance strong { font-size: 11.5px }
+html .aps-payment { font-size: 11px !important }
+html .aps-permission-matrix table { font-size: 11px }
+html .aps-permission-matrix td.yes { font-size: 12.5px }
+html .aps-profile-grid b { font-size: 11.5px }
+html .aps-profile-grid small { font-size: 11px }
+html .aps-login-accounts header small { font-size: 11px }
+html .aps-login-accounts header b { font-size: 13px }
+html .aps-login-accounts header span { font-size: 11px }
+html .aps-login-accounts button b { font-size: 11px }
+html .aps-login-accounts button>b { font-size: 11.5px }
+html .aps-login-accounts button>small { font-size: 11px }
+html .aps-project-select span, html .aps-filterbar label>span { font-size: 11px }
+html .aps-project-select select, html .aps-filterbar select { font-size: 12.5px }
+html .aps-select-search { font-size: 12px }
+html .aps-select-options button b { font-size: 11.5px }
+html .aps-select-options button i { font-size: 12px }
+html .aps-gantt-bar>span.aps-gantt-value { font-size: 11px }
+html .aps-desktop-launcher>i { font-size: 12px }
+html .aps-desktop-subnav button { font-size: 13px !important }
+html .aps-select-options button b { font-size: 12px }
+html .aps-select-options button small { font-size: 11px }
+html .aps-filterbar select { font-size: 12px }
+html .aps-gantt-bar>span.aps-gantt-value { font-size: 11.5px }
+html .aps-top>div:first-child span { font-size: 11.5px }
+html .desk-excel-setting .desk-primary { font-size: 12px }
+html .demo-account-picker .desk-select-field>span { font-size: 11px }
+html .material-photo-upload { font-size: 11px }
+html .department-request-list small { font-size: 11px }
+html .department-request-list b { font-size: 11.5px }
+html .department-request-list em { font-size: 11px }
+html .department-project b { font-size: 12.5px }
+html .department-status { font-size: 11px }
+html .department-agenda article>i { font-size: 11px }
+html .department-agenda b { font-size: 12px }
+html .department-agenda small { font-size: 11px }
+html .department-agenda time { font-size: 11px }
+html .department-project-grid header small { font-size: 11px }
+html .department-project-grid header span { font-size: 11px }
+html .department-project-grid article>div small { font-size: 11px }
+html .department-project-grid footer { font-size: 11px }
+html .department-team article>i { font-size: 11px }
+html .department-team b { font-size: 11.5px }
+html .department-team small, html .department-team em { font-size: 11px }
+@media (max-width:979px) {
+  html .material-photo-upload { font-size: 12.5px }
+  html .department-request-list small { font-size: 11.5px }
+  html .department-request-list b { font-size: 13px }
+  html .department-request-list em { font-size: 12px }
+}
+html .studio-tool-heading small { font-size: 11px }
+html .studio-tool-heading p { font-size: 12px }
+html .studio-tool-heading .desk-primary, html .site-minutes-ai .desk-primary { font-size: 11.5px }
+html .read-only-badge { font-size: 11px }
+html .supplier-card small { font-size: 11px }
+html .supplier-card p { font-size: 11.5px }
+html .supplier-card>div>span { font-size: 11px }
+html .supplier-open { font-size: 11px }
+html .supplier-identity p { font-size: 11.5px }
+html .supplier-info-grid small, html .technical-detail small { font-size: 11px }
+html .supplier-info-grid b { font-size: 12.5px }
+html .supplier-info-grid span { font-size: 11.5px }
+html .studio-detail-columns h3 { font-size: 12.5px }
+html .studio-doc-row { font-size: 11px }
+html .studio-edit-grid label { font-size: 11px }
+html .studio-edit-grid input, html .studio-edit-grid textarea, html .studio-edit-grid select { font-size: 11.5px }
+html .studio-edit-grid .desk-primary { font-size: 11px }
+html .material-card small { font-size: 11px }
+html .material-card b { font-size: 13px }
+html .material-card em, html .material-card i { font-size: 11px }
+html .material-detail-copy p { font-size: 11.5px }
+html .material-spec-grid small { font-size: 11px }
+html .material-spec-grid b { font-size: 11.5px }
+html .technical-atlas header small { font-size: 11px }
+html .technical-atlas header p { font-size: 11.5px }
+html .technical-atlas header>span { font-size: 11px }
+html .technical-hotspot i { font-size: 11.5px }
+html .technical-hotspot span { font-size: 11px }
+html .technical-atlas>footer { font-size: 11px }
+html .technical-detail h3 { font-size: 13px }
+html .technical-detail p { font-size: 11.5px }
+html .technical-detail b { font-size: 11.5px }
+html .technical-detail li { font-size: 11px }
+html .site-minutes-ai header small { font-size: 11px }
+html .site-minutes-ai header p { font-size: 11.5px }
+html .minutes-source>span { font-size: 12.5px }
+html .minutes-source b { font-size: 11.5px }
+html .minutes-source small { font-size: 11px }
+html .minutes-summary h3, html .minutes-task-head h3 { font-size: 13px }
+html .minutes-summary>p { font-size: 11.5px }
+html .minutes-summary span { font-size: 11px }
+html .minutes-task-head p { font-size: 11px }
+html .minutes-task-list b { font-size: 11.5px }
+html .minutes-task-list small { font-size: 11px }
+html .reception-timeline time { font-size: 12px }
+html .reception-timeline b { font-size: 11.5px }
+html .reception-timeline small { font-size: 11px }
+html .reception-rooms b { font-size: 11.5px }
+html .reception-rooms small { font-size: 11px }
+html .reception-rooms em { font-size: 11px }
+html .parcel-status { font-size: 11px }
+@media (max-width:979px) {
+  html .studio-tool-heading small { font-size: 11.5px }
+  html .minutes-task-list small { font-size: 12px }
+  html .minutes-summary span { font-size: 12.5px }
+  html .reception-timeline small, html .reception-rooms small { font-size: 12px }
+  html .package-table th, html .package-table td { font-size: 12px }
+}

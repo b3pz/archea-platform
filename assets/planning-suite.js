@@ -798,6 +798,8 @@ function effectiveShellProfile(){
   return sessionStorage.getItem(PROFILE_KEY)||({fdiamanti:'platform_owner',abotrini:'project_manager',lleyra:'resource',property:'finance_direction',alaurini:'reception',scardia:'interior_head',mgamberi:'concept_head',afrongia:'visual_head',mmadaghiele:'material_manager',epietrelli:'hr_manager'}[signedIn])||profile();
 }
 function applyShellPermissions(){
+  // account reali: le voci del menu le decide la piattaforma in base al ruolo
+  if(sessionStorage.getItem('archea-live')==='1'){document.documentElement.dataset.apsProfile=effectiveShellProfile();return;}
   const effectiveProfile=effectiveShellProfile();
   const allowed={resource:['Oggi','Progetti','Task Manager','Note','Chat','Ore','Calendario','Altro'],material_manager:['Oggi','Progetti','Task Manager','Note','Chat','Ore','Calendario','Altro'],project_manager:['Oggi','Progetti','Task Manager','Note','Chat','Ore','Cantiere','Contabilità','Insight','Calendario','Altro','Pianificazione'],resource_manager:['Oggi','Chat','Calendario','Pianificazione'],pmo_admin:['Oggi','Progetti','Task Manager','Insight','Calendario','Pianificazione'],finance_direction:['Oggi','Progetti','Contabilità','Insight','Calendario','Organico','Pianificazione'],client:['Pianificazione'],reception:['Oggi','Pacchi','Calendario','Chat','Altro'],interior_head:['Oggi','Progetti','Note','Chat','Ore','Calendario','Altro'],concept_head:['Oggi','Progetti','Note','Chat','Ore','Calendario','Altro'],visual_head:['Oggi','Progetti','Note','Chat','Ore','Calendario','Altro'],hr_manager:['Oggi','Chat','Calendario','Organico','Ore','Insight','Altro'],platform_owner:null}[effectiveProfile];
   document.documentElement.dataset.apsProfile=effectiveProfile;

@@ -64,11 +64,22 @@
     });
   }
 
+  // Organico: le persone vere dell'anagrafica HR del Service Desk (se l'account le può leggere)
+  async function loadStaff() {
+    try {
+      var rows = await api('/rest/v1/people?select=id,display_name,site,department,company,current_status&order=display_name.asc&limit=2000');
+      S.staff = (rows || []).filter(function (p) { return !p.current_status || /ATTIV/i.test(p.current_status); }).map(function (p) {
+        return { id: 'hr-' + p.id, name: p.display_name || 'Persona', studio: String(p.site || '').toLowerCase(), years: null,
+          role: p.department || p.company || 'Organico', contract: null, annualCompensation: null, expiresAt: null };
+      });
+      emit();
+    } catch (e) { S.staff = []; }
+  }
   async function start(me) {
     S.me = me || null;
     if (S.started) return;
     S.started = true;
-    try { await loadPeople(); await loadAll(); }
+    try { await loadPeople(); await loadAll(); loadStaff(); }
     catch (e) {
       S.loaded = true; S.error = e.message; emit();
       if (/ws_records|PGRST|does not exist|schema cache/i.test(e.message)) toast('Progetti e task condivisi da attivare: esegui SETUP_COMPLETO.sql su Supabase.');
@@ -128,6 +139,7 @@
     version: function () { return S.version; },
     isPM: function () { return S.perms.indexOf('gestione_progetti') >= 0; },
     people: function () { return S.people; },
+    staff: function () { return S.staff || []; },
     subscribe: function (f) { S.listeners.add(f); return function () { S.listeners.delete(f); }; }
   };
 

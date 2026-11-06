@@ -1,5 +1,28 @@
 # Changelog
 
+## 2.6.0 — Più grande, popup delle notifiche, menu ordinati per ruolo
+
+- **Testi più grandi sul computer**: i testi del Workspace sotto i 12 px ora sono 11–13 px (`assets/sizes.css`, generato da `tools/genera_sizes.py`).
+- **Contrasti**: nel tema chiaro i testi grigi tenui sono scuriti fino a un contrasto 5:1 (`assets/contrast.css`). La voce selezionata della barra laterale ora ha il testo scuro (prima era bianco su grigio chiaro).
+- **Popup delle notifiche**:
+  - ogni notifica nuova compare in un riquadro in alto a destra; toccandolo si apre il ticket, la chat, il calendario o l'Off topic;
+  - con "🔔 Attiva i popup sul computer e sul telefono" (nella campanella) arriva anche la notifica del sistema, con il sito aperto in un'altra scheda. Su iPhone solo con il sito aggiunto alla schermata Home.
+  - Controllo ogni 15 secondi.
+- **Menu del Service Desk a gruppi per ruolo**, tutte le voci visibili (prima quelle a destra restavano nascoste):
+  - Utente: Ticket;
+  - HR: Ticket, Persone, Spazi;
+  - IT: Ticket, Asset, Persone e spazi, Amministrazione.
+  
+  Chat, Calendario, Foto e Off topic non si ripetono, perché sono già nel menu principale. Sul telefono il menu è un pulsante che si apre.
+- **Project Manager**: i PM hanno la schermata "Project Manager" per creare i progetti e scegliere le persone del team. Le squadre sono condivise su Supabase.
+- **Via i dati di esempio per gli account reali**:
+  - pannello HR con numeri finti;
+  - appuntamenti finti in "Oggi";
+  - notifiche inventate nella campanella;
+  - persone di esempio in Organico, che ora mostra l'anagrafica vera.
+- La Pianificazione non nasconde più voci del menu agli account reali (all'HR spariva Task Manager).
+- Crediti: Francesco Diamanti e Giuseppe Milano.
+
 ## 2.5.1 — Calendario a un tocco, tema scuro più leggibile
 
 - **Calendario**: un clic su una casella vuota apre subito un nuovo appuntamento per quel giorno. Nelle viste Giorno e Settimana prende anche l'ora cliccata. Prima serviva il doppio clic.

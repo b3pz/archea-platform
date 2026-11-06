@@ -323,15 +323,53 @@ async function notify(){ /* V1.6: notifiche generate lato database */ }
 async function profileByEmail(){ return null; }
 async function allIT(){ return []; }
 
+// Popup per le notifiche nuove: riquadro nella pagina + notifica del sistema (computer/telefono) se permessa
+function notifPopups(list){
+  const KEY='archea_notif_seen_'+user.id;
+  let seen=0;try{seen=+localStorage.getItem(KEY)||0}catch{}
+  const maxId=Math.max(0,...list.map(n=>+n.id||0));
+  if(!seen){try{localStorage.setItem(KEY,String(maxId))}catch{};return} // prima volta: non mostrare lo storico
+  const fresh=list.filter(n=>!n.is_read&&+n.id>seen).sort((a,b)=>a.id-b.id);
+  if(!fresh.length)return;
+  try{localStorage.setItem(KEY,String(maxId))}catch{}
+  fresh.slice(-3).forEach(n=>{
+    const route=n.ticket_id?{t:n.ticket_id}:n.title==='Nuovo messaggio'?{v:'chat'}:/^off topic/i.test(n.title||'')?{v:'offtopic'}:/appuntamento/i.test(n.title||'')?{v:'agenda'}:{};
+    const top=window.top===window?document:window.top.document;
+    let box=top.getElementById('archeaPopups');
+    if(!box){box=top.createElement('div');box.id='archeaPopups';box.className='archea-popups';top.body.appendChild(box)}
+    const el=top.createElement('button');el.type='button';el.className='archea-popup';
+    el.innerHTML=`<span class="archea-popup-ico">🔔</span><span><b>${esc(n.title||'Notifica')}</b><small>${esc(n.message||'')}</small></span><i aria-label="Chiudi">×</i>`;
+    const open=()=>{el.remove();update('notifications',`id=eq.${n.id}`,{is_read:true}).catch(()=>{});if(route.t)detail(+route.t);else if(route.v)nav(route.v);refreshNotifications()};
+    el.onclick=e=>{if(e.target.tagName==='I'){el.remove();return}open()};
+    box.appendChild(el);setTimeout(()=>el.classList.add('in'),20);setTimeout(()=>{el.classList.remove('in');setTimeout(()=>el.remove(),400)},12000);
+    // notifica del sistema (anche con il sito in un'altra scheda)
+    try{
+      if('Notification' in window&&Notification.permission==='granted'&&navigator.serviceWorker){
+        const url=location.href.replace(/servicedesk\/.*$/,'')+(route.t?`?ticket=${route.t}`:'')+'#/servicedesk';
+        navigator.serviceWorker.getRegistration('../').then(reg=>reg&&reg.showNotification(n.title||'ARCHEA',{body:n.message||'',icon:'../icons/archea-apple-touch-icon.png',badge:'../icons/archea-favicon-32.png',tag:'archea-'+n.id,data:{url}}));
+      }
+    }catch{}
+  });
+  if(navigator.vibrate)navigator.vibrate(60);
+}
+async function enableSystemNotifications(){
+  if(!('Notification' in window)){toast('Questo browser non supporta le notifiche. Su iPhone: aggiungi il sito alla schermata Home e aprilo da lì.');return}
+  const r=await Notification.requestPermission();
+  toast(r==='granted'?'Notifiche attivate':'Notifiche non permesse: si possono attivare dalle impostazioni del browser');
+  syncNotifButton();
+}
+function syncNotifButton(){const b=$('notifEnable');if(!b)return;const ok='Notification' in window&&Notification.permission==='granted';b.classList.toggle('hidden',ok)}
 async function refreshNotifications(){
   const d=await select('notifications',`select=*&user_id=eq.${user.id}&order=created_at.desc&limit=30`);
   const unread=d.filter(n=>!n.is_read).length;
+  notifPopups(d);
   $('bellCount').textContent=unread;$('bellCount').classList.toggle('hidden',unread===0);
   $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'chat':/^off topic/i.test(n.title||'')?'offtopic':/appuntamento/i.test(n.title||'')&&!n.ticket_id?'agenda':''}">
     <b>${esc(n.title)}</b><div>${esc(n.message)}</div><small>${fmt(n.created_at)}</small></div>`).join(''):'<div class="empty">Nessuna notifica</div>';
   document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);else if(x.dataset.chatn)nav(x.dataset.chatn);refreshNotifications()});
 }
 $('bellBtn').onclick=()=>{$('notificationPanel').classList.toggle('hidden');if(!$('notificationPanel').classList.contains('hidden'))refreshNotifications()}
+(function(){const panel=$('notificationPanel');if(panel&&!$('notifEnable')){const b=document.createElement('button');b.id='notifEnable';b.type='button';b.className='secondary compact notif-enable';b.textContent='🔔 Attiva i popup sul computer e sul telefono';b.onclick=enableSystemNotifications;panel.insertBefore(b,panel.firstChild.nextSibling);syncNotifButton()}})();
 $('markAllRead').onclick=async()=>{await update('notifications',`user_id=eq.${user.id}&is_read=eq.false`,{is_read:true});refreshNotifications()}
 
 function table(rows,it=false,quick=false){
@@ -3407,7 +3445,7 @@ if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
 const deepScan=String(SD_PARAMS.get('scan')||'').replace(/[^a-f0-9]/gi,'').slice(0,64);
 if(deepScan.length>=8){setTimeout(()=>openAssetScanner(null,{relay:deepScan}),400)}
 refreshNotifications();
-setInterval(refreshNotifications,30000);
+setInterval(refreshNotifications,15000);
 setInterval(async()=>{
   try{
     if(session?.refresh_token) await refreshSession();
@@ -3449,3 +3487,43 @@ installNavIcons();
 initTheme();
 // avvio dopo il caricamento di tutti gli script (start-chat.js incluso)
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot);else boot();
+
+// ============================================================
+// Menu del Service Desk dentro la piattaforma: voci in gruppi chiari per ruolo, tutte visibili.
+// Chat, Calendario, Foto cantiere e Off topic sono già nel menu della piattaforma: qui non si ripetono.
+// ============================================================
+(function organizeEmbedNav(){
+  if(!EMBED||SD_PARAMS.get('solo')==='1')return;
+  const GROUPS={
+    userNav:[['Ticket',['start','new','mine']]],
+    hrNav:[['Ticket',['start','new','mine']],['Persone',['persone','hr-new','hr-history','hr-stats']],['Spazi',['planimetrie','mappa']],['Amministrazione',['utenti']]],
+    itNav:[['Ticket',['start','home','it','new','calendar']],['Asset',['censimento','prenotazioni','eliminazioni']],['Persone e spazi',['persone','movimenti','planimetrie','mappa']],['Amministrazione',['utenti']]]
+  };
+  const HIDE=['chat','agenda','cantiere','offtopic'];
+  Object.entries(GROUPS).forEach(([id,groups])=>{
+    const navEl=document.getElementById(id);if(!navEl)return;
+    navEl.classList.add('nav-grouped');
+    const byView={};navEl.querySelectorAll('button[data-view]').forEach(b=>{byView[b.dataset.view]=b;if(HIDE.includes(b.dataset.view))b.classList.add('embed-dup')});
+    groups.forEach(([label,views])=>{
+      const g=document.createElement('div');g.className='nav-group';
+      g.innerHTML=`<span class="nav-group-label">${label}</span><div class="nav-group-items"></div>`;
+      const box=g.lastElementChild;
+      views.forEach(v=>{if(byView[v])box.appendChild(byView[v])});
+      if(views.includes('utenti'))g.dataset.admin='1';
+      navEl.appendChild(g);
+    });
+  });
+  // telefono: il menu sta chiuso in un pulsante (la pagina Inizio ha già tutti i pulsanti)
+  Object.keys(GROUPS).forEach(id=>{
+    const navEl=document.getElementById(id);if(!navEl)return;
+    const t=document.createElement('button');t.type='button';t.className='nav-toggle';
+    const label=()=>{const a=navEl.querySelector('button[data-view].active');t.innerHTML=`<span>☰</span> ${a?esc(a.textContent.trim()):'Menu'} <em>${navEl.classList.contains('open')?'▲':'▼'}</em>`};
+    t.onclick=e=>{e.stopPropagation();navEl.classList.toggle('open');label()};
+    navEl.insertBefore(t,navEl.firstChild);
+    navEl.addEventListener('click',e=>{if(e.target.closest('button[data-view]')){navEl.classList.remove('open');setTimeout(label,50)}});
+    new MutationObserver(label).observe(navEl,{subtree:true,attributes:true,attributeFilter:['class']});label();
+  });
+  // il gruppo "Amministrazione" compare solo se c'è "Utenti e gruppi" visibile
+  const sync=()=>document.querySelectorAll('.nav-group[data-admin]').forEach(g=>g.classList.toggle('hidden',!g.querySelector('button:not(.hidden)')));
+  new MutationObserver(sync).observe(document.body,{subtree:true,attributes:true,attributeFilter:['class']});sync();
+})();

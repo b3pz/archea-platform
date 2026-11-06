@@ -10733,6 +10733,7 @@ function sj({ children: t }) {
         // Pianificazione e aggiornamenti 0.14 leggono il profilo da qui
         try {
           sessionStorage.setItem("archea-demo-user", baseId);
+          sessionStorage.setItem("archea-live", "1");
           sessionStorage.setItem("archea-platform-profile",
             LiveUser.sdRole === "SUPER_IT" ? "platform_owner" : LiveUser.sdRole === "HR" ? "hr_manager" : "resource");
         } catch {}
@@ -18139,7 +18140,7 @@ function Yj() {
   const { close: t, language: n, viewer: viewer } = Y(),
     s = n === "en",
     [r, i] = C.useState(!1),
-    notifications = [...parcelNotifications(viewer), ...Ji];
+    notifications = viewer && viewer.live ? [] : [...parcelNotifications(viewer), ...Ji];
   return e.jsxs($t, {
     title: s ? "Notifications" : "Notifiche",
     onClose: t,
@@ -26370,9 +26371,11 @@ function Iv({ staffProfiles: t = {}, projects: n }) {
             });
 }
 function zv({ staffProfiles: t = {}, projects: n }) {
-  const { data: s, selectedEmployeeId: r, setSelectedEmployeeId: i } = Y(),
+  const { data: s, selectedEmployeeId: r, setSelectedEmployeeId: i, viewer: zvViewer } = Y(),
     [a, l] = C.useState("all"),
-    o = Object.values(Pe)
+    // account reale: le persone vere dell'anagrafica (non quelle di esempio)
+    zvLive = zvViewer && zvViewer.live && window.ArcheaWsCloud,
+    o = (zvLive ? window.ArcheaWsCloud.staff() : Object.values(Pe))
       .map((d) => {
         var u;
         return {
@@ -28424,7 +28427,7 @@ function _v() {
         })),
       ...parcelNotifications(n),
     ],
-    T = v.notifications === !1 ? [] : [...B, ...Ji],
+    T = v.notifications === !1 ? [] : n.live ? B : [...B, ...Ji],
     D = [
       ["oggi", "Oggi", bx, "Attività, scadenze e Work Status"],
       ["progetti", "Progetti", Ss, "Commesse, task e indicatori"],
@@ -28858,7 +28861,7 @@ function _v() {
                         "aria-label": "Apri notifiche",
                         children: [
                           e.jsx(fp, {}),
-                          e.jsx("i", {
+                          T.some((V) => V.unread) && e.jsx("i", {
                             children: T.filter((V) => V.unread).length,
                           }),
                         ],
@@ -29276,13 +29279,14 @@ function Vv() {
               children: [
                 e.jsxs("button", {
                   className: "notification-button",
-                  onClick: () => a({ kind: "notifications" }),
+                  // account reale: le notifiche vere sono quelle del Service Desk (campanella e popup)
+                  onClick: () => (n.live ? r("servicedesk") : a({ kind: "notifications" })),
                   "aria-label":
                     u === "en" ? "Open notifications" : "Apri notifiche",
                   children: [
                     e.jsx(fp, {}),
                     e.jsx("span", {
-                      children: [...parcelNotifications(n), ...Ji].filter((E) => E.unread).length,
+                      children: n.live ? "" : [...parcelNotifications(n), ...Ji].filter((E) => E.unread).length,
                     }),
                   ],
                 }),

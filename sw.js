@@ -1,9 +1,9 @@
-const CACHE_NAME = 'archea-platform-v2.5.3';
+const CACHE_NAME = 'archea-platform-v2.6.1';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
   './config/help.js?v=2.0.0',
-  './assets/workspace.js?v=2.5.2',
+  './assets/workspace.js?v=2.6.1',
   './assets/workspace.css?v=1.2.0',
   './assets/platform.css?v=1.7.2',
   './assets/planning-suite.css?v=1.2.0',
@@ -52,4 +52,15 @@ self.addEventListener('fetch', event => {
       return cached || network;
     }),
   );
+});
+
+// clic su una notifica del sistema: apre (o porta in primo piano) la piattaforma
+self.addEventListener('notificationclick', event => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || './';
+  event.waitUntil((async () => {
+    const all = await clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const c of all) { if ('focus' in c) { try { await c.navigate(url); } catch (e) {} return c.focus(); } }
+    return clients.openWindow(url);
+  })());
 });
