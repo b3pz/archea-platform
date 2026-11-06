@@ -142,7 +142,7 @@ async function plLoadData() {
   const [plans, positions, people, assets] = await Promise.all([
     select('floor_plans', 'select=*&order=sede.asc,ordine.asc,nome.asc'),
     select('map_positions', 'select=*&is_active=eq.true').catch(() => []),
-    select('people', 'select=id,display_name,first_name,surname,site,department,current_status,map_position_id&order=display_name.asc').catch(() => []),
+    select('people', 'select=id,display_name,first_name,surname,corporate_email,site,department,current_status,map_position_id&order=display_name.asc').catch(() => []),
     select('assets', 'select=id,asset_code,category,brand,model,status,site,position,map_position_id,assigned_person_id,assigned_user_name,is_label_only&is_label_only=eq.false&limit=5000').catch(() => [])
   ]);
   pl.plans = plans || []; pl.positions = positions || []; pl.people = people || []; pl.assets = assets || [];
@@ -150,7 +150,7 @@ async function plLoadData() {
 
 async function planimetrieView() {
   const epoch = navigationEpoch;
-  if (!isITRole() && !isHR()) return start();
+  if (!isITRole() && !isHR()) return userHome();
   page('Planimetrie', 'Chi siede dove, dispositivi e spostamenti');
   $('content').innerHTML = '<p class="empty">Caricamento…</p>';
   try { await plLoadData(); } catch (err) {
@@ -320,16 +320,89 @@ function plSeatPanel(e) {
       <p class="muted-line">Chi ha già un posto viene spostato qui; l'occupante attuale resta senza postazione. Ogni cambio finisce nello storico della persona.</p>`}
     <h4>Dispositivi qui (${devs.length})</h4>${plDevList(devs)}`;
   if ($('plCreatePos')) $('plCreatePos').onclick = async () => { await plEnsurePositions([pl.plan]); await plLoadData(); pl.plan = structuredClone(pl.plans.find(x => x.id === pl.plan.id)); plRender(); plSeatPanel(e); };
-  if ($('plAssign')) $('plAssign').onclick = async () => {
+  if ($('plAssign')) $('plAssign').onclick = () => {
     const pid = $('plPerson').value; if (!pid) return toast('Scegli una persona');
-    try {
-      if (occ && String(occ.id) !== pid) await plSetSeat(occ, null);
-      await plSetSeat(pl.people.find(p => String(p.id) === pid), pos);
-      toast('Postazione assegnata'); await plLoadData(); plRender();
-    } catch (err) { toast(err.message); }
+    const person = pl.people.find(p => String(p.id) === pid);
+    if (person && person.map_position_id === pos.id) return toast('È già seduta qui');
+    plConfirmMove({ person, to: pos, displaced: occ && String(occ.id) !== pid ? occ : null }, () => plSeatPanel(e));
   };
-  if ($('plFree')) $('plFree').onclick = async () => { try { await plSetSeat(occ, null); toast('Postazione liberata'); await plLoadData(); plRender(); } catch (err) { toast(err.message); } };
+  if ($('plFree')) $('plFree').onclick = () => plConfirmMove({ person: occ, to: null }, () => plSeatPanel(e));
   plWireDevButtons();
+}
+
+// ---------- Spostamento persona: due conferme, poi scrittura e verifica nel database ----------
+function plPosById(id) { return id ? pl.positions.find(x => x.id === id) || null : null; }
+function plMoveSummary(person, to) {
+  const from = plPosById(person.map_position_id);
+  return { from, to, fromTxt: from ? `${from.position_code}${from.site ? ' · ' + from.site : ''}` : 'nessuna postazione', toTxt: to ? `${to.position_code}${to.site ? ' · ' + to.site : ''}` : 'nessuna postazione (liberata)' };
+}
+function plConfirmMove(m, back) {
+  const s1 = plMoveSummary(m.person, m.to);
+  const rows = [`<li><b>${esc(plName(m.person))}</b>: ${esc(s1.fromTxt)} → <b>${esc(s1.toTxt)}</b></li>`];
+  if (m.displaced) rows.push(`<li><b>${esc(plName(m.displaced))}</b>: ${esc(m.to.position_code)} → <b>resta senza postazione</b></li>`);
+  // conferma 1: cosa cambia
+  $('plSide').innerHTML = `<span class="badge">Conferma 1 di 2</span><h3>Spostamento</h3><ul class="pl-move-list">${rows.join('')}</ul>
+    <p class="muted-line">Verrà registrato nei <b>Movimenti</b> e nello storico della persona.</p>
+    <div class="button-row"><button class="primary" id="plOk1">Sì, è corretto</button><button class="secondary" id="plNo">Annulla</button></div>`;
+  $('plNo').onclick = back;
+  $('plOk1').onclick = () => {
+    // conferma 2: definitiva
+    $('plSide').innerHTML = `<span class="badge warn">Conferma 2 di 2</span><h3>Confermi definitivamente?</h3><ul class="pl-move-list">${rows.join('')}</ul>
+      <p class="muted-line">Dopo la conferma il movimento viene scritto nel database e ricontrollato.</p>
+      <div class="button-row"><button class="primary" id="plOk2">Conferma e registra</button><button class="secondary" id="plNo2">Annulla</button></div>`;
+    $('plNo2').onclick = back;
+    $('plOk2').onclick = async () => {
+      $('plOk2').disabled = true; $('plOk2').textContent = 'Registrazione…';
+      const done = [];
+      try {
+        if (m.displaced) done.push(await plRecordMove(m.displaced, null, `Liberata per far posto a ${plName(m.person)}`));
+        done.push(await plRecordMove(m.person, m.to, ''));
+        await plLoadData(); plRender();
+        $('plSide').innerHTML = `<span class="badge ok">Registrato</span><h3>Movimento scritto nel database ✓</h3>
+          <ul class="pl-move-list">${done.map(d => `<li><b>${esc(d.name)}</b>: ${esc(d.toTxt)}<br><small>Movimento n. ${esc(d.movementId)} · postazione verificata</small></li>`).join('')}</ul>
+          <div class="button-row"><button class="secondary" id="plSeeMoves">Vedi nei Movimenti</button><button class="secondary" id="plBack">Torna alla pianta</button></div>`;
+        $('plSeeMoves').onclick = () => nav(isITRole() ? 'movimenti' : 'hr-history');
+        $('plBack').onclick = back;
+        toast('Spostamento registrato');
+      } catch (err) {
+        $('plSide').innerHTML = `<span class="badge danger">Non registrato</span><h3>Lo spostamento non è stato salvato</h3><p class="error">${esc(err.message)}</p><div class="button-row"><button class="secondary" id="plBack">Torna alla pianta</button></div>`;
+        $('plBack').onclick = back;
+        await plLoadData().catch(() => {}); plRender();
+      }
+    };
+  };
+}
+// scrive posto + movimento, poi rilegge dal database per essere sicuri che sia tutto salvato
+async function plRecordMove(person, to, note) {
+  const sum = plMoveSummary(person, to);
+  await plSetSeat(person, to);
+  const name = person.first_name || plName(person).split(/\s+/).slice(0, -1).join(' ') || plName(person);
+  const surname = person.surname || plName(person).split(/\s+/).slice(-1)[0] || '';
+  const stamp = new Date().toLocaleString('it-IT');
+  const row = {
+    movement_type: 'SPOSTAMENTO', movement_date: new Date().toLocaleDateString('sv-SE'),
+    person_name: name, person_surname: surname, person_email: person.corporate_email || null, person_id: person.id,
+    current_site: sum.from?.site || person.site || null, new_site: to?.site || sum.from?.site || person.site || null,
+    current_desk: sum.from?.position_code || null, new_desk: to?.position_code || null,
+    notes: ['Da planimetria' + (pl.plan ? ` (${pl.plan.nome})` : ''), note, `Confermato 2 volte da ${profile?.nome || user.email} il ${stamp}`].filter(Boolean).join(' · '),
+    created_by: user.id, created_by_email: user.email, created_by_name: profile?.nome || user.email,
+    status: 'EFFETTUATO', needs_manual_check: false
+  };
+  let saved;
+  try { saved = await insert('hr_movements', row); }
+  catch (err) {
+    if (!/ticket_id/.test(err.message)) throw err;
+    // se il movimento richiede un ticket, lo apriamo per l'IT (spostare PC e telefono)
+    const t = (await insert('tickets', { categoria: 'Movimento persona', oggetto: `SPOSTAMENTO - ${plName(person)}`, descrizione: `Da planimetria: ${sum.fromTxt} → ${sum.toTxt}`, stato: 'APERTO', priorita: 'NORMALE', richiedente_nome: profile?.nome, richiedente_email: user.email, created_by: user.id, created_by_name: profile?.nome, origine: 'HR', sede: row.new_site }))[0];
+    await update('tickets', `id=eq.${t.id}`, { numero_ticket: `MOV-${new Date().getFullYear()}-${String(t.id).padStart(5, '0')}` });
+    saved = await insert('hr_movements', { ...row, ticket_id: t.id });
+  }
+  const mv = Array.isArray(saved) ? saved[0] : saved;
+  // verifica: la persona ha davvero il nuovo posto e il movimento esiste
+  const [chk, mchk] = await Promise.all([select('people', `select=map_position_id&id=eq.${person.id}`), mv?.id ? select('hr_movements', `select=id&id=eq.${mv.id}`) : Promise.resolve([])]);
+  if (!chk.length || (chk[0].map_position_id || null) !== (to ? to.id : null)) throw new Error(`Verifica fallita: la postazione di ${plName(person)} nel database non è quella attesa.`);
+  if (!mchk.length) throw new Error(`Verifica fallita: il movimento di ${plName(person)} non risulta nel database.`);
+  return { name: plName(person), toTxt: sum.toTxt, movementId: mv.id };
 }
 
 async function plSetSeat(person, pos) {

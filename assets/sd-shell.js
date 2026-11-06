@@ -40,6 +40,7 @@
   function flushPending() {
     if (!ready || !sdWin || !pending) return;
     const k = pending; pending = null;
+    if (k.startsWith('nav:')) { try { sdWin.nav(k.slice(4)); } catch (e) {} return; }
     try { sdWin.startAction ? sdWin.startAction(k) : sdWin.nav(k); } catch (e) { console.warn('SD', e); }
   }
 
@@ -84,7 +85,7 @@
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
   const GROUPS = [
     ['lavoro', 'Il mio lavoro', 'lavoro', ['oggi', 'taskmanager', 'ore', 'note']],
-    ['progetti', 'Progetti e cantieri', 'progetti', ['projectmanager', 'progetti', 'avanzamento', 'cantiere', 'fotocantiere']],
+    ['progetti', 'Progetti e cantieri', 'progetti', ['projectmanager', 'progetti', 'avanzamento', 'cantiere', 'fotocantiere', 'sd:fornitori']],
     ['comunicazione', 'Comunicazione', 'chat', ['chat', 'offtopic', 'calendario']],
     ['persone', 'Persone', 'persone', ['bio']],
     ['studio', 'Studio', 'studio', ['contabilita', 'insight', 'inarchea', 'fornitori', 'materioteca', 'abacotecnico', 'bim', 'visual', 'interior', 'concept']],
@@ -94,18 +95,23 @@
     location.hash = '#/' + id;
   }
   function run(key) {
+    if (key.startsWith('sd:')) { pending = 'nav:' + key.slice(3); goTab('servicedesk'); flushPending(); return; }
     const tab = key.slice(4);
     if (tab === 'servicedesk') { pending = 'home-start'; goTab('servicedesk'); flushPending(); return; }
     goTab(tab);
   }
   function navData() {
-    const tabs = (window.__archeaTabs || []).filter(([id]) => id !== 'servicedesk');
+    // "Fornitori" è la rubrica vera del Service Desk (non il modulo dimostrativo): per i PM sta qui, per l'IT nella barra in alto
+    const tabs = (window.__archeaTabs || []).filter(([id]) => id !== 'servicedesk' && id !== 'fornitori');
+    let pmSup = false;
+    try { pmSup = ready && sdWin && sdWin.hasPerm('gestione_progetti') && !sdWin.isITRole(); } catch (e) {}
+    if (pmSup) tabs.push(['sd:fornitori', 'Fornitori']);
     const used = new Set();
     const groups = GROUPS.map(([id, title, ic, ids]) => {
-      const items = ids.map(t => tabs.find(x => x[0] === t)).filter(Boolean).map(([t, label]) => { used.add(t); return { key: 'tab:' + t, label }; });
+      const items = ids.map(t => tabs.find(x => x[0] === t)).filter(Boolean).map(([t, label]) => { used.add(t); return { key: t.startsWith('sd:') ? t : 'tab:' + t, id: t.replace(/^sd:/, ''), label }; });
       return { id, title, icon: ic, items };
     }).filter(g => g.items.length);
-    const rest = tabs.filter(([t]) => !used.has(t)).map(([t, label]) => ({ key: 'tab:' + t, label }));
+    const rest = tabs.filter(([t]) => !used.has(t)).map(([t, label]) => ({ key: t.startsWith('sd:') ? t : 'tab:' + t, id: t.replace(/^sd:/, ''), label }));
     if (rest.length) groups.push({ id: 'altro', title: 'Altri strumenti', icon: 'altro', items: rest });
     return groups;
   }
@@ -116,7 +122,8 @@
     // sezione mostrata davvero: se è visibile il Service Desk vale lui (l'indirizzo può dire ancora #/oggi)
     const slot = document.querySelector('.sd-slot');
     const SLOT_TAB = { chat: 'chat', agenda: 'calendario', offtopic: 'offtopic', cantiere: 'fotocantiere' };
-    const h = slot && slot.offsetParent !== null ? (SLOT_TAB[slot.dataset.view] || 'servicedesk')
+    let sdv = ''; try { sdv = ready && sdWin.sdCurrentView ? sdWin.sdCurrentView() : ''; } catch (e) {}
+    const h = slot && slot.offsetParent !== null ? (SLOT_TAB[slot.dataset.view] || (sdv === 'fornitori' ? 'fornitori' : 'servicedesk'))
       : (location.hash.replace(/^#\/?/, '').split(/[?/]/)[0] || 'servicedesk');
     const groups = navData();
     const sig = h + '|' + JSON.stringify(groups);
@@ -125,7 +132,7 @@
     const aps = nav.querySelectorAll('.aps-desktop-launcher, .aps-desktop-subnav');
     nav.innerHTML = `<button type="button" class="archea-nav-home ${h === 'servicedesk' ? 'on' : ''}" data-key="tab:servicedesk">${icon('home')}<span>Inizio</span></button>` +
       groups.map(g => `<div class="archea-nav-sec"><span class="archea-nav-label">${esc(g.title)}</span>${g.items.map(i =>
-        `<button type="button" class="${i.key === 'tab:' + h ? 'on' : ''}" data-key="${esc(i.key)}">${esc(i.label)}</button>`).join('')}</div>`).join('');
+        `<button type="button" class="${i.id === h ? 'on' : ''}" data-key="${esc(i.key)}">${esc(i.label)}</button>`).join('')}</div>`).join('');
     aps.forEach(el => nav.appendChild(el)); // Pianificazione (Super admin) resta in fondo
     nav.querySelectorAll('[data-key]').forEach(b => b.onclick = () => run(b.dataset.key));
   }

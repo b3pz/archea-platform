@@ -2147,6 +2147,8 @@ async function personDetail(id){
       </div>
     </div>
 
+    ${isITRole()?'<div class="panel" id="personSoftware"><p class="empty">Caricamento licenze…</p></div>':''}
+
     <div class="dashboard-grid">
       <div class="panel"><h3>Fonti originali</h3>${sources.length?`<div class="source-records">${sources.map(s=>sourceRecordHtml(s)).join('')}</div>`:'<div class="empty">Nessuna fonte collegata.</div>'}</div>
       <div class="panel"><h3>Storico persona</h3>${personHistoryHtml(events,hrMoves,histAssignments)}</div>
@@ -2168,6 +2170,7 @@ async function personDetail(id){
     return items.length?`<div class="history-list">${items.slice(0,100).map(x=>`<div class="history-item"><div><b>${esc(x.title)}</b> <span class="source-mini">${esc(x.src)}</span></div><div>${esc(x.txt||'')}</div><small>${x.d?fmt(x.d):'Data non nota'}</small></div>`).join('')}</div>`:'<div class="empty">Nessuno storico disponibile.</div>';
   }
 
+  if(isITRole()&&typeof personSoftwarePanel==='function')personSoftwarePanel(id,[...linked,...candidates]);
   $('backPeople').onclick=()=>people();
   $('editPerson').onclick=()=>openSubView('person-edit',()=>personEdit(id));
   $('personMovement').onclick=()=>{movementPrefill={first:p.first_name||'',surname:p.surname||'',email:p.corporate_email||'',currentSite:p.site||''};nav('hr-new')};
@@ -3360,6 +3363,7 @@ const NAV_ICON_PATHS={
   prenotazioni:'<rect x="3" y="7" width="18" height="13" rx="2"/><path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2M3 12h18"/>',
   censimento:'<ellipse cx="12" cy="5" rx="8" ry="3"/><path d="M4 5v6c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 11v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6"/>',
   mappa:'<path d="M20 10c0 5-8 11-8 11S4 15 4 10a8 8 0 1 1 16 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+  fornitori:'<path d="M3 21V8l9-5 9 5v13"/><path d="M9 21v-6h6v6M8 10h.01M12 10h.01M16 10h.01"/>',
   eliminazioni:'<path d="M3 6h18M8 6V4h8v2M19 6l-1 15H6L5 6M10 11v6M14 11v6"/>',
   'hr-new':'<circle cx="9" cy="7" r="4"/><path d="M2 21v-2a7 7 0 0 1 14 0v2M19 8v6M16 11h6"/>',
   'hr-history':'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
@@ -3418,6 +3422,7 @@ function nav(v){
   if(v==='offtopic')return offtopicView();
   if(v==='utenti')return usersView();
   if(v==='planimetrie')return planimetrieView();
+  if(v==='fornitori'&&typeof fornitoriView==='function')return fornitoriView();
   if(v==='cantiere')return cantiereView();
 
   if(isHR()){
@@ -3565,7 +3570,7 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   const GROUPS={
     userNav:[['Ticket',['start','new','mine']]],
     hrNav:[['Persone',['hr-stats','persone','hr-new','hr-history']],['Ticket',['new','mine']],['Spazi',['planimetrie','mappa']],['Amministrazione',['utenti']]],
-    itNav:[['Ticket',['home','it','new','calendar']],['Asset',['censimento','prenotazioni','eliminazioni']],['Persone e spazi',['persone','movimenti','planimetrie','mappa']],['Amministrazione',['utenti']]]
+    itNav:[['Ticket',['home','it','new','calendar']],['Asset',['censimento','prenotazioni','eliminazioni','fornitori']],['Persone e spazi',['persone','movimenti','planimetrie','mappa']],['Amministrazione',['utenti']]]
   };
   const HIDE=['chat','agenda','cantiere','offtopic'];
   Object.entries(GROUPS).forEach(([id,groups])=>{

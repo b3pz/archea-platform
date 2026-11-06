@@ -1,0 +1,22 @@
+/* Rubrica fornitori */
+.forn-toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 8px; }
+.forn-toolbar input { flex: 1 1 260px; }
+.forn-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 12px; }
+.forn-card { display: flex; flex-direction: column; gap: 4px; text-align: left; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--line, #e5e8e5);
+  background: var(--card, #fff); color: inherit; font: inherit; cursor: pointer; }
+.forn-card:hover { border-color: var(--ink, #1d2320); }
+.forn-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.forn-card small { color: var(--muted, #5d6661); }
+.forn-prj { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 4px; }
+.forn-prj em { font-style: normal; font-size: .8em; font-weight: 700; padding: 2px 8px; border-radius: 999px; background: var(--soft, #f0f0ea); }
+a.btnlink { text-decoration: none; display: inline-flex; align-items: center; }
+/* Licenze e programmi nella scheda persona */
+.sw-list { display: flex; flex-direction: column; gap: 6px; margin-top: 8px; }
+.sw-row { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1.6fr) auto auto; gap: 10px; align-items: center; padding: 10px 12px; border-radius: 12px; background: var(--soft, #f4f4f0); }
+.sw-row.off { opacity: .6; }
+.sw-row small { color: var(--muted, #5d6661); }
+.sw-form { margin: 10px 0; padding: 14px; border: 1px solid var(--line, #e5e8e5); border-radius: 14px; }
+.badge.warn { background: #fdf0d9; color: #9a5b00; } .badge.danger { background: #fbe9e7; color: #b3261e; }
+html[data-theme="dark"] .forn-card { background: #1b1d1b; border-color: #2e332f; }
+html[data-theme="dark"] .sw-row { background: #232623; }
+@media (max-width: 760px) { .sw-row { grid-template-columns: 1fr auto; } }

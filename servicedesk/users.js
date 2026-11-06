@@ -66,7 +66,7 @@ let usState = { tab: 'utenti', users: [], groups: [], search: '' };
 
 async function usersView() {
   const epoch = navigationEpoch;
-  if (!hasPerm('gestione_utenti')) return start();
+  if (!hasPerm('gestione_utenti')) return userHome();
   page('Utenti e gruppi', 'Chi può entrare e cosa può fare');
   $('content').innerHTML = '<p class="empty">Caricamento…</p>';
   try {

@@ -96,3 +96,9 @@
   .pl-top input#plSearch { flex-basis: 100%; }
   .pl-zoom .secondary { min-width: 46px; font-size: 20px !important; }
 }
+
+/* Spostamento con doppia conferma */
+.pl-move-list { margin: 8px 0 12px; padding-left: 18px; display: flex; flex-direction: column; gap: 8px; }
+#plSide .badge.warn { background: #fdf0d9; color: #9a5b00; }
+#plSide .badge.ok { background: #e5f4e4; color: #2f7a4f; }
+#plSide .badge.danger { background: #fbe9e7; color: #b3261e; }

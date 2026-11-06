@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.1.0 — Movimenti dalla mappa, licenze della persona, rubrica fornitori
+
+- **Prima pagina per ruolo**: IT Dashboard, HR Statistiche HR, PM *Il lavoro di oggi*, utente le sue richieste. Barra delle funzioni in alto; a sinistra il resto, raggruppato (Il mio lavoro, Progetti e cantieri, Comunicazione, Studio). Chat, Calendario, Off topic e Foto cantiere a schermo libero.
+- **Planimetrie**: assegnare o liberare una postazione chiede **due conferme**; poi il cambio viene scritto nel database, **ricontrollato** (posto della persona e movimento) e registrato nei **Movimenti** come SPOSTAMENTO effettuato, con chi l'ha confermato e quando. Se qualcuno perde il posto, anche il suo movimento è registrato.
+- **Scheda persona (IT)**: sezione *Licenze, programmi e account* con fornitore, computer su cui è installato, riferimento, scadenza (avviso a 30 giorni) e stato. Le chiavi di licenza non si salvano.
+- **Fornitori**: rubrica unica per IT e progetti (referente, telefono, email, sito, P.IVA, commesse collegate). La leggono tutti; l'IT gestisce i fornitori IT, i PM quelli di progetto. Per l'IT è nella barra in alto (Asset), per i PM a sinistra in *Progetti e cantieri*.
+- Da eseguire: `SETUP_COMPLETO.sql` (nuove tabelle `suppliers` e `person_software`).
+
 ## 3.0.0 — Menu unico a sinistra, niente più login a ogni cambio di pagina
 
 - **Un solo menu**, nella barra a sinistra: le funzioni sono raggruppate (Il mio lavoro, Progetti e cantieri, Reparto IT, Persone e spazi, Calendario e prenotazioni, Comunicazione, Amministrazione). Un tocco apre il gruppo, un tocco la funzione. Sparita la fila di schede in alto.
