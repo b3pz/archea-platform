@@ -10637,7 +10637,11 @@ function sj({ children: t }) {
       }
     }),
     [d, u] = C.useState(mr()),
-    [m, x] = C.useState(location.hash.slice(2) || "oggi"),
+    [m, x] = C.useState(() => {
+      // link da Telegram (?ticket=) o dal QR del computer (?scan=): si apre sempre il Service Desk
+      try { const q = new URLSearchParams(location.search); if (q.get("scan") || q.get("ticket")) return "servicedesk"; } catch {}
+      return location.hash.slice(2) || "oggi";
+    }),
     [j, f] = C.useState(null),
     [g, b] = C.useState(null),
     [v, h] = C.useState("fdiamanti"),
@@ -27917,7 +27921,10 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
         return "";
       }
     })();
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : isOff ? "&view=offtopic&solo=1" : isFoto ? "&view=cantiere&solo=1" : ""}`;
+  const deepScan = (() => {
+      try { return new URLSearchParams(location.search).get("scan") || ""; } catch { return ""; }
+    })();
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${!isChat && !isAgenda && deepScan ? `&scan=${encodeURIComponent(deepScan)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : isOff ? "&view=offtopic&solo=1" : isFoto ? "&view=cantiere&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [

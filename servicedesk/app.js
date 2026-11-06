@@ -3022,14 +3022,16 @@ async function detail(id){
 // ============================================================
 // V8 — FOTOCAMERA / SCANSIONE ASSET
 // ============================================================
-async function openAssetScanner(cachedRows=null){
+async function openAssetScanner(cachedRows=null,opts={}){
+  const relay=opts.relay||null; // telefono che fa da lettore per il computer
   const overlay=document.createElement('div');
   overlay.className='scanner-overlay';
   overlay.innerHTML=`<div class="scanner-card">
-    <div class="scanner-head"><div><span class="eyebrow">V8 · VERIFICA SUL CAMPO</span><h3>Scansiona asset</h3></div><button class="ghost compact" id="closeScanner">Chiudi</button></div>
+    <div class="scanner-head"><div><span class="eyebrow">V8 · VERIFICA SUL CAMPO</span><h3>${relay?'Lettore per il computer':'Scansiona asset'}</h3></div><button class="ghost compact" id="closeScanner">Chiudi</button></div>
     <div class="scanner-video-wrap"><video id="scannerVideo" autoplay playsinline muted></video><div class="scanner-frame"></div></div>
     <div id="scannerStatus" class="info-box">Avvio fotocamera…</div>
-    <div class="scanner-actions-row"><label class="secondary scanner-photo-btn">📷 Leggi da una foto<input id="scannerPhoto" type="file" accept="image/*" capture="environment" hidden></label></div>
+    <div class="scanner-actions-row"><label class="secondary scanner-photo-btn">📷 Leggi da una foto<input id="scannerPhoto" type="file" accept="image/*" capture="environment" hidden></label>${relay?'':'<button type="button" class="secondary" id="scannerPhone">📱 Usa l\'iPhone come lettore</button>'}</div>
+    <div id="scannerPhonePanel" class="scanner-phone hidden"></div>
     <div class="scanner-manual"><label>Codice asset<input id="scannerManualCode" autocomplete="off" autocapitalize="characters" placeholder="Es. A4076 (o usa il lettore USB)"></label><button id="scannerOpenCode" class="primary">Apri asset</button></div>
     <p class="muted-line" id="scannerTips">Tieni l'etichetta ferma, ben illuminata e dritta nel riquadro. <b>Dal computer</b> la webcam non mette a fuoco da vicino: allontana l'etichetta a 25–40 cm, usa "Leggi da una foto" oppure un lettore di codici USB (scrive il codice qui sotto da solo).</p>
     <p class="muted-line scanner-diag" id="scannerDiag"></p>
@@ -3043,18 +3045,50 @@ async function openAssetScanner(cachedRows=null){
     const m=t.match(/(?:^|[^A-Z0-9])A\s*-?\s*(\d{3,6})(?:$|[^A-Z0-9])/i)||t.match(/^A\s*-?\s*(\d{3,6})$/i);
     return m?`A${m[1]}`:t.replace(/\s+/g,'');
   };
-  const close=()=>{stopped=true;if(raf)cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());overlay.remove()};
+  const close=()=>{stopped=true;if(pollTimer)clearInterval(pollTimer);if(raf)cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());overlay.remove()};
   overlay.querySelector('#closeScanner').onclick=close;
   overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
+  let pollTimer=0,lastSent='',lastSentAt=0;
   async function openCode(raw){
     const code=String(raw||'').trim().toUpperCase().match(/[A-Z]+-?[A-Z]*\d+|A\d+/)?.[0]||String(raw||'').trim().toUpperCase();
     if(!code)return toast('Inserisci un codice asset');
+    if(relay){
+      if(code===lastSent&&Date.now()-lastSentAt<4000){status.innerHTML=`✅ <b>${esc(code)}</b> inviato al computer. Puoi leggere il prossimo.`;return 'continue'}
+      lastSent=code;lastSentAt=Date.now();
+      try{await api('/rest/v1/scan_relay',{method:'POST',headers:{Prefer:'return=minimal'},body:{session:relay,code}});
+        status.innerHTML=`✅ <b>${esc(code)}</b> inviato al computer. Puoi leggere il prossimo.`;if(navigator.vibrate)navigator.vibrate([40,60,40]);}
+      catch(err){status.textContent='Invio non riuscito: '+err.message}
+      return 'continue';
+    }
     let a=(cachedRows||[]).find(x=>String(x.asset_code||'').toUpperCase()===code);
     if(!a){const found=await select('assets',`select=id,asset_code&asset_code=eq.${encodeURIComponent(code)}&limit=1`);a=found[0]}
     if(!a){status.innerHTML=`Codice <b>${esc(code)}</b> non trovato nel censimento.`;return}
     close();openSubView('asset-detail',()=>assetDetail(a.id));
   }
   overlay.querySelector('#scannerOpenCode').onclick=()=>openCode(overlay.querySelector('#scannerManualCode').value);
+  // Computer: l'iPhone legge le etichette e il codice arriva qui
+  const phoneBtn=overlay.querySelector('#scannerPhone');
+  if(phoneBtn)phoneBtn.onclick=()=>{
+    const session=[...crypto.getRandomValues(new Uint8Array(12))].map(b=>b.toString(16).padStart(2,'0')).join('');
+    const base=location.href.replace(/servicedesk\/.*$/,'');
+    const link=`${base}?scan=${session}#/servicedesk`;
+    const panel=overlay.querySelector('#scannerPhonePanel');
+    let qrSvg='';
+    try{const q=qrcode(0,'M');q.addData(link);q.make();qrSvg=q.createSvgTag({cellSize:5,margin:2,scalable:true})}catch{}
+    panel.innerHTML=`<div class="scanner-phone-qr">${qrSvg||''}</div><div><b>Inquadra il QR con la Fotocamera dell'iPhone</b><p>Si apre il lettore sul telefono, con il tuo stesso account. Ogni etichetta che leggi col telefono si apre qui sul computer.</p><p class="muted-line" id="scannerPhoneState">In attesa del telefono…</p></div>`;
+    panel.classList.remove('hidden');phoneBtn.disabled=true;
+    if(pollTimer)clearInterval(pollTimer);
+    let seen=0;
+    pollTimer=setInterval(async()=>{
+      if(stopped)return clearInterval(pollTimer);
+      try{
+        const rows=await select('scan_relay',`select=id,code&session=eq.${session}&id=gt.${seen}&order=id.desc&limit=1`);
+        if(rows&&rows[0]){seen=rows[0].id;overlay.querySelector('#scannerPhoneState').innerHTML=`Ricevuto <b>${esc(rows[0].code)}</b>`;
+          api(`/rest/v1/scan_relay?session=eq.${session}`,{method:'DELETE'}).catch(()=>{});
+          clearInterval(pollTimer);await openCode(rows[0].code);}
+      }catch(err){const st=overlay.querySelector('#scannerPhoneState');if(st)st.textContent=/scan_relay|PGRST/.test(err.message)?'Da attivare: esegui SETUP_COMPLETO.sql su Supabase.':'In attesa del telefono…'}
+    },1500);
+  };
   // Da computer il campo è subito attivo: un lettore USB scrive il codice e preme Invio da solo
   if(!matchMedia('(pointer: coarse)').matches)setTimeout(()=>overlay.querySelector('#scannerManualCode')?.focus(),300);
   overlay.querySelector('#scannerPhoto').onchange=async e=>{
@@ -3066,7 +3100,10 @@ async function openAssetScanner(cachedRows=null){
   };
   overlay.querySelector('#scannerManualCode').addEventListener('keydown',e=>{if(e.key==='Enter')openCode(e.target.value)});
   try{
-    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;
+    // massima risoluzione disponibile: su computer le webcam danno di più solo se richiesto
+    try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:3840},height:{ideal:2160}},audio:false})}
+    catch{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'}},audio:false})}
+    video.srcObject=stream;
     status.textContent='Preparo il lettore…';
     detector=await getBarcodeDetector();
     const torch=await improveCamera(stream);
@@ -3090,7 +3127,7 @@ async function openAssetScanner(cachedRows=null){
             if(normalized===lastRaw)sameRawCount++;else{lastRaw=normalized;sameRawCount=1}
             status.innerHTML=`Letto: <b>${esc(raw)}</b>${normalized!==raw?` → <b>${esc(normalized)}</b>`:''}`;
             // Codice ARCHEA riconosciuto: si apre subito; altri codici dopo due letture uguali.
-            if(/^A\d{3,6}$/.test(normalized)||sameRawCount>=2){if(navigator.vibrate)navigator.vibrate(40);busy=false;await openCode(normalized);return}
+            if(/^A\d{3,6}$/.test(normalized)||sameRawCount>=2){if(!relay&&navigator.vibrate)navigator.vibrate(40);busy=false;const keep=await openCode(normalized);if(keep!=='continue')return}
           }
         }catch{}
         busy=false;
@@ -3364,6 +3401,9 @@ $('hrNav').classList.toggle('hidden',!isHR());
 $('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic','cantiere'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');
 if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
+// Telefono aperto dal QR del computer: parte subito il lettore che invia i codici al computer
+const deepScan=String(SD_PARAMS.get('scan')||'').replace(/[^a-f0-9]/gi,'').slice(0,64);
+if(deepScan.length>=8){setTimeout(()=>openAssetScanner(null,{relay:deepScan}),400)}
 refreshNotifications();
 setInterval(refreshNotifications,30000);
 setInterval(async()=>{

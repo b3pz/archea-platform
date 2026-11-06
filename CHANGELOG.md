@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.2.0 — iPhone come lettore per il computer
+
+- Nella scansione da computer c'è **📱 Usa l'iPhone come lettore**:
+  - compare un QR, lo inquadri con la Fotocamera dell'iPhone e si apre il lettore sul telefono, con il tuo account;
+  - ogni etichetta letta col telefono si apre da sola sul computer, in circa 1–2 secondi;
+  - il telefono resta pronto per il codice successivo.
+- La fotocamera chiede la risoluzione più alta disponibile, utile con le webcam dei computer.
+- I link `?ticket=` e `?scan=` aprono sempre il Service Desk.
+- Nuova migrazione `20261107_scan_telefono.sql` (tabella `scan_relay`: ognuno vede solo le proprie letture), inclusa in `SETUP_COMPLETO.sql`.
+
 ## 2.1.1 — Lettore codici: anche da computer
 
 - Ogni immagine viene letta in tre modi a turno: riquadro centrale, riquadro ingrandito 2× (codici piccoli o lontani, tipici della webcam del Mac) e immagine intera, con contrasto aumentato.
