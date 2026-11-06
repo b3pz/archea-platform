@@ -493,7 +493,7 @@ function ageClass(d){
 
 
 
-async function userHome(){if(typeof start==='function')return start();return legacyUserHome()}
+async function userHome(){return legacyUserHome()}
 async function legacyUserHome(){const epoch=navigationEpoch;page('Service Desk','Apri una richiesta o controlla i tuoi ticket');const d=await select('tickets',`select=*&richiedente_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc&limit=5`);if(epoch!==navigationEpoch)return;$('content').innerHTML=`<div class="userhero"><h3>Come possiamo aiutarti?</h3><p>Puoi aprire ticket e vedere solo le tue richieste.</p><button id="openNow" class="primary">Apri un ticket</button></div><div class="panel"><h3>Le tue richieste recenti</h3>${table(d)}</div>`;$('openNow').onclick=()=>nav('new');wire()}
 async function home(){
   const epoch=navigationEpoch;
@@ -3407,7 +3407,12 @@ function nav(v){
 
   setActiveNavigation(v);
   if(v!=='chat'&&typeof chatStop==='function')chatStop();
-  if(v==='start')return start();
+  // Niente pagina a cartelle: ogni ruolo ha la sua prima pagina (IT → Dashboard, HR → Statistiche HR, utente → le sue richieste)
+  if(v==='start'){
+    if(isITRole())return nav('home');
+    if(isHR())return nav('hr-stats');
+    legacyUserHome().then(()=>window.archeaPushBanner&&window.archeaPushBanner());updateBackButton();return;
+  }
   if(v==='chat')return chatView();
   if(v==='agenda')return agendaView();
   if(v==='offtopic')return offtopicView();
@@ -3421,7 +3426,7 @@ function nav(v){
     return userHome();
   }
 
-  if(v==='home')home();
+  if(v==='home')Promise.resolve(home()).then(()=>window.archeaPushBanner&&window.archeaPushBanner());
   else if(v==='new')newTicket();
   else if(v==='mine')mine();
   else if(v==='it')it();
@@ -3434,7 +3439,7 @@ function nav(v){
   else if(v==='eliminazioni')deletionRequests();
   else if(v==='hr-new')hrNewMovement();
   else if(v==='hr-history')hrHistory();
-  else if(v==='hr-stats')hrStats();
+  else if(v==='hr-stats')Promise.resolve(hrStats()).then(()=>window.archeaPushBanner&&window.archeaPushBanner());
   else placeholder(v);
 
   updateBackButton();
@@ -3496,7 +3501,7 @@ function firstView(){
   const v=SD_PARAMS.get('view');
   if(['chat','agenda','offtopic','cantiere'].includes(v))return v;
   // il reparto IT parte dalla Dashboard; gli altri dall'Inizio
-  return isITRole()?'home':'start';
+  return isITRole()?'home':isHR()?'hr-stats':'start';
 }
 function startApp(){
 applyRoleNav();$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=firstView();previousView=null;nav(currentView);previousView=null;updateBackButton();
@@ -3558,8 +3563,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
   if(!EMBED||SD_PARAMS.get('solo')==='1')return;
   const GROUPS={
     userNav:[['Ticket',['start','new','mine']]],
-    hrNav:[['Ticket',['start','new','mine']],['Persone',['persone','hr-new','hr-history','hr-stats']],['Spazi',['planimetrie','mappa']],['Amministrazione',['utenti']]],
-    itNav:[['Ticket',['start','home','it','new','calendar']],['Asset',['censimento','prenotazioni','eliminazioni']],['Persone e spazi',['persone','movimenti','planimetrie','mappa']],['Amministrazione',['utenti']]]
+    hrNav:[['Persone',['hr-stats','persone','hr-new','hr-history']],['Ticket',['new','mine']],['Spazi',['planimetrie','mappa']],['Amministrazione',['utenti']]],
+    itNav:[['Ticket',['home','it','new','calendar']],['Asset',['censimento','prenotazioni','eliminazioni']],['Persone e spazi',['persone','movimenti','planimetrie','mappa']],['Amministrazione',['utenti']]]
   };
   const HIDE=['chat','agenda','cantiere','offtopic'];
   Object.entries(GROUPS).forEach(([id,groups])=>{
@@ -3574,6 +3579,8 @@ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',
       if(views.includes('utenti'))g.dataset.admin='1';
       navEl.appendChild(g);
     });
+    // voci rimaste fuori dai gruppi (es. la vecchia pagina Inizio per IT e HR): non si mostrano
+    navEl.querySelectorAll(':scope > button[data-view]').forEach(b=>b.classList.add('embed-dup'));
   });
   // telefono: il menu sta chiuso in un pulsante (la pagina Inizio ha già tutti i pulsanti)
   Object.keys(GROUPS).forEach(id=>{

@@ -81,9 +81,9 @@
 
   // riquadro in Inizio finché le notifiche non sono attive
   window.archeaPushBanner = function () {
-    const host = document.querySelector('.start-hero');
+    const host = document.getElementById('content');
     document.getElementById('pushBanner')?.remove();
-    if (!host) return;
+    if (!host || !['start', 'home', 'hr-stats'].includes(typeof currentView === 'string' ? currentView : '')) return;
     let html = '';
     if (!supported() && isIOS() && !standalone()) {
       html = '<b>🔔 Notifiche sul telefono</b><span>Tocca Condividi → «Aggiungi alla schermata Home», poi apri ARCHEA dall\'icona: lì si attivano.</span>';
@@ -95,7 +95,7 @@
     if (!html) return;
     const el = document.createElement('div');
     el.id = 'pushBanner'; el.className = 'push-banner'; el.innerHTML = html;
-    host.after(el);
+    host.prepend(el);
     const b = document.getElementById('pushOn'); if (b) b.onclick = window.archeaEnablePush;
   };
 })();

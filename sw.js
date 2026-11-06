@@ -1,4 +1,4 @@
-const CACHE_NAME = 'archea-platform-v3.0.1';
+const CACHE_NAME = 'archea-platform-v3.0.2';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
