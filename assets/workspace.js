@@ -29439,10 +29439,12 @@ function Vv() {
   });
 }
 function Bv() {
-  const [t, n] = C.useState(!0);
+  // animazione d'apertura solo a chi non è ancora entrato: chi ha già la sessione va subito alla sua pagina
+  const [t, n] = C.useState(() => { try { return !localStorage.getItem("archea_sd_session"); } catch { return !0; } });
   return (
     C.useEffect(() => {
-      const s = window.setTimeout(() => n(!1), 2600);
+      if (!t) return;
+      const s = window.setTimeout(() => n(!1), 1400);
       return () => window.clearTimeout(s);
     }, []),
     e.jsx(sj, { children: t ? e.jsx(Vj, {}) : e.jsx(Hv, {}) })

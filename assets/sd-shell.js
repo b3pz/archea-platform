@@ -185,5 +185,13 @@
     _flush();
   };
 
+  // Chi ha già la sessione: il Service Desk si carica subito, mentre la piattaforma si disegna,
+  // così la prima pagina (Dashboard, HR, richieste) è pronta senza riquadro vuoto.
+  try {
+    if (localStorage.getItem('archea_sd_session')) {
+      const pre = () => { if (!frame && document.body) ensureFrame({ dataset: { src: './servicedesk/?embed=1&mode=live&lang=it' } }); };
+      document.body ? pre() : document.addEventListener('DOMContentLoaded', pre);
+    }
+  } catch (e) {}
   requestAnimationFrame(tick);
 })();
