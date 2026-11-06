@@ -1,11 +1,11 @@
 // ARCHEA Platform · progetti, task, ore e note del Workspace salvati su Supabase (tabella ws_records)
 // Le schermate di Francesco restano le stesse: questo modulo sostituisce il salvataggio nel browser.
 (function () {
-  var KEYS = { progetti: 'codice', task: 'id', ore: 'id', note: 'id' };
+  var KEYS = { progetti: 'codice', task: 'id', ore: 'id', note: 'id', team: 'id' };
   var S = {
     started: false, loaded: false, version: 0,
-    data: { progetti: [], task: [], ore: [], note: [] },
-    server: { progetti: {}, task: {}, ore: {}, note: {} },   // id -> JSON salvato
+    data: { progetti: [], task: [], ore: [], note: [], team: [] },
+    server: { progetti: {}, task: {}, ore: {}, note: {}, team: {} },   // id -> JSON salvato
     perms: [], people: [], pmNames: [], listeners: new Set(), timer: 0, pending: 0, me: null
   };
 
@@ -41,7 +41,7 @@
       if (!part || part.length < 1000) break;
       from += 1000;
     }
-    var data = { progetti: [], task: [], ore: [], note: [] }, server = { progetti: {}, task: {}, ore: {}, note: {} };
+    var data = { progetti: [], task: [], ore: [], note: [], team: [] }, server = { progetti: {}, task: {}, ore: {}, note: {}, team: {} };
     rows.forEach(function (r) { if (!data[r.collection]) return; data[r.collection].push(r.data); server[r.collection][r.id] = JSON.stringify(r.data); });
     if (S.pending) return; // non sovrascrivere modifiche in corso
     S.data = data; S.server = server; S.loaded = true; emit();
@@ -77,7 +77,7 @@
     S.timer = setInterval(function () { if (document.visibilityState === 'visible') loadAll().catch(function () {}); }, 20000);
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') loadAll().catch(function () {}); });
   }
-  function stop() { clearInterval(S.timer); S.started = false; S.loaded = false; S.data = { progetti: [], task: [], ore: [], note: [] }; S.server = { progetti: {}, task: {}, ore: {}, note: {} }; emit(); }
+  function stop() { clearInterval(S.timer); S.started = false; S.loaded = false; S.data = { progetti: [], task: [], ore: [], note: [], team: [] }; S.server = { progetti: {}, task: {}, ore: {}, note: {}, team: {} }; emit(); }
 
   async function persist(col, next) {
     var srv = S.server[col], seen = {}, writes = [];
@@ -110,7 +110,7 @@
     S.pending--;
     if (failed) {
       toast(/permesso|row-level|policy|42501/i.test(failed.message)
-        ? (col === 'task' || col === 'progetti' ? 'Solo il PM può creare progetti, assegnare task o cambiarne titolo e scadenze.' : 'Non hai il permesso per questa modifica.')
+        ? (col === 'task' || col === 'progetti' || col === 'team' ? 'Solo il PM può creare progetti, assegnare task o cambiarne titolo e scadenze.' : 'Non hai il permesso per questa modifica.')
         : 'Salvataggio non riuscito: ' + failed.message);
       loadAll().catch(function () {});
     }

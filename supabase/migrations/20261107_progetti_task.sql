@@ -43,6 +43,10 @@ create table if not exists public.ws_records (
   primary key (collection, id)
 );
 create index if not exists ws_records_updated on public.ws_records (updated_at desc);
+-- 'team' = squadra di ogni progetto (schermata Project Manager)
+alter table public.ws_records drop constraint if exists ws_records_collection_check;
+alter table public.ws_records add constraint ws_records_collection_check
+  check (collection in ('progetti', 'task', 'ore', 'note', 'team'));
 
 -- 3) Funzioni di controllo
 create or replace function public.ws_is_pm()
@@ -71,7 +75,7 @@ alter table public.ws_records enable row level security;
 
 drop policy if exists ws_read on public.ws_records;
 create policy ws_read on public.ws_records for select to authenticated using (
-  collection in ('progetti', 'note')
+  collection in ('progetti', 'note', 'team')
   or public.ws_is_pm()
   or created_by = auth.uid()
   or (collection = 'task' and public.ws_assigned_to_me(data->>'assegnatario'))

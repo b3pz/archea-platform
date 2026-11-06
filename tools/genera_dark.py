@@ -174,5 +174,92 @@ def main():
     print(f'{OUT.relative_to(ROOT)}: {total} regole')
 
 
+
+
+# ---------------------------------------------------------------------------
+# Tema chiaro: testi grigi troppo tenui su fondo bianco -> scuriti fino a contrasto 5:1
+# Esce in assets/contrast.css (stessa tinta, solo più scuri)
+# ---------------------------------------------------------------------------
+def _lum(r, g, b):
+    def f(v):
+        v /= 255
+        return v / 12.92 if v <= 0.03928 else ((v + 0.055) / 1.055) ** 2.4
+    return 0.2126 * f(r) + 0.7152 * f(g) + 0.0722 * f(b)
+
+
+def _darken_for_white(r, g, b, target=5.0):
+    h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
+    if l > 0.9:
+        return None  # testo bianco: sta su fondi scuri, non si tocca
+    for _ in range(60):
+        rr, gg, bb = (round(x * 255) for x in colorsys.hls_to_rgb(h, l, s))
+        if (1.05) / (_lum(rr, gg, bb) + 0.05) >= target:
+            return rr, gg, bb
+        l -= 0.01
+    return rr, gg, bb
+
+
+def _light_value(text):
+    def rep(m):
+        c = parse(m.group(0))
+        if not c:
+            return m.group(0)
+        r, g, b, a = c
+        if a < 0.999:
+            return m.group(0)
+        if (1.05) / (_lum(r, g, b) + 0.05) >= 5.0:
+            return m.group(0)
+        d = _darken_for_white(r, g, b)
+        return m.group(0) if d is None else '#%02x%02x%02x' % d
+    return COLOR_RE.sub(rep, text)
+
+
+LIGHT = 'html:not([data-theme="dark"])'
+
+
+def light_rules(nodes, indent=''):
+    out = []
+    for node in nodes:
+        if node.type == 'qualified-rule':
+            prelude = tinycss2.serialize(node.prelude).strip()
+            if any(k in prelude for k in KEEP_SELECTORS):
+                continue
+            keep = []
+            for d in tinycss2.parse_declaration_list(node.content, skip_whitespace=True, skip_comments=True):
+                if d.type != 'declaration':
+                    continue
+                name = d.lower_name
+                is_text = name == 'color' or (name.startswith('--') and any(k in name for k in ('ink', 'muted', 'text')))
+                if not is_text:
+                    continue
+                val = tinycss2.serialize(d.value).strip()
+                new = _light_value(val)
+                if new != val:
+                    keep.append(f'{d.name}: {new}{" !important" if d.important else ""}')
+            if keep:
+                sel = ', '.join(
+                    (LIGHT + p.strip()[5:]) if p.strip().startswith(':root') else f'{LIGHT} {p.strip()}'
+                    for p in split_selectors(prelude).split(',') if p.strip())
+                out.append(f'{indent}{sel} {{ {"; ".join(keep)} }}')
+        elif node.type == 'at-rule' and node.lower_at_keyword in ('media', 'supports') and node.content:
+            inner = light_rules(tinycss2.parse_rule_list(node.content, skip_whitespace=True, skip_comments=True), indent + '  ')
+            if inner:
+                out.append(f'{indent}@{node.at_keyword} {tinycss2.serialize(node.prelude).strip()} {{')
+                out.extend(inner)
+                out.append(f'{indent}}}')
+    return out
+
+
+def main_light():
+    lines = ['/* GENERATO da tools/genera_dark.py: testi del tema chiaro scuriti per il contrasto (min 5:1 su bianco). */']
+    for src in SOURCES:
+        css = (ROOT / src).read_text(encoding='utf-8')
+        lines.extend(light_rules(tinycss2.parse_stylesheet(css, skip_whitespace=True, skip_comments=True)))
+    lines.append(f'{LIGHT} .desk-sidebar nav button.on, {LIGHT} .desk-sidebar nav>button.on {{ color: #1d2320 !important; }}')
+    (ROOT / 'assets/contrast.css').write_text('\n'.join(lines) + '\n', encoding='utf-8')
+    print('assets/contrast.css:', len(lines) - 1, 'regole')
+
+
 if __name__ == '__main__':
-    sys.exit(main())
+    main()
+    main_light()

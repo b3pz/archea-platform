@@ -1374,6 +1374,10 @@ create table if not exists public.ws_records (
   primary key (collection, id)
 );
 create index if not exists ws_records_updated on public.ws_records (updated_at desc);
+-- &#x27;team&#x27; = squadra di ogni progetto (schermata Project Manager)
+alter table public.ws_records drop constraint if exists ws_records_collection_check;
+alter table public.ws_records add constraint ws_records_collection_check
+  check (collection in (&#x27;progetti&#x27;, &#x27;task&#x27;, &#x27;ore&#x27;, &#x27;note&#x27;, &#x27;team&#x27;));
 
 -- 3) Funzioni di controllo
 create or replace function public.ws_is_pm()
@@ -1402,7 +1406,7 @@ alter table public.ws_records enable row level security;
 
 drop policy if exists ws_read on public.ws_records;
 create policy ws_read on public.ws_records for select to authenticated using (
-  collection in (&#x27;progetti&#x27;, &#x27;note&#x27;)
+  collection in (&#x27;progetti&#x27;, &#x27;note&#x27;, &#x27;team&#x27;)
   or public.ws_is_pm()
   or created_by = auth.uid()
   or (collection = &#x27;task&#x27; and public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatario&#x27;))
@@ -1471,7 +1475,7 @@ select g.id, p.id from public.access_groups g, public.profiles p
 where g.nome = &#x27;Project Manager&#x27; and p.ruolo = &#x27;SUPER_IT&#x27;
 on conflict do nothing;
 </textarea>
-<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 1451 righe</p>
+<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 1455 righe</p>
 </main>
 <script>
 document.getElementById('copy').onclick=async()=>{const t=document.getElementById('sql');let ok=false;

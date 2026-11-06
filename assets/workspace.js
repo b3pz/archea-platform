@@ -16628,7 +16628,7 @@ function Bj() {
           e.jsxs("span", { children: ["v", xa, " · ARCHEA PLATFORM"] }),
           e.jsx("span", {
             children:
-              "© 2026 · Fatto per Archea Associati da Francesco Diamanti",
+              "© 2026 · Fatto per Archea Associati da Francesco Diamanti e Giuseppe Milano",
           }),
         ],
       }),
@@ -23567,7 +23567,7 @@ function yv({
     [x, j] = C.useState(!1),
     [f, g] = ke("archea-project-manager-people", []),
     [b, v] = ke("archea-project-manager-removed-people", []),
-    [h, p] = ke("archea-project-manager-assignments", {}),
+    [h, p] = useWsMap("team", "archea-project-manager-assignments", {}, Y().viewer),
     [y, O] = C.useState({
       codice: "",
       nome: "",
@@ -23926,7 +23926,7 @@ function yv({
       c &&
         e.jsx(De, {
           title: "Nuovo progetto",
-          subtitle: "Aggiungi una nuova commessa ai dati di esempio",
+          subtitle: "Aggiungi una nuova commessa: poi scegli chi lavora nel team",
           onClose: () => d(!1),
           children: e.jsxs("form", {
             className: "desk-event-form",
@@ -27944,7 +27944,7 @@ const FotoCantiereEntry = ["fotocantiere", "Foto cantiere", CameraIcon, "Scatta 
 const LIVE_BASE_TABS = ["oggi", "taskmanager", "servicedesk", "calendario", "chat", "offtopic", "fotocantiere", "altro"];
 function liveAllowed(n) {
   if (!n || !n.live || n.sdRole === "SUPER_IT") return null;
-  const pm = n.isPM ? ["progetti", "avanzamento", "ore", "insight", "note"] : [];
+  const pm = n.isPM ? ["projectmanager", "progetti", "avanzamento", "ore", "insight", "note"] : [];
   if (n.sdRole === "HR" || n.sdRole === "IT") return [...LIVE_BASE_TABS, "bio", ...pm];
   return [...LIVE_BASE_TABS, ...pm];
 }
@@ -27961,6 +27961,21 @@ function useWs(col, key, initial, viewer) {
   C.useEffect(() => (on ? cloud.subscribe(force) : void 0), [on]);
   if (!on) return local;
   return [cloud.get(col), (v) => cloud.set(col, typeof v == "function" ? v(cloud.get(col)) : v)];
+}
+// Come useWs ma per un oggetto { codiceProgetto: [persone] } (squadra di ogni progetto)
+function useWsMap(col, key, initial, viewer) {
+  const [list, setList] = useWs(col, key + "-list", [], viewer),
+    local = ke(key, initial),
+    on = !!(viewer && viewer.live && window.ArcheaWsCloud);
+  if (!on) return local;
+  const map = Object.fromEntries(list.map((r) => [r.id, r.persone || []]));
+  return [
+    map,
+    (v) => {
+      const next = typeof v == "function" ? v(map) : v;
+      setList(Object.entries(next).map(([id, persone]) => ({ id, persone })));
+    },
+  ];
 }
 function withOffTopic(list) {
   let out = list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
@@ -28545,7 +28560,7 @@ function _v() {
           "calendario",
         ],
     q = n.live
-      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
+      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["projectmanager", "progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
       : roleMain,
     [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live4-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
   C.useEffect(() => {
@@ -28978,7 +28993,7 @@ function _v() {
               }),
               e.jsx("span", {
                 children:
-                  "© 2026 · Fatto per Archea Associati da Francesco Diamanti",
+                  "© 2026 · Fatto per Archea Associati da Francesco Diamanti e Giuseppe Milano",
               }),
             ],
           }),
@@ -29330,7 +29345,7 @@ function Vv() {
                 }),
                 e.jsx("span", {
                   children:
-                    "© 2026 · Fatto per Archea Associati da Francesco Diamanti",
+                    "© 2026 · Fatto per Archea Associati da Francesco Diamanti e Giuseppe Milano",
                 }),
               ],
             }),
