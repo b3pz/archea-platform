@@ -5,6 +5,8 @@
  */
 html.sd-embed,
 html.sd-embed body { background: #f6f6f3; }
+html.sd-embed, html.sd-embed body { max-width: 100%; overflow-x: hidden; }
+html.sd-embed .app, html.sd-embed main, html.sd-embed section { min-width: 0; max-width: 100%; }
 html.sd-embed body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
 
 /* login: nel Workspace c'è già, qui resta solo un messaggio */

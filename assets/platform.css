@@ -42,7 +42,9 @@
 
 .servicedesk-frame {
   display: block;
-  width: 100%;
+  /* iOS allarga un iframe fino al suo contenuto: 1px + min-width lo tiene largo quanto lo schermo */
+  width: 1px;
+  min-width: 100%;
   height: calc(100dvh - 228px);
   min-height: 560px;
   border: 1px solid var(--line, #e5e8e5);
@@ -54,7 +56,9 @@
 .mobile-scene .servicedesk-host { gap: 0; }
 .mobile-scene .servicedesk-host-head { display: none; }
 .mobile-scene .servicedesk-frame {
-  width: calc(100% + 40px);
+  width: 1px;
+  min-width: calc(100% + 40px);
+  max-width: calc(100% + 40px);
   margin: 0 -20px;
   height: calc(100dvh - 132px - var(--safe-b, 0px));
   min-height: 420px;
@@ -66,3 +70,6 @@
 @media (max-width: 700px) {
   input, select, textarea { font-size: 16px !important; }
 }
+
+/* Nessun elemento può allargare la pagina oltre lo schermo (su iPhone la rimpiccioliva tutta) */
+html, body { max-width: 100%; overflow-x: hidden; }

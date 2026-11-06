@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.7.2 — iPhone: pagina a larghezza schermo
+
+- Su iPhone il riquadro del Service Desk poteva allargarsi fino al suo contenuto e far rimpicciolire tutta la pagina. Ora resta largo quanto lo schermo.
+- Nessun elemento può più allargare la pagina oltre lo schermo.
+- Cache aggiornata: il telefono scarica la versione nuova invece di quella salvata.
+
 ## 1.7.1 — Controllo completo
 
 - Controllo automatico: 11 account, su computer e telefono, tutte le voci di menu e tutte le schermate del Service Desk.
