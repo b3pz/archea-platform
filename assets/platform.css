@@ -106,3 +106,7 @@ html.archea-sidenav .desk-sidebar > nav { display: none !important; }
 .archea-nav-items { display: none; flex-direction: column; gap: 1px; margin: 0 0 6px 20px; padding-left: 8px; border-left: 1px solid rgba(255,255,255,.14); }
 .archea-nav-group.open .archea-nav-items { display: flex; }
 .archea-nav-items button { font-weight: 500; font-size: 14.5px; padding: 8px 10px; }
+
+/* Menu a sinistra con tutte le funzioni: se non ci stanno, si scorre (non si tagliano) */
+.desk-sidebar { min-height: 0; }
+.desk-sidebar > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }

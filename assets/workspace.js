@@ -28615,10 +28615,11 @@ function _v() {
           ...(A ? ["cantiere", "contabilita", "insight"] : []),
           "calendario",
         ],
+    // account registrati: tutte le funzioni che non stanno nella barra in alto del Service Desk sono a sinistra (niente "Altro")
     q = n.live
-      ? liveFilter(n, [...new Set(["servicedesk", ...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["projectmanager", "progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
+      ? M.map((V) => V[0])
       : roleMain,
-    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live5-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
+    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live6-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
   C.useEffect(() => {
     Qe((V) => V.filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
   }, [n.id]);
