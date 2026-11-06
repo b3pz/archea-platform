@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.5.1 — Calendario a un tocco, tema scuro più leggibile
+
+- **Calendario**: un clic su una casella vuota apre subito un nuovo appuntamento per quel giorno. Nelle viste Giorno e Settimana prende anche l'ora cliccata. Prima serviva il doppio clic.
+- **Calendario sul telefono**: ogni giorno ha "+ Appuntamento", e i giorni liberi si toccano per aggiungere.
+- **Tema scuro**: testi più chiari, sfondi più scuri e bordi più visibili. I testi bianchi su pulsanti colorati diventano scuri quando il pulsante si schiarisce.
+- `supabase/setup.html` e `supabase/pulizia.html`: per copiare gli script SQL con un tocco, senza scaricare file.
+
 ## 2.5.0 — Progetti e task condivisi, ruolo PM
 
 - **Progetti, task, ore e note del Workspace sono su Supabase** e condivisi tra tutti. Le schermate di Francesco (Oggi, Task Manager, Progetti, Ore, Note, Insight) restano le stesse.

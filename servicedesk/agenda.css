@@ -170,3 +170,11 @@
   .ag-month.compact .ag-month-grid { grid-auto-rows: 56px; }
   .ag-month.compact .ag-mday b { width: 36px; height: 36px; font-size: 16px; }
 }
+/* clic sulla casella = nuovo appuntamento */
+.ag-mday[data-day], .ag-day[data-day] { cursor: copy; }
+.ag-mday[data-day]:hover { background: color-mix(in srgb, var(--accent, #626763) 8%, transparent); }
+.ag-mday[data-day]:hover::after { content: "+"; position: absolute; right: 8px; bottom: 4px; font-weight: 800; opacity: .45; }
+.ag-mday { position: relative; }
+.ag-day[data-day]:hover { background: color-mix(in srgb, var(--accent, #626763) 5%, transparent); }
+.ag-list-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ag-empty-add { display: block; width: 100%; text-align: left; border: 1px dashed var(--line); border-radius: 12px; background: transparent; color: var(--muted); padding: 12px; font: inherit; cursor: pointer; }

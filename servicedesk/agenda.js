@@ -200,8 +200,8 @@ function agRenderList(days) {
   return `<div class="ag-list">${days.map(d => {
     const dayEvs = agEventsOn(d, evs);
     return `<section class="ag-list-day${agSameDay(d, new Date()) ? ' today' : ''}">
-      <h4>${esc(agDayLabel(d, true))}</h4>
-      ${dayEvs.length ? dayEvs.map(e => agEventChip(e, false)).join('') : '<p class="ag-empty">Libero</p>'}
+      <div class="ag-list-head"><h4>${esc(agDayLabel(d, true))}</h4><button class="secondary compact" data-agnewday="${agYmd(d)}">+ Appuntamento</button></div>
+      ${dayEvs.length ? dayEvs.map(e => agEventChip(e, false)).join('') : `<button class="ag-empty ag-empty-add" data-agnewday="${agYmd(d)}">Libero · tocca per aggiungere</button>`}
     </section>`;
   }).join('')}</div>`;
 }
@@ -261,12 +261,18 @@ function agRender() {
   document.querySelectorAll('[data-agf]').forEach(b => b.onclick = () => { agState.filter = b.dataset.agf; agRender(); });
   document.querySelectorAll('[data-agnew]').forEach(b => b.onclick = () => agForm(b.dataset.agnew, agState.view === 'giorno' ? { date: agYmd(agState.anchor) } : {}));
   document.querySelectorAll('[data-ev]').forEach(b => b.onclick = e => { e.stopPropagation(); agDetail(b.dataset.ev); });
-  document.querySelectorAll('.ag-day[data-day]').forEach(col => col.ondblclick = e => {
+  // Un clic su una casella vuota del calendario apre un nuovo appuntamento in quel giorno (e a quell'ora)
+  document.querySelectorAll('.ag-day[data-day]').forEach(col => col.onclick = e => {
+    if (e.target.closest('[data-ev],button,a')) return;
     const rect = col.getBoundingClientRect();
-    const minutes = AG_HOURS.from * 60 + Math.round(((e.clientY - rect.top) / rect.height) * (AG_HOURS.to - AG_HOURS.from) * 60 / 30) * 30;
+    const minutes = Math.min(AG_HOURS.to * 60 - 60, AG_HOURS.from * 60 + Math.floor(((e.clientY - rect.top) / rect.height) * (AG_HOURS.to - AG_HOURS.from) * 2) * 30);
     agForm('APPUNTAMENTO', { date: col.dataset.day, start: `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` });
   });
-  document.querySelectorAll('.ag-mday[data-day]').forEach(cell => cell.ondblclick = () => agForm('APPUNTAMENTO', { date: cell.dataset.day }));
+  document.querySelectorAll('.ag-mday[data-day]').forEach(cell => cell.onclick = e => {
+    if (e.target.closest('[data-ev],button,a')) return;
+    agForm('APPUNTAMENTO', { date: cell.dataset.day });
+  });
+  document.querySelectorAll('[data-agnewday]').forEach(b => b.onclick = e => { e.stopPropagation(); agForm('APPUNTAMENTO', { date: b.dataset.agnewday }); });
 }
 
 async function agRefresh() {

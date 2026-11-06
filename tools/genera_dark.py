@@ -52,30 +52,39 @@ def parse(tok):
     return vals[0], vals[1], vals[2], (vals[3] if len(vals) > 3 else 1.0)
 
 
-def to_dark(r, g, b):
+def to_dark(r, g, b, kind='bg'):
+    """kind='text' per colori di testo (color, --ink…), 'bg' per sfondi e bordi."""
     h, l, s = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-    if s < 0.28 or l > 0.93 or l < 0.06:   # neutri: si ribalta la luminosità
-        l2 = 0.105 + (1 - l) * 0.80
-        s2 = min(s, 0.12)
-    elif l > 0.72:                          # sfondi pastello (badge, avvisi)
-        l2 = 0.17 + (1 - l) * 0.45
-        s2 = s * 0.55
-    elif l < 0.5:                           # testi/accenti scuri: più chiari
-        l2 = min(0.74, l + 0.30)
-        s2 = min(1, s * 0.9)
+    neutral = s < 0.28 or l > 0.93 or l < 0.06
+    if kind == 'text':
+        if neutral and l > 0.85:
+            l2, s2 = 0.10, min(s, 0.10)                      # testo bianco su fondo scuro -> fondo chiaro, testo scuro
+        elif neutral:
+            l2, s2 = 0.95 - l * 0.62, min(s, 0.10)          # testo: sempre chiaro e leggibile
+        else:
+            l2, s2 = max(0.66, min(0.82, 1.05 - l)), min(1, s * 0.85)
+    elif neutral:
+        if l >= 0.5:
+            l2, s2 = 0.085 + (1 - l) * 0.9, min(s, 0.10)    # sfondi chiari -> scuri, bordi ben visibili
+        else:
+            l2, s2 = 0.93 - l * 0.7, min(s, 0.10)          # pulsanti scuri -> chiari
+    elif l > 0.72:                                        # sfondi pastello (badge, avvisi)
+        l2, s2 = 0.16 + (1 - l) * 0.45, s * 0.6
+    elif l < 0.5:
+        l2, s2 = min(0.72, l + 0.30), min(1, s * 0.9)
     else:
         l2, s2 = l, s
     rr, gg, bb = colorsys.hls_to_rgb(h, l2, s2)
     return round(rr * 255), round(gg * 255), round(bb * 255)
 
 
-def map_value(text):
+def map_value(text, kind='bg'):
     def rep(m):
         c = parse(m.group(0))
         if not c:
             return m.group(0)
         r, g, b, a = c
-        r2, g2, b2 = to_dark(r, g, b)
+        r2, g2, b2 = to_dark(r, g, b, kind)
         if a >= 0.999:
             return '#%02x%02x%02x' % (r2, g2, b2)
         return 'rgba(%d, %d, %d, %s)' % (r2, g2, b2, ('%.3f' % a).rstrip('0').rstrip('.'))
@@ -134,7 +143,10 @@ def rules(nodes, indent=''):
                     continue
                 if 'url(' in val or not COLOR_RE.search(val):
                     continue
-                new = map_value(val)
+                name = d.lower_name
+                kind = 'text' if (name in ('color', 'fill', '-webkit-text-fill-color', 'caret-color') or
+                                  (name.startswith('--') and any(k in name for k in ('ink', 'text', 'muted', 'fg', 'color')))) else 'bg'
+                new = map_value(val, kind)
                 if new != val:
                     keep.append(f'{d.name}: {new}{" !important" if d.important else ""}')
             if keep:
