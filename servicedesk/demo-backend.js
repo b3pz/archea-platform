@@ -253,7 +253,7 @@
         { id: 3, topic_id: 2, corpo: 'Prova Ideate Software, la demo è gratuita.', author_id: IT2.id, author_nome: IT2.nome, created_at: iso(1, 16) }
       ],
       access_groups: [
-        { id: 1, nome: 'IT', descrizione: 'Reparto IT: gestisce utenti, calendario e moderazione', permessi: ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario'] },
+        { id: 1, nome: 'IT', descrizione: 'Reparto IT: gestisce utenti, calendario, moderazione e planimetrie', permessi: ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe'] },
         { id: 2, nome: 'Moderatori Off topic', descrizione: 'Moderano la bacheca Off topic', permessi: ['moderazione_offtopic'] },
         { id: 3, nome: 'Gestione calendario', descrizione: 'Gestiscono sale, auto e prenotazioni di tutti', permessi: ['gestione_calendario'] }
       ],
@@ -505,7 +505,7 @@
   function fmtShort(d) { var x = new Date(d); return String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + ' ' + x.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); }
 
   // ---------- permessi (in produzione: has_perm / my_permissions) ----------
-  var ALL_PERMS = ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario'];
+  var ALL_PERMS = ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario', 'gestione_mappe'];
   function myPerms() {
     var p = rows('profiles').find(function (x) { return x.id === me.id; });
     if (p && p.ruolo === 'SUPER_IT') return ALL_PERMS.slice();

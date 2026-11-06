@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.5.0 — Planimetrie disegnabili
+
+- **Planimetrie** (Service Desk, per IT e HR): pianta per sede e piano, con chi siede dove.
+  - Si cerca una persona e il suo posto si illumina.
+  - Un tocco su una postazione assegna o sposta una persona, oppure la libera; il cambio va nello storico della persona.
+  - Un tocco su una WRKA mostra i suoi dispositivi, che si spostano su un'altra postazione; lo spostamento va nello storico dell'asset.
+- **Editor** (permesso nuovo "Disegnare le planimetrie", incluso nel gruppo IT):
+  - elementi: muri, stanze, porte, finestre, scrivanie, tavoli riunioni e rotondi, sedie, divani, armadi, TV/schermi, monitor, proiettori, videocamere, speaker, lavagne, stampanti, rack, access point, piante, scritte;
+  - comandi: trascina, ridimensiona, ruota, duplica, annulla, griglia, zoom, sfondo da ricalcare;
+  - al salvataggio crea le postazioni mancanti.
+- **18 piante pronte**, convertite dalla v13 (Firenze, Genova, Milano, Roma, Parigi, Shanghai, 249 postazioni), da importare con un clic e rifinire.
+- La vecchia "Mappa" (elenco) si chiama ora **Postazioni**.
+- Migrazione `supabase/migrations/20261106_planimetrie.sql`, inclusa in `SETUP_COMPLETO.sql`.
+
 ## 1.4.0 — Sondaggi, gestione utenti dal sito, gruppi e permessi
 
 - **Sondaggi** negli argomenti Off topic: domanda, da 2 a 12 risposte, scelta singola o multipla, chiusura facoltativa. Si vede chi ha votato cosa, e un voto si toglie toccandolo di nuovo.

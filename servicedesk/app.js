@@ -3251,6 +3251,7 @@ const NAV_ICON_PATHS={
   start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
   chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>',
   agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3v3H8z"/>',
+  planimetrie:'<path d="M3 4h18v16H3z"/><path d="M3 11h7v9M10 4v4M14 11h7M14 11v4"/>',
   utenti:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 11l1.5 1.5L22 9"/>',
   offtopic:'<path d="M4 5h16v10H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/><circle cx="18.5" cy="5.5" r="2.5"/>',
   room:'<path d="M3 21h18M5 21V6l7-3 7 3v15M9 21v-5h6v5M9 10h.01M15 10h.01"/>',
@@ -3293,6 +3294,7 @@ function nav(v){
   if(v==='agenda')return agendaView();
   if(v==='offtopic')return offtopicView();
   if(v==='utenti')return usersView();
+  if(v==='planimetrie')return planimetrieView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();

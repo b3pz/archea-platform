@@ -27,7 +27,8 @@ const START_ACTIONS = {
   'hr-new':       ['Nuovo movimento', 'Ingresso, uscita o cambio sede', 'hr-new'],
   'hr-history':   ['Storico movimenti', 'Movimenti da confermare', 'hr-history'],
   'hr-stats':     ['Statistiche HR', 'Andamento di ingressi e uscite', 'hr-stats'],
-  mappa:          ['Mappa', 'Postazioni e magazzino', 'mappa'],
+  mappa:          ['Postazioni', 'Elenco postazioni e magazzino', 'mappa'],
+  planimetrie:    ['Planimetrie', 'Chi siede dove, sposta persone e dispositivi', 'planimetrie'],
   calendar:       ['Appuntamenti IT', 'Appuntamenti legati ai ticket', 'calendar'],
   prenotazioni:   ['Prenotazioni', 'Materiale in prestito', 'prenotazioni']
 };
@@ -37,8 +38,8 @@ function startActionsForRole() {
   return [...startActionsBase(), ...extra];
 }
 function startActionsBase() {
-  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'mappa', 'hr-stats', 'offtopic', 'new', 'mine'];
+  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'planimetrie', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
+  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'planimetrie', 'hr-stats', 'offtopic', 'new', 'mine'];
   return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
 }
 
