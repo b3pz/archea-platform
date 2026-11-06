@@ -133,3 +133,42 @@
   window.ARCHEA_CONFIG = CONFIG;
   window.ArcheaAuth = ArcheaAuth;
 })();
+
+// ---------------------------------------------------------------------------
+// Tema chiaro / scuro, unico per Workspace e Service Desk
+// archea-theme = 'auto' (come il telefono/computer) | 'light' | 'dark'
+// ---------------------------------------------------------------------------
+(function () {
+  var KEY = 'archea-theme';
+  var mq = window.matchMedia ? window.matchMedia('(prefers-color-scheme: dark)') : null;
+  function mode() {
+    try {
+      var v = localStorage.getItem(KEY);
+      if (v === 'light' || v === 'dark' || v === 'auto') return v;
+      var old = localStorage.getItem('archea_sd_theme'); // vecchia scelta del Service Desk
+      if (old === 'light' || old === 'dark') return old;
+    } catch (e) {}
+    return 'auto';
+  }
+  function resolved(m) { m = m || mode(); return m === 'auto' ? (mq && mq.matches ? 'dark' : 'light') : m; }
+  function apply() {
+    var t = resolved();
+    var el = document.documentElement;
+    el.dataset.theme = t;
+    el.style.colorScheme = t;
+    var meta = document.querySelector('meta[name="theme-color"]');
+    if (meta) meta.setAttribute('content', t === 'dark' ? '#1b1d1b' : '#222624');
+    try { window.dispatchEvent(new CustomEvent('archea-theme', { detail: t })); } catch (e) {}
+    return t;
+  }
+  function set(m) {
+    try { localStorage.setItem(KEY, m); localStorage.setItem('archea_sd_theme', resolved(m)); } catch (e) {}
+    return apply();
+  }
+  if (mq && mq.addEventListener) mq.addEventListener('change', function () { if (mode() === 'auto') apply(); });
+  // un cambio fatto in un'altra scheda o nel riquadro del Service Desk vale anche qui
+  window.addEventListener('storage', function (e) { if (e.key === KEY) apply(); });
+  window.ArcheaTheme = { mode: mode, resolved: resolved, apply: apply, set: set,
+    toggle: function () { return set(resolved() === 'dark' ? 'light' : 'dark'); } };
+  apply();
+})();

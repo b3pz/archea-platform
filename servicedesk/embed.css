@@ -4,13 +4,13 @@
  * La barra laterale scura diventa una fila di schede in alto, come il Workspace.
  */
 html.sd-embed,
-html.sd-embed body { background: #f6f6f3; }
+html.sd-embed body { background: var(--bg, #f6f6f3); }
 html.sd-embed, html.sd-embed body { max-width: 100%; overflow-x: hidden; }
 html.sd-embed .app, html.sd-embed main, html.sd-embed section { min-width: 0; max-width: 100%; }
 html.sd-embed body { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
 
 /* login: nel Workspace c'è già, qui resta solo un messaggio */
-html.sd-embed .login { min-height: 100dvh; padding: 18px; background: #f6f6f3; }
+html.sd-embed .login { min-height: 100dvh; padding: 18px; background: var(--bg, #f6f6f3); }
 html.sd-embed .login-logo-panel,
 html.sd-embed .login-signature { display: none; }
 
@@ -145,23 +145,31 @@ html.sd-solo .topbar .top-actions { gap: 6px; }
 html.sd-embed {
   --ws-ink: #1d2320; --ws-ink2: #5d6661; --ws-ink3: #8b948f;
   --ws-line: #e5e8e5; --ws-soft: #f3f4f3; --ws-active: #c5c7c4; --ws-dark: #222624;
+  --ws-bg: #fff; --ws-on-dark: #fff; --ws-bar: rgba(255, 255, 255, .94); --ws-hover: #9ca09b;
 }
-html.sd-embed, html.sd-embed body, html.sd-embed .app, html.sd-embed main { background: #fff !important; color: var(--ws-ink); }
+/* Tema scuro: stessi colori del Workspace scuro */
+html.sd-embed[data-theme="dark"] {
+  --ws-ink: #e3e8e5; --ws-ink2: #a3aca7; --ws-ink3: #7d8681;
+  --ws-line: #2e332f; --ws-soft: #242825; --ws-active: #3d423e; --ws-dark: #e3e8e5;
+  --ws-bg: #1b1d1b; --ws-on-dark: #1b1d1b; --ws-bar: rgba(27, 29, 27, .94); --ws-hover: #5d635e;
+  color-scheme: dark;
+}
+html.sd-embed, html.sd-embed body, html.sd-embed .app, html.sd-embed main { background: var(--ws-bg) !important; color: var(--ws-ink); }
 html.sd-embed body { font: 400 16px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
 
 /* barra delle sezioni: chiara, a pillole, come i filtri del Workspace */
 html.sd-embed .sidebar {
-  background: rgba(255, 255, 255, .94) !important;
+  background: var(--ws-bar) !important;
   border-bottom: 1px solid var(--ws-line) !important;
   -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
 }
 html.sd-embed .sidebar nav button {
-  color: var(--ws-ink) !important; background: #fff !important;
+  color: var(--ws-ink) !important; background: var(--ws-bg) !important;
   border: 1px solid var(--ws-line) !important; font-weight: 600;
 }
 html.sd-embed .sidebar nav button .nav-icon { color: var(--ws-ink2) !important; }
 html.sd-embed .sidebar nav button.active {
-  background: var(--ws-active) !important; border-color: #9ca09b !important; color: var(--ws-ink) !important; font-weight: 800;
+  background: var(--ws-active) !important; border-color: var(--ws-hover) !important; color: var(--ws-ink) !important; font-weight: 800;
 }
 
 /* titoli */
@@ -173,22 +181,22 @@ html.sd-embed .eyebrow { letter-spacing: .06em; color: var(--ws-ink3); font-weig
 /* schede */
 html.sd-embed .panel, html.sd-embed .hero, html.sd-embed .userhero, html.sd-embed .metric,
 html.sd-embed .queue-card, html.sd-embed .tablewrap, html.sd-embed .comment, html.sd-embed .appointment {
-  background: #fff !important; border: 1px solid var(--ws-line) !important; border-radius: 16px !important; box-shadow: none !important;
+  background: var(--ws-bg) !important; border: 1px solid var(--ws-line) !important; border-radius: 16px !important; box-shadow: none !important;
 }
 html.sd-embed .metric { background: var(--ws-soft) !important; border-color: transparent !important; }
 
 /* pulsanti */
-html.sd-embed .primary { background: var(--ws-dark) !important; color: #fff !important; border-color: var(--ws-dark) !important; border-radius: 12px !important; font-weight: 800; }
+html.sd-embed .primary { background: var(--ws-dark) !important; color: var(--ws-on-dark) !important; border-color: var(--ws-dark) !important; border-radius: 12px !important; font-weight: 800; }
 html.sd-embed .secondary { background: var(--ws-soft) !important; color: var(--ws-ink) !important; border-color: var(--ws-line) !important; border-radius: 12px !important; font-weight: 700; }
 html.sd-embed .ghost { border-radius: 12px !important; }
-html.sd-embed input, html.sd-embed select, html.sd-embed textarea { border-radius: 12px !important; border-color: var(--ws-line) !important; background: #fff; }
+html.sd-embed input, html.sd-embed select, html.sd-embed textarea { border-radius: 12px !important; border-color: var(--ws-line) !important; background: var(--ws-bg); color: var(--ws-ink); }
 
 /* Inizio: saluto e pulsanti come la home del Workspace */
 html.sd-embed .start-hero .eyebrow { display: none; }
 html.sd-embed .start-hero h3 { font-size: 30px; font-weight: 850; letter-spacing: -.04em; }
 html.sd-embed .start-hero p { font-size: 17px; color: var(--ws-ink2); }
-html.sd-embed .start-action { background: #fff; border-color: var(--ws-line); box-shadow: none; }
-html.sd-embed .start-action:hover { border-color: #9ca09b; box-shadow: none; }
+html.sd-embed .start-action { background: var(--ws-bg); border-color: var(--ws-line); box-shadow: none; }
+html.sd-embed .start-action:hover { border-color: var(--ws-hover); box-shadow: none; }
 html.sd-embed .start-action.primary-action { background: var(--ws-dark); border-color: var(--ws-dark); }
 html.sd-embed .start-icon { background: var(--ws-soft); color: var(--ws-ink); }
 html.sd-embed .start-text b { font-weight: 800; }
@@ -204,3 +212,6 @@ html.sd-embed .start-chip span { text-transform: none; letter-spacing: 0; font-s
 html.sd-embed .metrics .metric { background: var(--ws-soft) !important; border-color: transparent !important; min-height: 0; }
 html.sd-embed .metrics .metric b { font-weight: 850; }
 html.sd-embed .metrics .metric span { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ws-ink2); }
+html.sd-embed .start-action.primary-action, html.sd-embed .start-action.primary-action b { color: var(--ws-on-dark); }
+html.sd-embed .start-action.primary-action small { color: var(--ws-on-dark); opacity: .75; }
+html.sd-embed .start-action.primary-action .start-icon { background: color-mix(in srgb, var(--ws-on-dark) 14%, transparent); color: var(--ws-on-dark); }

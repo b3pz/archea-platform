@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.3.0 — Tema scuro
+
+- **Tema scuro** per tutta la piattaforma: Workspace, Service Desk, Pianificazione e login.
+  - Si cambia con il pulsante ☀/☾ nell'intestazione, e nel login in basso a destra.
+  - All'inizio segue l'impostazione del telefono o del computer.
+  - La scelta vale insieme per Workspace e Service Desk e viene ricordata.
+- `assets/dark.css` è generato da `tools/genera_dark.py`, che converte in versione scura tutti i colori dei CSS del Workspace (980 regole). Va rilanciato se cambiano quei CSS. I ritocchi a mano sono in `assets/dark-extra.css`.
+- La barra laterale del computer, già scura, resta com'è; il logo diventa bianco.
+
 ## 2.2.0 — iPhone come lettore per il computer
 
 - Nella scansione da computer c'è **📱 Usa l'iPhone come lettore**:

@@ -14,13 +14,15 @@ let movementPrefill=null;
 let navigationEpoch=0;
 
 function applyTheme(theme){
+  // tema unico della piattaforma (config/platform.js): vale anche per il Workspace
   const chosen=theme==='dark'?'dark':'light';
-  document.documentElement.dataset.theme=chosen;
-  localStorage.setItem('archea_sd_theme',chosen);
-  const label=$('themeLabel');
-  if(label) label.textContent=chosen==='dark'?'Chiaro':'Scuro';
+  if(window.ArcheaTheme)window.ArcheaTheme.set(chosen);
+  else{document.documentElement.dataset.theme=chosen;try{localStorage.setItem('archea_sd_theme',chosen)}catch{}}
+  syncThemeLabel();
 }
+function syncThemeLabel(){const label=$('themeLabel');if(label)label.textContent=document.documentElement.dataset.theme==='dark'?'Chiaro':'Scuro'}
 function initTheme(){
+  if(window.ArcheaTheme){window.ArcheaTheme.apply();window.addEventListener('archea-theme',syncThemeLabel);syncThemeLabel();return}
   const saved=localStorage.getItem('archea_sd_theme');
   const preferred=saved || (window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
   applyTheme(preferred);

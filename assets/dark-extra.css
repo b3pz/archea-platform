@@ -1,0 +1,20 @@
+/* ARCHEA Platform · ritocchi del tema scuro (a mano). Il grosso è in dark.css, generato. */
+.archea-theme-btn {
+  display: inline-grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; order: -1;
+  border: 1px solid var(--line, #e5e8e5); border-radius: 999px; background: var(--soft, #f3f4f3);
+  color: var(--ink, #1d2320); cursor: pointer; padding: 0;
+}
+.archea-theme-btn:hover { border-color: var(--active-border, #9ca09b); }
+.archea-theme-btn.login { position: fixed; top: calc(14px + env(safe-area-inset-top, 0px)); right: 14px; z-index: 50; }
+
+html[data-theme="dark"] { color-scheme: dark; }
+html[data-theme="dark"] body { background: var(--bg); color: var(--ink); }
+html[data-theme="dark"] img[src*="archea-associati-logo"],
+html[data-theme="dark"] img[src*="archea-logo"] { filter: invert(1) brightness(.92); }
+html[data-theme="dark"] input, html[data-theme="dark"] select, html[data-theme="dark"] textarea { color: var(--ink); }
+html[data-theme="dark"] input::placeholder, html[data-theme="dark"] textarea::placeholder { color: var(--ink3); }
+html[data-theme="dark"] .servicedesk-frame { background: #1b1d1b; }
+html[data-theme="dark"] ::-webkit-scrollbar-thumb { background: #3a3f3b; }
+.archea-theme-btn.login { top: auto; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); right: 16px; }
+html[data-theme="dark"] .help-q { background: #242825 !important; color: #e3e8e5 !important; border-color: #3d423e !important; }
+html[data-theme="dark"] .help-tip { background: #e3e8e5 !important; color: #1b1d1b !important; }
