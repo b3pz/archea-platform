@@ -3,6 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>
+/* Un solo accesso: aperto da solo, il Service Desk porta alla piattaforma (stesso login e stessa grafica per tutti).
+   Per aprirlo comunque da solo: servicedesk/?standalone=1 */
+(function(){try{var q=new URLSearchParams(location.search);if(q.get('embed')==='1'||q.get('standalone')==='1'||window.top!==window.self)return;
+var t=q.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket');
+location.replace('../'+(t?'?ticket='+encodeURIComponent(t):'')+'#/servicedesk');}catch(e){}})();
+</script>
+<script>
+/* Alcuni browser dentro le app (o "Richiedi sito desktop") disegnano la pagina larga 980 px e la rimpiccioliscono:
+   su un telefono forziamo la larghezza reale dello schermo. */
+(function(){try{var w=Math.min(screen.width,screen.height);if(w&&w<700&&window.innerWidth>w*1.4&&!/[?&]desktop=1/.test(location.search)){var m=document.querySelector('meta[name=viewport]');if(m)m.setAttribute('content','width='+w+', initial-scale=1, viewport-fit=cover');}}catch(e){}})();
+</script>
 <meta name="theme-color" content="#171918">
 <title>Archea Service Desk</title>
 <link rel="icon" type="image/svg+xml" href="../icons/archea-favicon.svg">
@@ -15,7 +27,7 @@
 <link rel="stylesheet" href="users.css?v=9600">
 <link rel="stylesheet" href="planimetrie.css?v=9810">
 <link rel="stylesheet" href="foto.css?v=9910">
-<link rel="stylesheet" href="embed.css?v=9811">
+<link rel="stylesheet" href="embed.css?v=9920">
 </head>
 <body>
 <div id="toast" class="toast hidden"></div>

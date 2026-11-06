@@ -153,3 +153,71 @@ html.sd-solo .topbar .top-actions { gap: 6px; }
   /* aiuto "?" più facile da toccare */
   html.sd-embed .help-q { width: 26px !important; height: 26px !important; font-size: 14px !important; }
 }
+
+/* ==========================================================================
+   Stile unico: dentro la piattaforma il Service Desk usa l'aspetto del Workspace
+   (fondo bianco, titoli pieni, schede arrotondate, barra chiara a pillole).
+   Ruoli diversi vedono solo più o meno pulsanti, non una grafica diversa.
+   ========================================================================== */
+html.sd-embed {
+  --ws-ink: #1d2320; --ws-ink2: #5d6661; --ws-ink3: #8b948f;
+  --ws-line: #e5e8e5; --ws-soft: #f3f4f3; --ws-active: #c5c7c4; --ws-dark: #222624;
+}
+html.sd-embed, html.sd-embed body, html.sd-embed .app, html.sd-embed main { background: #fff !important; color: var(--ws-ink); }
+html.sd-embed body { font: 400 16px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; }
+
+/* barra delle sezioni: chiara, a pillole, come i filtri del Workspace */
+html.sd-embed .sidebar {
+  background: rgba(255, 255, 255, .94) !important;
+  border-bottom: 1px solid var(--ws-line) !important;
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+html.sd-embed .sidebar nav button {
+  color: var(--ws-ink) !important; background: #fff !important;
+  border: 1px solid var(--ws-line) !important; font-weight: 600;
+}
+html.sd-embed .sidebar nav button .nav-icon { color: var(--ws-ink2) !important; }
+html.sd-embed .sidebar nav button.active {
+  background: var(--ws-active) !important; border-color: #9ca09b !important; color: var(--ws-ink) !important; font-weight: 800;
+}
+
+/* titoli */
+html.sd-embed h1, html.sd-embed h2, html.sd-embed h3, html.sd-embed h4 { color: var(--ws-ink); font-weight: 850; letter-spacing: -.03em; }
+html.sd-embed .page-heading h2 { font-size: 30px; line-height: 1.05; letter-spacing: -.04em; }
+html.sd-embed .page-heading p { color: var(--ws-ink2); }
+html.sd-embed .eyebrow { letter-spacing: .06em; color: var(--ws-ink3); font-weight: 700; }
+
+/* schede */
+html.sd-embed .panel, html.sd-embed .hero, html.sd-embed .userhero, html.sd-embed .metric,
+html.sd-embed .queue-card, html.sd-embed .tablewrap, html.sd-embed .comment, html.sd-embed .appointment {
+  background: #fff !important; border: 1px solid var(--ws-line) !important; border-radius: 16px !important; box-shadow: none !important;
+}
+html.sd-embed .metric { background: var(--ws-soft) !important; border-color: transparent !important; }
+
+/* pulsanti */
+html.sd-embed .primary { background: var(--ws-dark) !important; color: #fff !important; border-color: var(--ws-dark) !important; border-radius: 12px !important; font-weight: 800; }
+html.sd-embed .secondary { background: var(--ws-soft) !important; color: var(--ws-ink) !important; border-color: var(--ws-line) !important; border-radius: 12px !important; font-weight: 700; }
+html.sd-embed .ghost { border-radius: 12px !important; }
+html.sd-embed input, html.sd-embed select, html.sd-embed textarea { border-radius: 12px !important; border-color: var(--ws-line) !important; background: #fff; }
+
+/* Inizio: saluto e pulsanti come la home del Workspace */
+html.sd-embed .start-hero .eyebrow { display: none; }
+html.sd-embed .start-hero h3 { font-size: 30px; font-weight: 850; letter-spacing: -.04em; }
+html.sd-embed .start-hero p { font-size: 17px; color: var(--ws-ink2); }
+html.sd-embed .start-action { background: #fff; border-color: var(--ws-line); box-shadow: none; }
+html.sd-embed .start-action:hover { border-color: #9ca09b; box-shadow: none; }
+html.sd-embed .start-action.primary-action { background: var(--ws-dark); border-color: var(--ws-dark); }
+html.sd-embed .start-icon { background: var(--ws-soft); color: var(--ws-ink); }
+html.sd-embed .start-text b { font-weight: 800; }
+html.sd-embed .start-chip { background: var(--ws-soft); border-color: transparent; border-radius: 16px; }
+html.sd-embed .start-chip b { font-weight: 850; }
+html.sd-embed .start-chip span { text-transform: none; letter-spacing: 0; font-size: 13px; font-weight: 600; color: var(--ws-ink2); }
+
+@media (max-width: 700px) {
+  html.sd-embed .page-heading h2 { font-size: 26px; }
+  html.sd-embed .start-hero h3 { font-size: 28px; }
+}
+/* contatori come quelli del Workspace (fondo grigio, numero pieno, etichetta normale) */
+html.sd-embed .metrics .metric { background: var(--ws-soft) !important; border-color: transparent !important; min-height: 0; }
+html.sd-embed .metrics .metric b { font-weight: 850; }
+html.sd-embed .metrics .metric span { text-transform: none; letter-spacing: 0; font-size: 14px; font-weight: 600; color: var(--ws-ink2); }

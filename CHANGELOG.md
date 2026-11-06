@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.9.0 — Un solo accesso, una sola grafica
+
+- **Un solo login**: aprendo l'indirizzo del Service Desk (`/servicedesk/`) si arriva alla piattaforma, con lo stesso accesso per tutti. I link `?ticket=` continuano ad aprire il ticket. Per i controlli tecnici resta `servicedesk/?standalone=1`.
+- **Stessa grafica del Workspace** nel Service Desk:
+  - fondo bianco e titoli pieni;
+  - barra delle sezioni chiara, a pillole;
+  - schede, pulsanti e campi arrotondati;
+  - contatori grigi.
+  
+  Tra un ruolo e l'altro cambia solo il numero di pulsanti.
+- **Telefono**: se un browser dentro un'app, o l'opzione "Richiedi sito desktop", disegna la pagina larga come un computer, la pagina torna alla larghezza dello schermo.
+
 ## 1.8.0 — Foto cantiere: elenco cantieri e GPS
 
 - **Elenco cantieri** pronto da scegliere (`servicedesk/cantieri.js`): 7 commesse dimostrative con indirizzo e coordinate, da sostituire con quelle vere.

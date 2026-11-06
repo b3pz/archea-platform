@@ -3,6 +3,11 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <script>
+    /* Alcuni browser dentro le app (o "Richiedi sito desktop") disegnano la pagina larga 980 px e la rimpiccioliscono:
+       su un telefono forziamo la larghezza reale dello schermo. */
+    (function(){try{var w=Math.min(screen.width,screen.height);if(w&&w<700&&window.innerWidth>w*1.4&&!/[?&]desktop=1/.test(location.search)){var m=document.querySelector('meta[name=viewport]');if(m)m.setAttribute('content','width='+w+', initial-scale=1, viewport-fit=cover');}}catch(e){}})();
+    </script>
     <title>Archea Platform</title>
     <meta name="description" content="Workspace e Service Desk IT dello studio ARCHEA: task, progetti, agenda, ticket, asset e persone." />
     <meta name="theme-color" content="#222624" />
