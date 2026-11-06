@@ -3,12 +3,9 @@
 const BASE=(window.ARCHEA_CONFIG&&window.ARCHEA_CONFIG.supabaseUrl)||'https://igfpkpcksllmofqfoxkf.supabase.co';
 const KEY=(window.ARCHEA_CONFIG&&window.ARCHEA_CONFIG.supabaseKey)||'sb_publishable_wuq5rwy4w6ca7nvJTbrXzA_izhCmrf9';
 // ARCHEA Platform: ?embed=1 quando il Service Desk è aperto dentro il Workspace,
-// ?mode=demo per usare il backend dimostrativo (demo-backend.js) al posto di Supabase.
 const SD_PARAMS=new URLSearchParams(location.search);
 const EMBED=SD_PARAMS.get('embed')==='1'&&window.parent!==window;
-const DEMO=SD_PARAMS.get('mode')==='demo'&&!!window.SDDemo;
 if(EMBED)document.documentElement.classList.add('sd-embed');
-if(DEMO)document.documentElement.classList.add('sd-demo');
 if(EMBED&&SD_PARAMS.get('solo')==='1')document.documentElement.classList.add('sd-solo','sd-solo-'+(SD_PARAMS.get('view')||'start'));
 let session=null,user=null,profile=null;
 let currentView=null;
@@ -266,7 +263,6 @@ function showSessionExpired(){
 
 function readStoredSession(){try{return JSON.parse(localStorage.getItem('archea_sd_session')||'null')}catch{return null}}
 async function api(path,{method='GET',body=null,auth=true,headers={},_retry=true}={}){
-  if(DEMO)return window.SDDemo.api(path,{method,body,headers});
   if(auth&&session){const st=readStoredSession();if(st?.access_token&&st.access_token!==session.access_token)session=st}
   const h={'apikey':KEY,'Content-Type':'application/json',...headers};
   if(auth&&session?.access_token) h.Authorization='Bearer '+session.access_token;
@@ -3322,7 +3318,7 @@ function nav(v){
 
   updateBackButton();
 }
-async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];try{if(typeof loadPerms==='function')await loadPerms()}catch{}$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
+async function boot(){const raw=localStorage.getItem('archea_sd_session');if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];try{if(typeof loadPerms==='function')await loadPerms()}catch{}$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
 $('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic','cantiere'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');

@@ -9,31 +9,22 @@ Il Service Desk è una sezione del Workspace ("Service Desk IT") e usa lo **stes
 
 ## Come si entra
 
-| Account | Cosa succede |
+Solo con un **account ARCHEA registrato** (email e password su Supabase). Non esistono account di prova: chi non ha un account lo chiede al reparto IT, che lo crea da **Service Desk → Utenti e gruppi**.
+
+Dopo l'accesso si vedono solo le funzioni collegate ai dati veri: Service Desk, Calendario comune, Chat, Foto cantiere e Off topic. Tra un ruolo e l'altro cambia solo il numero di pulsanti.
+
+### Ruoli
+
+`profiles.ruolo` su Supabase decide cosa si vede:
+
+| Ruolo | Cosa vede in più |
 |---|---|
-| **Account ARCHEA reale** (email + password Supabase) | Login vero. Il Service Desk lavora sui **dati reali** (badge verde LIVE). Gli altri moduli del Workspace restano dimostrativi. |
-| **Account di prova** (password `demo`) | Tutto con dati finti. Il Service Desk usa un backend simulato salvato solo nel browser (badge arancione DEMO). |
+| `SUPER_IT` | Tutto, compresi utenti, gruppi e permessi |
+| `IT` | Coda ticket, censimento, persone, planimetrie e postazioni |
+| `HR` | Persone, movimenti, planimetrie e postazioni |
+| `USER` | Apre ticket e segue i suoi; calendario, chat, foto, Off topic |
 
-Account di prova utili per la presentazione:
-
-| Email | Profilo | Nel Service Desk |
-|---|---|---|
-| `it@archea.it` | Reparto IT (nuovo) | SUPER_IT: dashboard, coda, censimento, mappa, persone |
-| `elisabetta.pietrelli@archea.it` | HR Manager | HR: persone, movimenti, statistiche |
-| `lisandro.leyra@archea.it` | Architect | Utente: apre ticket e vede i suoi |
-| `francesco.diamanti@archea.it` | Partner / Platform owner | SUPER_IT |
-
-Il database demo è **condiviso tra gli account di prova** nello stesso browser: un ticket aperto da Lisandro compare poi nella coda del Reparto IT. Per azzerarlo: console del browser → `localStorage.removeItem('archea_sd_demo_db_v1')`.
-
-### Mappa ruoli (login reale)
-
-`profiles.ruolo` su Supabase decide il profilo nel Workspace:
-
-| Ruolo Supabase | Profilo Workspace |
-|---|---|
-| `IT`, `SUPER_IT` | Reparto IT (menu centrato sul Service Desk) |
-| `HR` | HR Manager |
-| `USER` | Architect, oppure il profilo dell'account demo con la stessa email |
+I gruppi (Service Desk → Utenti e gruppi) aggiungono permessi singoli: gestione utenti, moderazione Off topic, gestione calendario, disegno planimetrie.
 
 ## Attivare le funzioni nuove (una volta sola)
 
@@ -55,18 +46,17 @@ config/platform.js      UNICO punto di configurazione Supabase + login condiviso
 assets/workspace.js     Workspace compilato (0.14.5 + integrazione piattaforma)
 assets/workspace.css
 assets/platform.css     stile della sezione Service Desk dentro il Workspace
-assets/planning-suite.* modulo Pianificazione
-assets/archea-update-*  aggiornamenti 0.14.x del Workspace
+assets/archea-update-*.css  stili 0.14.x del Workspace
 servicedesk/            Service Desk IT (v9.0)
   app.js                applicazione
-  demo-backend.js       backend finto per la modalità demo
+  cantieri.js           elenco cantieri per le foto (nomi, indirizzi, GPS)
   embed.css             aspetto quando è aperto dentro il Workspace
 supabase/               schema, policy e Edge Functions (da completare, vedi sotto)
 docs/                   changelog e storico delle versioni precedenti
 sw.js, manifest.webmanifest, icons/
 ```
 
-Il Service Desk funziona anche da solo su `/servicedesk/` con il suo login storico.
+L'indirizzo `/servicedesk/` porta alla piattaforma: il login è uno solo.
 
 ## Pubblicazione (GitHub Pages)
 
@@ -86,6 +76,4 @@ Con un piano GitHub gratuito Pages funziona solo se la repository è pubblica.
 ## Limiti noti (onesti)
 
 - Il codice del Workspace è il **bundle compilato** della 0.14.5, modificato direttamente (come già si faceva). I sorgenti React nella repo di Francesco sono fermi alla 0.4/0.5 e non corrispondono più. Ricostruire i sorgenti è il primo lavoro dopo la presentazione.
-- I moduli del Workspace (task, progetti, ore, contabilità…) usano ancora dati dimostrativi o Excel locale. Il passo successivo è spostarli su tabelle Supabase.
-- Ci sono due "Prenotazioni": quelle del Workspace (sale, auto, materiali) e quelle IT del Service Desk (materiale legato ai ticket). Da unificare.
-- Il modulo Pianificazione ha propri profili demo, separati dal login.
+- I moduli del Workspace con dati finti (task, progetti, ore, contabilità, Property, Pianificazione, fornitori, materioteca…) sono **nascosti** finché non vengono collegati a tabelle Supabase. Il loro codice resta nel bundle; i due script aggiuntivi tolti in 2.0.0 (`planning-suite.js`, `archea-update-0143.js`) si recuperano dalla cronologia git.

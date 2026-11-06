@@ -18,7 +18,6 @@
   };
 
   var SESSION_KEY = 'archea_sd_session'; // sessione Supabase reale (stessa chiave del Service Desk storico)
-  var DEMO_KEY = 'archea_sd_demo';       // profilo dimostrativo per il Service Desk
 
   function read(key) {
     try { var raw = localStorage.getItem(key); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
@@ -55,14 +54,6 @@
     return 'architect';
   }
 
-  /** Profilo Workspace → ruolo dimostrativo nel Service Desk. */
-  function demoSdRoleFor(appRole, accountId) {
-    if (appRole === 'it_manager') return 'SUPER_IT';
-    if (appRole === 'hr_manager') return 'HR';
-    if (accountId === 'fdiamanti') return 'SUPER_IT'; // Platform owner: vede tutto anche in demo
-    return 'USER';
-  }
-
   async function loadProfile(session) {
     var rows = await call('/rest/v1/profiles?select=*&id=eq.' + encodeURIComponent(session.user.id), { token: session.access_token });
     var p = rows && rows[0];
@@ -79,9 +70,7 @@
   var ArcheaAuth = {
     config: CONFIG,
     SESSION_KEY: SESSION_KEY,
-    DEMO_KEY: DEMO_KEY,
     appRoleFor: appRoleFor,
-    demoSdRoleFor: demoSdRoleFor,
 
     /** Accesso reale con Supabase Auth. Restituisce il profilo unificato. */
     async signIn(email, password) {
@@ -90,7 +79,6 @@
         body: { email: String(email || '').trim(), password: password }
       });
       write(SESSION_KEY, session);
-      write(DEMO_KEY, null);
       try {
         return await loadProfile(session);
       } catch (e) {
@@ -126,9 +114,6 @@
 
     hasSession: function () { return !!(read(SESSION_KEY) || {}).access_token; },
 
-    setDemo: function (account) { write(SESSION_KEY, null); write(DEMO_KEY, account); },
-    getDemo: function () { return read(DEMO_KEY); },
-
     signOut: function () {
       var s = read(SESSION_KEY);
       if (s && s.access_token) {
@@ -136,9 +121,15 @@
         call('/auth/v1/logout', { method: 'POST', token: s.access_token }).catch(function () {});
       }
       write(SESSION_KEY, null);
-      write(DEMO_KEY, null);
     }
   };
+
+  // Solo account registrati: si cancellano i resti delle vecchie sessioni di prova
+  try {
+    ['archea_sd_demo', 'archea_sd_demo_db_v1'].forEach(function (k) { localStorage.removeItem(k); });
+    sessionStorage.removeItem('archea-demo-user');
+    if (window.indexedDB && indexedDB.deleteDatabase) indexedDB.deleteDatabase('archea-demo-foto');
+  } catch (e) {}
 
   window.ARCHEA_CONFIG = CONFIG;
   window.ArcheaAuth = ArcheaAuth;

@@ -88,26 +88,11 @@ html.sd-embed .topbar {
 html.sd-embed .page-heading .eyebrow { display: none; }
 html.sd-embed .page-heading h2 { font-size: 24px; }
 
-/* banner modalità demo */
-html.sd-embed.sd-demo .topbar::after {
-  content: "DEMO · dati finti salvati solo in questo browser";
-  align-self: center;
-  margin-left: auto;
-  padding: 5px 10px;
-  border-radius: 999px;
-  background: #fff0d9;
-  color: #b0600d;
-  font-size: 11px;
-  font-weight: 650;
-  letter-spacing: .04em;
-  white-space: nowrap;
-}
 
 @media (max-width: 900px) {
   html.sd-embed .sidebar { padding: 8px 10px !important; }
   html.sd-embed main { padding: 0 12px calc(24px + env(safe-area-inset-bottom)) !important; }
   html.sd-embed .topbar { padding: 14px 0 10px !important; }
-  html.sd-embed.sd-demo .topbar::after { display: none; }
 }
 
 /* Solo chat (scheda Chat del Workspace) */
@@ -116,7 +101,6 @@ html.sd-solo .page-heading-wrap,
 html.sd-solo .mobile-menu-btn { display: none !important; }
 /* resta solo la campanella delle notifiche, in una riga sottile */
 html.sd-solo .topbar { display: flex !important; justify-content: flex-end; padding: 0 0 8px !important; margin: 0 !important; }
-html.sd-solo.sd-demo .topbar::after { display: none; }
 html.sd-solo-chat .topbar { padding: 8px 10px !important; border-bottom: 1px solid var(--line) !important; }
 html.sd-solo main { padding: 14px 16px 20px !important; }
 html.sd-solo-chat main { padding: 0 !important; }
@@ -137,7 +121,6 @@ html.sd-solo .topbar .top-actions { gap: 6px; }
   html.sd-embed .page-heading h2 { font-size: 23px; margin: 0; }
   html.sd-embed .page-heading p { font-size: 15px; margin: 2px 0 0; }
   html.sd-embed .back-btn { font-size: 15px; min-height: 40px; }
-  html.sd-embed.sd-demo .topbar::after { display: inline-block !important; content: "DEMO"; padding: 3px 8px; font-size: 10.5px; }
   /* riquadri numerici più compatti: più contenuto visibile senza scorrere */
   html.sd-embed .metric, html.sd-embed .queue-card { padding: 12px 14px !important; min-height: 0 !important; }
   html.sd-embed .metric b, html.sd-embed .queue-card b { font-size: 26px !important; margin-top: 2px !important; line-height: 1.1; }

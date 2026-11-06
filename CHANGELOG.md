@@ -1,5 +1,23 @@
 # Changelog
 
+## 2.0.0 — Solo account registrati
+
+- **Niente più demo**: si entra solo con un account ARCHEA registrato su Supabase. Gli account di prova e la password `demo` non funzionano più.
+- **Login**:
+  - senza "Account di prova" e senza la scritta "DEMO · LIVE";
+  - il messaggio dice di chiedere un account al reparto IT;
+  - il sito ricorda l'ultima email usata.
+- **Si vedono solo le funzioni con dati veri**: Service Desk, Calendario comune, Chat, Foto cantiere, Off topic. Restano nascosti, finché non saranno collegati a Supabase:
+  - i moduli del Workspace con dati finti (task, progetti, ore, contabilità, Property, Pianificazione, fornitori, materioteca…);
+  - l'assistente ARCHEAI, che dava risposte preimpostate;
+  - la campanella con notifiche inventate. Restano le notifiche vere del Service Desk.
+- **Tolti**:
+  - il backend finto del Service Desk (`demo-backend.js`);
+  - i badge DEMO/LIVE;
+  - la sezione "Origine dei dati" nelle impostazioni;
+  - gli script dimostrativi `planning-suite.js` e `archea-update-0143.js`.
+- All'apertura vengono cancellati dal browser i dati rimasti delle vecchie prove.
+
 ## 1.9.0 — Un solo accesso, una sola grafica
 
 - **Un solo login**: aprendo l'indirizzo del Service Desk (`/servicedesk/`) si arriva alla piattaforma, con lo stesso accesso per tutti. I link `?ticket=` continuano ad aprire il ticket. Per i controlli tecnici resta `servicedesk/?standalone=1`.

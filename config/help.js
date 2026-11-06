@@ -11,7 +11,7 @@
   var HELP_BY_ID = {
     // accesso
     email: 'La tua email aziendale, ad esempio nome.cognome@archea.it.',
-    password: 'La password del tuo account. Per gli account di prova è "demo".',
+    password: 'La password del tuo account.',
     // ticket
     cat: 'Scegli il tipo di problema: serve all\'IT per capire subito chi se ne occupa. Se non sai quale scegliere, usa "Altro".',
     sub: 'Una frase breve che riassume il problema, ad esempio "Il monitor non si accende".',
@@ -124,7 +124,7 @@
   var HELP_BY_LABEL = {
     'email aziendale': 'La tua email aziendale, ad esempio nome.cognome@archea.it.',
     'company email': 'Your company email, e.g. name.surname@archea.it.',
-    'password': 'La password del tuo account. Per gli account di prova è "demo".',
+    'password': 'La password del tuo account.',
     'note': 'Informazioni in più utili a chi legge.',
     'descrizione': 'Spiega in poche righe di cosa si tratta.',
     'titolo': 'Un nome breve e chiaro.',

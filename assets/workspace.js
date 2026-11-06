@@ -9826,7 +9826,6 @@ const Xt = {
       id: "fdiamanti",
       nome: "Francesco Diamanti",
       email: "francesco.diamanti@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "partner_architect",
     },
@@ -9834,7 +9833,6 @@ const Xt = {
       id: "abotrini",
       nome: "Alessandro Botrini",
       email: "alessandro.botrini@archea.it",
-      demoPassword: "demo",
       ruolo: "membro",
       appRole: "senior_architect",
     },
@@ -9842,7 +9840,6 @@ const Xt = {
       id: "lleyra",
       nome: "Lisandro Leyra",
       email: "lisandro.leyra@archea.it",
-      demoPassword: "demo",
       ruolo: "membro",
       appRole: "architect",
     },
@@ -9850,7 +9847,6 @@ const Xt = {
       id: "mmadaghiele",
       nome: "Mirko Madaghiele",
       email: "mirko.madaghiele@archea.it",
-      demoPassword: "demo",
       ruolo: "membro",
       appRole: "architect",
       materialLibraryManager: !0,
@@ -9859,7 +9855,6 @@ const Xt = {
       id: "epietrelli",
       nome: "Elisabetta Pietrelli",
       email: "elisabetta.pietrelli@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "hr_manager",
       virtual: !0,
@@ -9868,7 +9863,6 @@ const Xt = {
       id: "property",
       nome: "ARCHEA Property",
       email: "property@archea.it",
-      demoPassword: "demo",
       ruolo: "membro",
       appRole: "property",
       virtual: !0,
@@ -9877,7 +9871,6 @@ const Xt = {
       id: "alaurini",
       nome: "Alessandra Laurini",
       email: "alessandra.laurini@archea.it",
-      demoPassword: "demo",
       ruolo: "membro",
       appRole: "reception",
       virtual: !0,
@@ -9886,7 +9879,6 @@ const Xt = {
       id: "scardia",
       nome: "Simone Cardia",
       email: "simone.cardia@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "interior_head",
       department: "interior",
@@ -9896,7 +9888,6 @@ const Xt = {
       id: "mgamberi",
       nome: "Marco Gamberi",
       email: "marco.gamberi@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "concept_head",
       department: "concept",
@@ -9906,7 +9897,6 @@ const Xt = {
       id: "afrongia",
       nome: "Andrea Frongia",
       email: "andrea.frongia@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "visual_head",
       department: "visual",
@@ -9916,7 +9906,6 @@ const Xt = {
       id: "itdesk",
       nome: "Reparto IT",
       email: "it@archea.it",
-      demoPassword: "demo",
       ruolo: "responsabile",
       appRole: "it_manager",
       virtual: !0,
@@ -9931,7 +9920,7 @@ function Sp(t, n, s) {
     { note: o, blocchi: c } = Wx(Xs(i, Zs.notes), r),
     d = Qx(Xs(i, Zs.hours), r),
     u = Vn.filter((h) => !h.virtual).map(
-      ({ appRole: h, virtual: p, email: y, demoPassword: O, ...k }) => ({
+      ({ appRole: h, virtual: p, email: y, ...k }) => ({
         ...k,
         inRiepiloghiOre: !0,
       }),
@@ -10642,7 +10631,7 @@ function sj({ children: t }) {
     [a, l] = C.useState(null),
     [o, c] = C.useState(() => {
       try {
-        return sessionStorage.getItem("archea-demo-user") || "";
+        return "";
       } catch {
         return "";
       }
@@ -10734,7 +10723,7 @@ function sj({ children: t }) {
           nome: LiveUser.nome,
           email: LiveUser.email,
           appRole,
-          isDeveloper: ao.includes(baseId) && !!known,
+          isDeveloper: !1,
           technicalRole: null,
           live: !0,
           sdRole: LiveUser.sdRole,
@@ -10755,12 +10744,7 @@ function sj({ children: t }) {
         isDeveloper: ao.includes($.id),
         technicalRole: ao.includes($.id) ? "platform_owner" : null,
         live: !1,
-        sdRole:
-          window.ArcheaAuth &&
-          window.ArcheaAuth.demoSdRoleFor(
-            (N == null ? void 0 : N.appRole) ?? "architect",
-            $.id,
-          ),
+        sdRole: "USER",
       };
     }, [n, o, LiveUser]),
     P = {
@@ -10769,30 +10753,10 @@ function sj({ children: t }) {
       error: a,
       viewer: k,
       viewerId: o,
-      authenticated: !!o && (!o.startsWith("live:") || !!LiveUser),
+      authenticated: !!LiveUser && o === `live:${LiveUser.id}`,
       authChecking: !LiveChecked,
       live: !!LiveUser,
       login: async ($, N) => {
-        const I = Vn.find(
-          (S) =>
-            S.email.toLowerCase() === $.trim().toLowerCase() &&
-            S.demoPassword === N,
-        );
-        if (I) {
-          setLiveUser(null);
-          window.ArcheaAuth &&
-            window.ArcheaAuth.setDemo({
-              id: I.id,
-              nome: I.nome,
-              email: I.email,
-              ruolo: window.ArcheaAuth.demoSdRoleFor(I.appRole, I.id),
-            });
-          c(I.id);
-          try {
-            sessionStorage.setItem("archea-demo-user", I.id);
-          } catch {}
-          return { ok: !0 };
-        }
         if (!window.ArcheaAuth)
           return {
             ok: !1,
@@ -10804,9 +10768,6 @@ function sj({ children: t }) {
         try {
           const live = await window.ArcheaAuth.signIn($, N);
           setLiveUser(live), c(`live:${live.id}`), setLiveChecked(!0);
-          try {
-            sessionStorage.removeItem("archea-demo-user");
-          } catch {}
           return { ok: !0 };
         } catch (err) {
           const raw = err instanceof Error ? err.message : String(err);
@@ -10827,9 +10788,6 @@ function sj({ children: t }) {
       logout: () => {
         c(""), setLiveUser(null), f(null), x("oggi"), history.replaceState(null, "", "#/oggi");
         window.ArcheaAuth && window.ArcheaAuth.signOut();
-        try {
-          sessionStorage.removeItem("archea-demo-user");
-        } catch {}
       },
       setViewerId: c,
       today: d,
@@ -11070,7 +11028,7 @@ function uj() {
       live: "Connessione a Google Fogli.",
     }[g.source];
   return e.jsxs($t, {
-    title: "Persona e dati",
+    title: "Account",
     onClose: i,
     children: [
       e.jsx("h4", {
@@ -11104,91 +11062,14 @@ function uj() {
           }),
         ],
       }),
-      e.jsx("h4", { children: "Origine dei dati" }),
-      e.jsxs("div", {
-        className: "callout",
-        children: [
-          e.jsxs("b", { children: [dj[g.source], " · ", g.label] }),
-          e.jsx("p", { children: b }),
-          e.jsxs("p", {
-            children: [
-              "Caricati: ",
-              new Date(g.loadedAt).toLocaleString("it-IT", {
-                timeZone: "Europe/Rome",
-              }),
-              ". Connessione Google Fogli live: ",
-              e.jsx("b", { children: "non attiva" }),
-              ".",
-            ],
-          }),
-        ],
-      }),
-      e.jsx("div", {
-        className: "stat-line",
-        children: Object.entries(g.stats).map(([v, h]) =>
-          e.jsxs(
-            "span",
-            {
-              children: [
-                v.replace(/([A-Z])/g, " $1").toLowerCase(),
-                ": ",
-                e.jsx("b", { children: h }),
-              ],
-            },
-            v,
-          ),
-        ),
-      }),
-      d && e.jsxs("p", { className: "error", children: ["Errore: ", d] }),
-      e.jsxs("div", {
-        className: "btn-row",
-        children: [
-          e.jsxs("button", {
-            className: "btn",
-            disabled: c,
-            onClick: () => void a(),
-            children: [e.jsx(hp, {}), " Aggiorna"],
-          }),
-          e.jsxs("button", {
-            className: "btn",
-            disabled: c,
-            onClick: () => {
-              var v;
-              return (v = x.current) == null ? void 0 : v.click();
-            },
-            children: [e.jsx(oc, {}), " Importa Excel (locale)"],
-          }),
-          g.source !== "demo" &&
-            e.jsx("button", {
-              className: "btn",
-              onClick: () => void o(),
-              children: "Rimuovi dati e torna alla demo",
-            }),
-          e.jsx("input", {
-            ref: x,
-            type: "file",
-            hidden: !0,
-            accept: ".xlsx,.xlsm",
-            onChange: (v) => {
-              var h;
-              const p = (h = v.target.files) == null ? void 0 : h[0];
-              p &&
-                l(p).then((y) => {
-                  y && i();
-                }),
-                (v.target.value = "");
-            },
-          }),
-        ],
-      }),
       e.jsx("button", {
         className: "logout-button",
         onClick: () => {
           i(), r();
         },
-        children: u === "en" ? "Sign out from demo" : "Esci dalla demo",
+        children: u === "en" ? "Sign out" : "Esci",
       }),
-      g.warnings.length > 0 &&
+      !1 &&
         e.jsxs(e.Fragment, {
           children: [
             e.jsxs("button", {
@@ -14443,7 +14324,9 @@ function Rj() {
         wt,
       ],
     ],
-    visibleMoreItems = departmentType
+    visibleMoreItems = s && s.live
+      ? o.filter(([c]) => ["calendario", "servicedesk", "chat", "fotocantiere", "offtopic"].includes(c))
+      : departmentType
       ? o.filter(([c]) => [departmentType, "departmentmanager", "inarchea"].includes(c))
       : receptionOnly
       ? o.filter(([c]) => ["prenota", "fornitori", "materioteca"].includes(c))
@@ -14460,7 +14343,7 @@ function Rj() {
           ? "Studio tools and community"
           : "Strumenti e community dello studio",
       }),
-      e.jsxs("button", {
+      !(s && s.live) && e.jsxs("button", {
         className: "archeai-feature",
         onClick: () => a(!0),
         children: [
@@ -16507,8 +16390,10 @@ function Vj() {
 }
 function Bj() {
   const { login: t, language: n, setLanguage: s } = Y(),
-    [r, i] = C.useState(Vn[0].email),
-    [a, l] = C.useState("demo"),
+    [r, i] = C.useState(() => {
+      try { return localStorage.getItem("archea-last-email") || ""; } catch { return ""; }
+    }),
+    [a, l] = C.useState(""),
     [o, c] = C.useState(""),
     [LoginBusy, setLoginBusy] = C.useState(!1),
     d = n === "en",
@@ -16516,6 +16401,7 @@ function Bj() {
       if ((m.preventDefault(), LoginBusy)) return;
       setLoginBusy(!0), c("");
       const x = await t(r, a);
+      if (x.ok) try { localStorage.setItem("archea-last-email", r.trim()); } catch {}
       setLoginBusy(!1), c(x.ok ? "" : x.error);
     };
   return e.jsxs("main", {
@@ -16541,7 +16427,7 @@ function Bj() {
           e.jsxs("div", {
             className: "login-card-head",
             children: [
-              e.jsx("span", { children: "DEMO · LIVE" }),
+              e.jsx("span", { children: "ARCHEA" }),
               e.jsxs("div", {
                 className: "language-switch login-language",
                 children: [
@@ -16564,8 +16450,8 @@ function Bj() {
           e.jsx("h1", { children: d ? "Sign in" : "Accedi" }),
           e.jsx("p", {
             children: d
-              ? "Sign in with your ARCHEA account, or use a demo account (password: demo)."
-              : "Entra con il tuo account ARCHEA oppure con un account di prova (password: demo).",
+              ? "Sign in with your ARCHEA account. Need an account? Ask the IT department."
+              : "Entra con il tuo account ARCHEA. Non hai un account? Chiedilo al reparto IT.",
           }),
           e.jsxs("form", {
             onSubmit: u,
@@ -16578,6 +16464,7 @@ function Bj() {
                     value: r,
                     onChange: (m) => i(m.target.value),
                     autoComplete: "username",
+                    placeholder: "nome.cognome@archea.it",
                     required: !0,
                   }),
                 ],
@@ -16611,45 +16498,6 @@ function Bj() {
                   : d
                     ? "Enter workspace"
                     : "Entra nel workspace",
-              }),
-            ],
-          }),
-          e.jsxs("div", {
-            className: "demo-accounts",
-            children: [
-              e.jsxs("div", {
-                children: [
-                  e.jsx("b", {
-                    children: d ? "Demo accounts" : "Account di prova",
-                  }),
-                  e.jsx("small", {
-                    children: d
-                      ? "Password for all accounts: demo"
-                      : "Password per tutti gli account: demo",
-                  }),
-                ],
-              }),
-              e.jsx("div", {
-                className: "demo-account-picker",
-                children: e.jsx(fe, {
-                  label: d ? "Demo profile" : "Profilo dimostrativo",
-                  value: (Vn.find((m) => m.email === r) || Vn[0]).id,
-                  searchable: !0,
-                  options: Vn.map((m) => ({
-                    value: m.id,
-                    label: m.nome,
-                    meta:
-                      m.id === "mmadaghiele"
-                        ? "Architect · Gestore Materioteca"
-                        : ao.includes(m.id)
-                          ? `${Xt[m.appRole]} · Platform Owner`
-                          : Xt[m.appRole],
-                  })),
-                  onChange: (m) => {
-                    const x = Vn.find((j) => j.id === m);
-                    x && (i(x.email), l("demo"), c(""));
-                  },
-                }),
               }),
             ],
           }),
@@ -27979,16 +27827,11 @@ function withOffTopic(list) {
 function ServiceDeskScreen({ view: View = "" } = {}) {
   const { viewer: n, language: l } = Y(),
     live = !!(n && n.live),
-    mode = live ? "live" : "demo",
+    mode = "live",
     isChat = View === "chat",
     isAgenda = View === "agenda",
     isOff = View === "offtopic",
     isFoto = View === "cantiere";
-  if (!live && n && window.ArcheaAuth) {
-    const current = window.ArcheaAuth.getDemo();
-    (!current || current.id !== n.id) &&
-      window.ArcheaAuth.setDemo({ id: n.id, nome: n.nome, email: n.email, ruolo: n.sdRole || "USER" });
-  }
   const deepTicket = (() => {
       try {
         const q = new URLSearchParams(location.search);
@@ -28010,31 +27853,16 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
               e.jsx("h1", { children: isFoto ? "Foto cantiere" : isOff ? "Off topic" : isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
               e.jsx("p", {
                 children: isFoto
-                  ? `Scatta in cantiere, archivio per commessa · ${live ? "dati reali" : "dimostrativo"}`
+                  ? "Scatta in cantiere, archivio per commessa"
                   : isOff
-                  ? `Due chiacchiere tra colleghi · ${live ? "dati reali" : "dimostrativo"}`
+                  ? "Due chiacchiere tra colleghi"
                   : isAgenda
-                  ? l === "en"
-                    ? `Meetings, rooms and cars · ${live ? "live" : "demo"}`
-                    : `Appuntamenti, sale meeting e auto · ${live ? "dati reali" : "dimostrativo"}`
+                  ? l === "en" ? "Meetings, rooms and cars" : "Appuntamenti, sale meeting e auto"
                   : isChat
-                  ? l === "en"
-                    ? `Messages between colleagues · ${live ? "live" : "demo"}`
-                    : `Messaggi tra colleghi · ${live ? "dati reali" : "dimostrativa"}`
-                  : live
-                  ? l === "en"
-                    ? "Tickets, assets and people · live data"
-                    : "Ticket, asset e persone · dati reali"
-                  : l === "en"
-                    ? "Tickets, assets and people · demo data"
-                    : "Ticket, asset e persone · dati dimostrativi",
+                  ? l === "en" ? "Messages between colleagues" : "Messaggi tra colleghi"
+                  : l === "en" ? "Tickets, assets and people" : "Ticket, asset e persone",
               }),
             ],
-          }),
-          e.jsx("span", {
-            className: `servicedesk-mode ${mode}`,
-            title: live ? "Collegato a Supabase" : "Dati finti salvati solo in questo browser",
-            children: live ? "LIVE" : "DEMO",
           }),
         ],
       }),
@@ -28534,8 +28362,7 @@ function _v() {
       ["materioteca", "Materioteca", MaterialStudioIcon, "Catalogo dei campioni dello studio"],
     ],
     RoleCatalog = ITManager ? ITCatalog : Reception ? ReceptionCatalog : HRManager ? HRCatalog : DepartmentHead ? DepartmentCatalog : w ? X : D,
-    // Account reale: in primo piano solo le funzioni collegate ai dati veri;
-    // i moduli ancora dimostrativi restano in "Altro" come anteprima.
+    // Account registrato: solo le funzioni collegate ai dati veri.
     LiveCore = [
       ["servicedesk", "Service Desk", ServiceDeskIcon, "Inizio, ticket, asset e persone"],
       ["calendario", "Calendario", Wt, "Appuntamenti, sale meeting e auto"],
@@ -28544,15 +28371,7 @@ function _v() {
       OffTopicEntry,
     ],
     M = withOffTopic(n.live
-      ? [
-          ...LiveCore,
-          ...RoleCatalog.filter((V) => !["servicedesk", "calendario", "chat", "prenota"].includes(V[0])).map((V) => [
-            V[0],
-            V[1],
-            V[2],
-            `Anteprima demo · ${V[3]}`,
-          ]),
-        ]
+      ? LiveCore
       : RoleCatalog),
     q = n.live
       ? ["servicedesk", "calendario", "chat", "fotocantiere", "offtopic"]
@@ -28773,7 +28592,7 @@ function _v() {
                 className: "desk-demo-dot",
                 children: [
                   e.jsx("i", {}),
-                  n.live ? "SERVICE DESK LIVE · altri moduli demo" : "DEMO LOCALE · nessuna connessione",
+                  "ACCOUNT ARCHEA",
                 ],
               }),
               e.jsxs("button", {
@@ -28816,9 +28635,7 @@ function _v() {
                         ((Hr = g[n.id]) == null ? void 0 : Hr.name) || n.nome,
                     }),
                     e.jsx("span", {
-                      children: n.isDeveloper
-                        ? "Platform Owner · account master demo"
-                        : "Dati fittizi salvati su questo browser",
+                      children: n.email || "Account ARCHEA",
                     }),
                     e.jsxs("div", {
                       className: "desk-work-clock",
@@ -28837,7 +28654,7 @@ function _v() {
                     }),
                     e.jsx("button", {
                       onClick: i,
-                      children: "Esci dalla demo",
+                      children: "Esci",
                     }),
                   ],
                 }),
@@ -28860,7 +28677,7 @@ function _v() {
               e.jsxs("div", {
                 className: "desk-top-actions",
                 children: [
-                  e.jsxs("div", {
+                  !n.live && e.jsxs("div", {
                     className: "desk-notifications-wrap",
                     ref: L,
                     children: [
@@ -28958,7 +28775,7 @@ function _v() {
                   e.jsx("span", {
                     className: "desk-demo-label",
                     children:
-                      n.live ? "ACCOUNT REALE · LIVE" : t.meta.source === "excel" ? "DATI EXCEL" : "DATI DIMOSTRATIVI",
+                      "ACCOUNT ARCHEA",
                   }),
                   e.jsx(Mv, {}),
                 ],
@@ -29011,7 +28828,7 @@ function _v() {
           }),
         ],
       }),
-      e.jsx("button", {
+      !n.live && e.jsx("button", {
         className: "desk-archeai-fab",
         onClick: () => P(!0),
         "aria-label": "Apri ARCHEAI",
@@ -29115,11 +28932,9 @@ function Vv() {
     b = s === "servicedesk" || s === "offtopic" || s === "fotocantiere"
       ? s
       : n && n.live
-      ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
+      ? ["calendario", "chat"].includes(s) || s === "altro"
         ? s
-        : ["oggi", "progetti", "note", "ore", "bio", "insight", "bim", "inarchea", "fornitori", "materioteca", "abacotecnico", "visual", "interior", "concept"].includes(s)
-          ? s
-          : "servicedesk"
+        : "servicedesk"
       : ITManager
       ? ["calendario", "chat", "prenota", "inarchea", "bim", "fornitori", "materioteca"].includes(s)
         ? s
@@ -29146,7 +28961,7 @@ function Vv() {
         : s,
     v = n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
     h = n && n.live
-      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico", "offtopic", "fotocantiere"]
+      ? ["offtopic", "fotocantiere"]
       : ITManager
       ? ["prenota", "inarchea", "bim", "fornitori", "materioteca", "offtopic", "fotocantiere"]
       : Reception
@@ -29274,7 +29089,7 @@ function Vv() {
             e.jsxs("div", {
               className: "top-actions",
               children: [
-                e.jsxs("button", {
+                !n.live && e.jsxs("button", {
                   className: "notification-button",
                   onClick: () => a({ kind: "notifications" }),
                   "aria-label":

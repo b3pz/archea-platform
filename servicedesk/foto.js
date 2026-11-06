@@ -32,7 +32,6 @@ function fotoPath(folder) { return `${folder}/${new Date().getFullYear()}/${foto
 
 // ---------- caricamento e link temporanei ----------
 async function fotoUpload(path, blob, retry = true) {
-  if (DEMO) return window.SDDemo.storagePut(path, blob);
   const r = await fetch(`${BASE}/storage/v1/object/${FOTO_BUCKET}/${path}`, {
     method: 'POST',
     headers: { apikey: KEY, Authorization: 'Bearer ' + session.access_token, 'Content-Type': 'image/jpeg', 'x-upsert': 'false' },
@@ -50,8 +49,7 @@ async function fotoSign(paths) {
   const need = paths.filter(p => p && !(fotoSignCache.get(p) && fotoSignCache.get(p).exp > Date.now()));
   if (need.length) {
     let list;
-    if (DEMO) list = await Promise.all(need.map(async p => ({ path: p, url: await window.SDDemo.storageGet(p) })));
-    else {
+    {
       const res = await api(`/storage/v1/object/sign/${FOTO_BUCKET}`, { method: 'POST', body: { expiresIn: 3600, paths: need } });
       list = (res || []).map(x => ({ path: x.path, url: x.signedURL ? `${BASE}/storage/v1${x.signedURL}` : null }));
     }
@@ -62,7 +60,6 @@ async function fotoSign(paths) {
 }
 async function fotoRemove(paths) {
   if (!paths.length) return;
-  if (DEMO) return paths.forEach(p => window.SDDemo.storageDel(p));
   await api(`/storage/v1/object/${FOTO_BUCKET}`, { method: 'DELETE', body: { prefixes: paths } });
 }
 
