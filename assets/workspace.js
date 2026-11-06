@@ -10723,13 +10723,17 @@ function sj({ children: t }) {
             (n == null ? void 0 : n.persone.find((I) => I.id === baseId)) ??
             Vn.find((I) => I.id === baseId);
         // Pianificazione e aggiornamenti 0.14 leggono il profilo da qui
-        try { sessionStorage.setItem("archea-demo-user", baseId); } catch {}
+        try {
+          sessionStorage.setItem("archea-demo-user", baseId);
+          sessionStorage.setItem("archea-platform-profile",
+            LiveUser.sdRole === "SUPER_IT" ? "platform_owner" : LiveUser.sdRole === "HR" ? "hr_manager" : "resource");
+        } catch {}
         return {
           ...base,
           nome: LiveUser.nome,
           email: LiveUser.email,
           appRole,
-          isDeveloper: ao.includes(baseId) && !!known,
+          isDeveloper: LiveUser.sdRole === "SUPER_IT", // console sviluppatore: solo super admin
           technicalRole: null,
           live: !0,
           sdRole: LiveUser.sdRole,
@@ -14407,7 +14411,9 @@ function Rj() {
         wt,
       ],
     ],
-    visibleMoreItems = departmentType
+    visibleMoreItems = s && s.live && liveAllowed(s)
+      ? o.filter(([c]) => liveAllowed(s).includes(c))
+      : departmentType
       ? o.filter(([c]) => [departmentType, "departmentmanager", "inarchea"].includes(c))
       : receptionOnly
       ? o.filter(([c]) => ["prenota", "fornitori", "materioteca"].includes(c))
@@ -27901,6 +27907,18 @@ function CameraIcon({ size: t = 22 }) {
 }
 const OffTopicEntry = ["offtopic", "Off topic", OffTopicIcon, "Eventi, consigli e mercatino tra colleghi"];
 const FotoCantiereEntry = ["fotocantiere", "Foto cantiere", CameraIcon, "Scatta e archivia le foto per commessa"];
+// Cosa vede ogni ruolo (account registrati). SUPER_IT: tutto.
+//   USER: apre ticket e segue le sue task · HR: + organico, persone e spostamenti · IT: + gestione IT e utenti
+const LIVE_BASE_TABS = ["oggi", "taskmanager", "servicedesk", "calendario", "chat", "offtopic", "fotocantiere", "altro"];
+function liveAllowed(n) {
+  if (!n || !n.live || n.sdRole === "SUPER_IT") return null;
+  if (n.sdRole === "HR" || n.sdRole === "IT") return [...LIVE_BASE_TABS, "bio"];
+  return LIVE_BASE_TABS;
+}
+function liveFilter(n, list, key = (V) => V[0]) {
+  const a = liveAllowed(n);
+  return a ? list.filter((V) => a.includes(key(V))) : list;
+}
 function withOffTopic(list) {
   let out = list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
   return out.some((V) => V[0] === "fotocantiere") ? out : [...out, FotoCantiereEntry];
@@ -28454,12 +28472,15 @@ function _v() {
       FotoCantiereEntry,
       OffTopicEntry,
     ],
-    M = withOffTopic(n.live
+    M = liveFilter(n, withOffTopic(n.live
       ? [
           ...LiveCore,
-          ...RoleCatalog.filter((V) => !["servicedesk", "calendario", "chat", "prenota"].includes(V[0])),
+          // ruoli USER/HR/IT: le stesse voci per tutti (cambia solo quante), prese da tutti i cataloghi
+          ...(liveAllowed(n) ? [...D, ...X, ...HRCatalog] : RoleCatalog)
+            .filter((V) => !["servicedesk", "calendario", "chat", "prenota"].includes(V[0]))
+            .filter((V, i, arr) => arr.findIndex((W) => W[0] === V[0]) === i),
         ]
-      : RoleCatalog),
+      : RoleCatalog)),
     roleMain = ITManager
       ? ["servicedesk", "calendario", "chat", "prenota"]
       : Reception
@@ -28480,8 +28501,10 @@ function _v() {
           ...(A ? ["cantiere", "contabilita", "insight"] : []),
           "calendario",
         ],
-    q = n.live ? [...new Set([...roleMain, "servicedesk", "calendario", "chat"])] : roleMain,
-    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live2-" : ""}${n.id}`, q);
+    q = n.live
+      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager"] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
+      : roleMain,
+    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live3-" + (n.sdRole || "") + "-" : ""}${n.id}`, q);
   C.useEffect(() => {
     Qe((V) => V.filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
   }, [n.id]);
@@ -28974,6 +28997,12 @@ const $v = [
     ["calendario", "calendar", Wt],
     ["altro", "more", dc],
   ],
+  LiveUserMobile = [
+    ["oggi", "today", Wt],
+    ["servicedesk", "servicedesk", ServiceDeskIcon],
+    ["chat", "chat", Td],
+    ["altro", "more", dc],
+  ],
   ITMobile = [
     ["servicedesk", "servicedesk", ServiceDeskIcon],
     ["calendario", "calendar", Wt],
@@ -29017,6 +29046,10 @@ function Vv() {
     g = ["avanzamento", "bio"],
     b = s === "servicedesk" || s === "offtopic" || s === "fotocantiere"
       ? s
+      : n && n.live && liveAllowed(n)
+      ? liveAllowed(n).includes(s)
+        ? s
+        : n.sdRole === "IT" ? "servicedesk" : "oggi"
       : n && n.live
       ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
         ? s
@@ -29047,8 +29080,10 @@ function Vv() {
           g.includes(s)
         ? "oggi"
         : s,
-    v = n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
-    h = n && n.live
+    v = n && n.live && liveAllowed(n) && n.sdRole !== "IT" ? LiveUserMobile : n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
+    h = n && n.live && liveAllowed(n)
+      ? ["oggi", "calendario", "servicedesk", "bio", "offtopic", "fotocantiere"].filter((E) => liveAllowed(n).includes(E))
+      : n && n.live
       ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico", "offtopic", "fotocantiere"]
       : ITManager
       ? ["prenota", "inarchea", "bim", "fornitori", "materioteca", "offtopic", "fotocantiere"]

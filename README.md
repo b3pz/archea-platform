@@ -15,16 +15,16 @@ Dopo l'accesso si vedono tutti i moduli del Workspace (task, progetti, ore, cont
 
 ### Ruoli
 
-`profiles.ruolo` su Supabase decide cosa si vede:
+`profiles.ruolo` su Supabase decide cosa si vede. Ogni ruolo ha tutto quello del ruolo sopra, più qualcosa:
 
-| Ruolo | Cosa vede in più |
+| Ruolo | Cosa fa |
 |---|---|
-| `SUPER_IT` | Tutto, compresi utenti, gruppi e permessi |
-| `IT` | Coda ticket, censimento, persone, planimetrie e postazioni |
-| `HR` | Persone, movimenti, planimetrie e postazioni |
-| `USER` | Apre ticket e segue i suoi; calendario, chat, foto, Off topic |
+| `USER` | Apre ticket e segue i suoi; vede le sue task (Oggi, Task Manager); calendario, chat, foto, Off topic |
+| `HR` | + Organico, Persone, Movimenti (ingressi in studio, uscite, spostamenti), Planimetrie |
+| `IT` | + Coda ticket, Censimento, Dashboard; crea e gestisce utenti **Utente** e **HR** |
+| `SUPER_IT` (super admin) | Tutto: tutti i moduli del Workspace, Pianificazione, console sviluppatore; è l'unico che crea o modifica account **IT**, assegna i ruoli IT e super admin e cambia i gruppi che gestiscono gli utenti |
 
-I gruppi (Service Desk → Utenti e gruppi) aggiungono permessi singoli: gestione utenti, moderazione Off topic, gestione calendario, disegno planimetrie.
+Le regole sono nel database (`20261107_ruoli.sql`), non solo nei pulsanti.
 
 ## Attivare le funzioni nuove (una volta sola)
 

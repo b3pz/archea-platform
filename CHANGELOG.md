@@ -1,5 +1,19 @@
 # Changelog
 
+## 2.4.0 — Ruoli: chi fa cosa
+
+- **Utente**: apre ticket e segue i suoi, vede le sue task (Oggi, Task Manager), più calendario, chat, foto e Off topic.
+- **HR**: in più Organico, Persone, Movimenti (ingressi in studio, uscite, spostamenti) e Planimetrie.
+- **IT**: in più coda ticket, censimento e dashboard; crea e gestisce utenti Utente e HR.
+- **Super admin**: tutto, compresi tutti i moduli del Workspace, la Pianificazione e la console sviluppatore. È l'unico che può:
+  - creare, modificare, disattivare o eliminare account IT;
+  - dare il ruolo IT o super admin;
+  - cambiare i gruppi che danno la gestione degli utenti.
+- Utente, HR e IT vedono le stesse schermate: cambia solo il numero di pulsanti.
+- Chi diventa IT entra da solo nel gruppo IT.
+- Le regole sono nel database (`20261107_ruoli.sql`): un IT non le può aggirare nemmeno fuori dal sito.
+- `SETUP_COMPLETO.sql` ora si rigenera con `tools/genera_setup.py`.
+
 ## 2.3.1 — Off topic: modifica
 
 - **Modifica** dei propri argomenti (titolo, categoria, testo) e delle proprie risposte. Dopo la modifica, accanto all'ora compare "modificato".
