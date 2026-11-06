@@ -167,3 +167,17 @@ html.sd-on-start .page-heading { display: none !important; }
   .start-folder .start-icon { width: 52px; height: 52px; flex: 0 0 52px; }
   .start-back { min-height: 44px; font-size: 16px; }
 }
+/* Chat: sezioni Progetti / Gruppi / Colleghi */
+.chat-section { display: flex; align-items: center; justify-content: space-between; margin: 14px 4px 6px; font-size: 12px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+.chat-section:first-child { margin-top: 4px; }
+.chat-section .text-btn { border: 0; background: none; color: var(--accent-strong, #1f6f4a); font: 700 13px/1 inherit; text-transform: none; letter-spacing: 0; cursor: pointer; padding: 4px; }
+.chat-hint { margin: 2px 6px 8px; font-size: 13px; color: var(--muted); }
+.chat-avatar.grp { background: #e1eef9; color: #1f5e92; }
+.chat-avatar.proj { background: #fff0d9; color: #b0600d; font-size: 18px; }
+html[data-theme="dark"] .chat-avatar.grp { background: #1d3344; color: #9ccaf0; }
+html[data-theme="dark"] .chat-avatar.proj { background: #4f3814; color: #f5c48a; }
+.chat-who { display: block; font-size: 12px; margin-bottom: 2px; opacity: .8; }
+.chat-head-btn { margin-left: auto; }
+.cg-people { display: grid; gap: 6px; max-height: 46vh; overflow: auto; margin: 10px 0; }
+.cg-person { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
+.cg-person input { width: 20px; height: 20px; min-height: 0 !important; }

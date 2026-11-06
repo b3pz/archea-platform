@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.8.0 — Chat di gruppo e chat di progetto, telefono più leggibile
+
+- **Gruppi in chat**:
+  - chiunque crea un gruppo ("+ Nuovo gruppo"), gli dà un nome e sceglie i colleghi;
+  - chi l'ha creato cambia nome e persone, o lo elimina; gli altri possono uscirne;
+  - nei messaggi si vede chi scrive, e ogni messaggio arriva come notifica e popup agli altri del gruppo.
+- **Chat di progetto**: ogni progetto ha la sua chat, che si crea da sola quando il PM forma la squadra in "Project Manager".
+  - Ci sono solo le persone della squadra e il PM che l'ha formata.
+  - Se il PM toglie qualcuno dalla squadra, esce anche dalla chat. Se cambia il nome del progetto, cambia anche quello della chat.
+- La lista della chat è divisa in **Progetti**, **Gruppi** e **Colleghi**, con i messaggi non letti per ognuno.
+- Le regole sono nel database: chi non è nel gruppo non vede né scrive (`20261107_chat_gruppi.sql`, inclusa in `SETUP_COMPLETO.sql`).
+- **Telefono**:
+  - nessun testo sotto i 14 px (`assets/sizes-mobile.css`, `servicedesk/sizes-mobile.css`, generati);
+  - contatori della coda ticket e della dashboard su 2 colonne con numeri grandi;
+  - azioni del calendario una sotto l'altra;
+  - campi da 48 px.
+
 ## 2.7.1 — Inizio a cartelle, foto cantiere con i progetti
 
 - **Inizio a cartelle**: sotto il saluto ci sono poche cartelle grandi, ognuna con una riga che spiega cosa contiene. Le funzioni si vedono solo aprendo la cartella, che ha "‹ Inizio" per tornare indietro.

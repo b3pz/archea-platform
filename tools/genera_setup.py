@@ -5,7 +5,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 ORDER = ['20261106_chat', '20261106_calendario', '20261106_offtopic', '20261106_sondaggi', '20261106_utenti_gruppi',
          '20261106_planimetrie', '20261106_foto', '20261107_utenti_dal_sito', '20261107_scan_telefono',
-         '20261107_offtopic_modifica', '20261107_ruoli', '20261107_progetti_task']
+         '20261107_offtopic_modifica', '20261107_ruoli', '20261107_progetti_task', '20261107_chat_gruppi']
 HEAD = """-- ARCHEA Platform · SETUP COMPLETO
 -- Supabase → SQL Editor → New query → incolla TUTTO questo file → Run.
 -- Si può rieseguire senza danni: crea solo ciò che manca e aggiorna le funzioni.

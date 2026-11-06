@@ -175,7 +175,8 @@ function startAction(key) {
 }
 
 // ---------- CHAT ----------
-let chatState = { contacts: [], messages: [], active: null, timer: null, ready: true, search: '' };
+let chatState = { contacts: [], messages: [], active: null, timer: null, ready: true, search: '',
+  groups: [], members: [], gmessages: [], activeGroup: null, groupsOk: true };
 
 function chatStop() { if (chatState.timer) { clearInterval(chatState.timer); chatState.timer = null; } }
 
@@ -187,6 +188,15 @@ async function chatLoad() {
   ]);
   chatState.contacts = (contacts || []).filter(c => c.id !== me);
   chatState.messages = messages || [];
+  // gruppi e chat di progetto (se lo script SQL è già stato eseguito)
+  try {
+    const [groups, members, gm] = await Promise.all([
+      select('chat_groups', 'select=*&order=created_at.asc'),
+      select('chat_group_members', 'select=group_id,user_id,last_read_at'),
+      select('chat_group_messages', 'select=*&order=created_at.asc&limit=4000')
+    ]);
+    chatState.groups = groups || []; chatState.members = members || []; chatState.gmessages = gm || []; chatState.groupsOk = true;
+  } catch (e) { chatState.groups = []; chatState.members = []; chatState.gmessages = []; chatState.groupsOk = false; }
 }
 
 function chatThreads() {
@@ -206,6 +216,21 @@ function chatThreads() {
     return String(a.contact.nome).localeCompare(String(b.contact.nome), 'it');
   });
 }
+function chatGroupThreads() {
+  const me = user.id;
+  return chatState.groups.map(g => {
+    const mine = chatState.members.find(m => m.group_id === g.id && m.user_id === me);
+    const msgs = chatState.gmessages.filter(m => m.group_id === g.id);
+    const last = msgs[msgs.length - 1] || null;
+    const unread = mine ? msgs.filter(m => m.sender_id !== me && new Date(m.created_at) > new Date(mine.last_read_at)).length : 0;
+    const count = chatState.members.filter(m => m.group_id === g.id).length;
+    return { group: g, last, unread, count, member: !!mine };
+  }).filter(t => t.member).sort((a, b) => new Date(b.last?.created_at || b.group.created_at) - new Date(a.last?.created_at || a.group.created_at));
+}
+function chatName(id) {
+  if (id === user.id) return profile?.nome || 'Tu';
+  return (chatState.contacts.find(c => c.id === id) || {}).nome || 'Collega';
+}
 
 function chatInitials(name) {
   return String(name || '?').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0].toUpperCase()).join('');
@@ -220,16 +245,33 @@ function chatTime(d) {
 function chatRender() {
   const me = user.id;
   const threads = chatThreads();
+  const gthreads = chatGroupThreads();
   const q = normSearch(chatState.search);
   const list = threads.filter(t => !q || normSearch(t.contact.nome).includes(q));
+  const glist = gthreads.filter(t => !q || normSearch(t.group.nome).includes(q));
+  const projects = glist.filter(t => t.group.tipo === 'PROGETTO'), groups = glist.filter(t => t.group.tipo !== 'PROGETTO');
   const active = threads.find(t => t.contact.id === chatState.active);
+  const ag = gthreads.find(t => t.group.id === chatState.activeGroup);
   const conv = active ? chatState.messages.filter(m => (m.sender_id === me && m.recipient_id === active.contact.id) || (m.sender_id === active.contact.id && m.recipient_id === me)) : [];
+  const gconv = ag ? chatState.gmessages.filter(m => m.group_id === ag.group.id) : [];
+  const gItem = t => `
+    <button class="chat-contact ${t.group.id === chatState.activeGroup ? 'active' : ''}" data-chatg="${t.group.id}">
+      <span class="chat-avatar ${t.group.tipo === 'PROGETTO' ? 'proj' : 'grp'}">${t.group.tipo === 'PROGETTO' ? '▦' : esc(chatInitials(t.group.nome))}</span>
+      <span class="chat-contact-text"><b>${esc(t.group.nome)}</b>
+        <small>${t.last ? esc((t.last.sender_id === me ? 'Tu' : chatName(t.last.sender_id).split(' ')[0]) + ': ' + t.last.body) : `${t.count} persone`}</small></span>
+      <span class="chat-meta">${t.last ? `<small>${chatTime(t.last.created_at)}</small>` : ''}${t.unread ? `<em>${t.unread}</em>` : ''}</span>
+    </button>`;
+  const head = (title, extra = '') => `<div class="chat-section"><span>${title}</span>${extra}</div>`;
+  const hasActive = active || ag;
 
   $('content').innerHTML = `
-    <div class="chat-shell ${active ? 'has-active' : ''}">
+    <div class="chat-shell ${hasActive ? 'has-active' : ''}">
       <aside class="chat-list">
-        <input id="chatSearch" placeholder="Cerca un collega…" value="${esc(chatState.search)}">
+        <input id="chatSearch" placeholder="Cerca un collega, un gruppo o un progetto…" value="${esc(chatState.search)}">
         <div class="chat-contacts">
+          ${projects.length ? head('Progetti') + projects.map(gItem).join('') : ''}
+          ${chatState.groupsOk ? head('Gruppi', '<button class="text-btn" id="chatNewGroup" type="button">+ Nuovo gruppo</button>') + (groups.length ? groups.map(gItem).join('') : '<p class="chat-hint">Crea un gruppo per scrivere a più colleghi insieme.</p>') : ''}
+          ${head('Colleghi')}
           ${list.length ? list.map(t => `
             <button class="chat-contact ${t.contact.id === chatState.active ? 'active' : ''}" data-chat="${esc(t.contact.id)}">
               <span class="chat-avatar">${esc(chatInitials(t.contact.nome))}</span>
@@ -254,7 +296,20 @@ function chatRender() {
           <form id="chatForm" class="chat-compose">
             <textarea id="chatText" rows="1" placeholder="Scrivi un messaggio…" maxlength="4000" required></textarea>
             <button class="primary" type="submit">Invia</button>
-          </form>` : `<div class="chat-placeholder"><b>Chat ARCHEA</b><p>Scegli un collega a sinistra per iniziare.</p></div>`}
+          </form>` : ag ? `
+          <header class="chat-head">
+            <button id="chatBack" class="chat-back" type="button" aria-label="Torna alle chat">←</button>
+            <span class="chat-avatar ${ag.group.tipo === 'PROGETTO' ? 'proj' : 'grp'}">${ag.group.tipo === 'PROGETTO' ? '▦' : esc(chatInitials(ag.group.nome))}</span>
+            <div><b>${esc(ag.group.nome)}</b><small>${ag.group.tipo === 'PROGETTO' ? 'Chat del progetto · ' : ''}${ag.count} persone</small></div>
+            <button class="secondary compact chat-head-btn" id="chatMembers" type="button">Persone</button>
+          </header>
+          <div id="chatMessages" class="chat-messages">
+            ${gconv.length ? gconv.map(m => `<div class="chat-bubble ${m.sender_id === me ? 'mine' : 'theirs'}">${m.sender_id === me ? '' : `<b class="chat-who">${esc(chatName(m.sender_id))}</b>`}<p>${esc(m.body)}</p><small>${chatTime(m.created_at)}</small></div>`).join('') : `<p class="empty">${ag.group.tipo === 'PROGETTO' ? 'Qui scrive solo la squadra del progetto.' : 'Scrivi il primo messaggio al gruppo.'}</p>`}
+          </div>
+          <form id="chatForm" class="chat-compose">
+            <textarea id="chatText" rows="1" placeholder="Scrivi al gruppo…" maxlength="4000" required></textarea>
+            <button class="primary" type="submit">Invia</button>
+          </form>` : `<div class="chat-placeholder"><b>Chat ARCHEA</b><p>Scegli un collega, un gruppo o un progetto a sinistra.</p></div>`}
       </section>
     </div>`;
 
@@ -265,7 +320,10 @@ function chatRender() {
     const s = $('chatSearch'); s.focus(); s.setSelectionRange(pos, pos);
   };
   document.querySelectorAll('[data-chat]').forEach(b => b.onclick = () => chatOpen(b.dataset.chat));
-  if ($('chatBack')) $('chatBack').onclick = () => { chatState.active = null; chatRender(); };
+  document.querySelectorAll('[data-chatg]').forEach(b => b.onclick = () => chatOpenGroup(+b.dataset.chatg));
+  if ($('chatNewGroup')) $('chatNewGroup').onclick = () => chatGroupForm(null);
+  if ($('chatMembers')) $('chatMembers').onclick = () => chatGroupForm(ag);
+  if ($('chatBack')) $('chatBack').onclick = () => { chatState.active = null; chatState.activeGroup = null; chatRender(); };
   const box = $('chatMessages');
   if (box) box.scrollTop = box.scrollHeight;
   if ($('chatForm')) {
@@ -273,6 +331,60 @@ function chatRender() {
     ta.onkeydown = e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); $('chatForm').requestSubmit(); } };
     $('chatForm').onsubmit = chatSend;
   }
+}
+
+// Nuovo gruppo / persone del gruppo
+function chatGroupForm(t) {
+  const me = user.id;
+  const g = t && t.group;
+  const isProject = g && g.tipo === 'PROGETTO';
+  const canEdit = !g || (!isProject && g.created_by === me);
+  const current = g ? chatState.members.filter(m => m.group_id === g.id).map(m => m.user_id) : [me];
+  const people = [{ id: me, nome: (profile?.nome || 'Tu') + ' (tu)' }, ...chatState.contacts].sort((a, b) => a.id === me ? -1 : b.id === me ? 1 : String(a.nome).localeCompare(String(b.nome), 'it'));
+  const ov = document.createElement('div');
+  ov.className = 'scanner-overlay chat-modal';
+  ov.innerHTML = `<div class="scanner-card">
+    <div class="scanner-head"><div><span class="eyebrow">CHAT</span><h3>${g ? esc(g.nome) : 'Nuovo gruppo'}</h3></div><button class="ghost compact" id="cgClose">Chiudi</button></div>
+    ${isProject ? '<p class="muted-line">Le persone di questa chat sono quelle della squadra del progetto: le sceglie il PM in "Project Manager".</p>' : ''}
+    ${canEdit ? `<label>Nome del gruppo<input id="cgName" maxlength="80" value="${esc(g ? g.nome : '')}" placeholder="Es. Ufficio Firenze, Pausa pranzo…"></label>` : ''}
+    <input id="cgSearch" placeholder="Cerca un collega…">
+    <div class="cg-people">${people.map(p => `<label class="cg-person"><input type="checkbox" value="${esc(p.id)}" ${current.includes(p.id) ? 'checked' : ''} ${!canEdit || p.id === me ? 'disabled' : ''}><span class="chat-avatar">${esc(chatInitials(p.nome))}</span><span>${esc(p.nome)}</span></label>`).join('')}</div>
+    <div class="button-row">
+      ${canEdit ? `<button class="primary" id="cgSave">${g ? 'Salva' : 'Crea gruppo'}</button>` : ''}
+      ${g && !isProject && g.created_by !== me ? '<button class="secondary danger-outline" id="cgLeave">Esci dal gruppo</button>' : ''}
+      ${g && !isProject && g.created_by === me ? '<button class="secondary danger-outline" id="cgDelete">Elimina gruppo</button>' : ''}
+      <span id="cgMsg" class="muted-line"></span>
+    </div></div>`;
+  document.body.appendChild(ov);
+  const close = () => ov.remove();
+  ov.querySelector('#cgClose').onclick = close;
+  ov.addEventListener('click', e => { if (e.target === ov) close(); });
+  ov.querySelector('#cgSearch').oninput = e => { const q = normSearch(e.target.value); ov.querySelectorAll('.cg-person').forEach(l => l.classList.toggle('hidden', !!q && !normSearch(l.textContent).includes(q))); };
+  if (ov.querySelector('#cgSave')) ov.querySelector('#cgSave').onclick = async () => {
+    const nome = ov.querySelector('#cgName').value.trim();
+    const chosen = [...ov.querySelectorAll('.cg-person input:checked')].map(x => x.value).filter(id => id !== me);
+    if (nome.length < 2) { ov.querySelector('#cgMsg').textContent = 'Scrivi il nome del gruppo'; return; }
+    if (!g && !chosen.length) { ov.querySelector('#cgMsg').textContent = 'Scegli almeno un collega'; return; }
+    try {
+      let gid = g && g.id;
+      if (!g) { const rows = await insert('chat_groups', { nome, tipo: 'GRUPPO', created_by: me }); gid = rows[0].id; }
+      else if (nome !== g.nome) await update('chat_groups', `id=eq.${gid}`, { nome });
+      const before = g ? current.filter(id => id !== me) : [];
+      const add = chosen.filter(id => !before.includes(id)), remove = before.filter(id => !chosen.includes(id));
+      if (add.length) await insert('chat_group_members', add.map(id => ({ group_id: gid, user_id: id })), false);
+      for (const id of remove) await api(`/rest/v1/chat_group_members?group_id=eq.${gid}&user_id=eq.${id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      close(); await chatLoad(); chatOpenGroup(gid);
+    } catch (err) { ov.querySelector('#cgMsg').textContent = err.message; }
+  };
+  if (ov.querySelector('#cgLeave')) ov.querySelector('#cgLeave').onclick = async () => {
+    try { await api(`/rest/v1/chat_group_members?group_id=eq.${g.id}&user_id=eq.${me}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); close(); chatState.activeGroup = null; await chatLoad(); chatRender(); }
+    catch (err) { ov.querySelector('#cgMsg').textContent = err.message; }
+  };
+  if (ov.querySelector('#cgDelete')) ov.querySelector('#cgDelete').onclick = async e => {
+    const b = e.target; if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = 'Conferma: elimina gruppo e messaggi'; return; }
+    try { await api(`/rest/v1/chat_groups?id=eq.${g.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } }); close(); chatState.activeGroup = null; await chatLoad(); chatRender(); }
+    catch (err) { ov.querySelector('#cgMsg').textContent = err.message; }
+  };
 }
 
 async function chatMarkRead(otherId) {
@@ -283,12 +395,27 @@ async function chatMarkRead(otherId) {
     chatState.messages.forEach(m => { if (m.sender_id === otherId && m.recipient_id === me && !m.read_at) m.read_at = new Date().toISOString(); });
   } catch (e) { console.warn('Lettura non segnata:', e.message); }
 }
+async function chatMarkGroupRead(gid) {
+  const me = user.id, mine = chatState.members.find(m => m.group_id === gid && m.user_id === me);
+  if (!mine) return;
+  const last = chatState.gmessages.filter(m => m.group_id === gid).pop();
+  if (!last || new Date(last.created_at) <= new Date(mine.last_read_at)) return;
+  const now = new Date().toISOString();
+  try { await update('chat_group_members', `group_id=eq.${gid}&user_id=eq.${me}`, { last_read_at: now }); mine.last_read_at = now; } catch (e) {}
+}
 
 async function chatOpen(otherId) {
-  chatState.active = otherId;
+  chatState.active = otherId; chatState.activeGroup = null;
   chatRender();
   await chatMarkRead(otherId);
   if (chatState.active === otherId) chatRender();
+  setTimeout(() => $('chatText')?.focus(), 30);
+}
+async function chatOpenGroup(gid) {
+  chatState.activeGroup = gid; chatState.active = null;
+  chatRender();
+  await chatMarkGroupRead(gid);
+  if (chatState.activeGroup === gid) chatRender();
   setTimeout(() => $('chatText')?.focus(), 30);
 }
 
@@ -296,11 +423,17 @@ async function chatSend(e) {
   e.preventDefault();
   const ta = $('chatText');
   const body = ta.value.trim();
-  if (!body || !chatState.active) return;
+  if (!body || (!chatState.active && !chatState.activeGroup)) return;
   ta.value = '';
   try {
-    const rows = await insert('chat_messages', { sender_id: user.id, recipient_id: chatState.active, body });
-    chatState.messages.push(...(rows || []));
+    if (chatState.activeGroup) {
+      const rows = await insert('chat_group_messages', { group_id: chatState.activeGroup, sender_id: user.id, body });
+      chatState.gmessages.push(...(rows || []));
+      await chatMarkGroupRead(chatState.activeGroup);
+    } else {
+      const rows = await insert('chat_messages', { sender_id: user.id, recipient_id: chatState.active, body });
+      chatState.messages.push(...(rows || []));
+    }
     chatRender();
   } catch (err) {
     ta.value = body;
@@ -310,11 +443,13 @@ async function chatSend(e) {
 
 async function chatPoll() {
   if (currentView !== 'chat' || document.hidden) return;
+  if (document.querySelector('.chat-modal')) return;
   const typing = $('chatText') && document.activeElement === $('chatText') ? $('chatText').value : null;
-  const sig = () => chatState.messages.length + ':' + chatState.messages.filter(m => m.read_at).length;
+  const sig = () => chatState.messages.length + ':' + chatState.messages.filter(m => m.read_at).length + ':' + chatState.gmessages.length + ':' + chatState.groups.length + ':' + chatState.members.length;
   const before = sig();
   try { await chatLoad(); } catch (e) { return; }
   if (chatState.active) await chatMarkRead(chatState.active);
+  if (chatState.activeGroup) await chatMarkGroupRead(chatState.activeGroup);
   if (sig() !== before) {
     if (currentView !== 'chat') return;
     chatRender();
