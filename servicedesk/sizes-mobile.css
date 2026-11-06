@@ -1,0 +1,150 @@
+/* GENERATO da tools/genera_sizes.py: sul telefono nessun testo sotto i 14 px. */
+@media (max-width: 760px) {
+  html .login-logo-panel span { font-size: 14px }
+  html .login-form-panel label { font-size: 14px }
+  html .login-signature { font-size: 14px }
+  html .brand-copy strong { font-size: 14px }
+  html .brand-copy span { font-size: 14px }
+  html .nav-section-label { font-size: 14px }
+  html nav button { font-size: 14px }
+  html .service-mark span { font-size: 14px }
+  html .service-mark small { font-size: 14px }
+  html .account b { font-size: 14px }
+  html .account span { font-size: 14px }
+  html .workspace-topline { font-size: 14px }
+  html .page-heading p { font-size: 14px }
+  html .app-footer { font-size: 14px }
+  html label { font-size: 14px }
+  html .compact { font-size: 14px }
+  html .err { font-size: 14px }
+  html .optional { font-size: 14px }
+  html .metric span { font-size: 14px }
+  html th { font-size: 14px }
+  html .subline { font-size: 14px }
+  html .badge { font-size: 14px }
+  html .unassigned { font-size: 14px }
+  html .queue-card span { font-size: 14px }
+  html .appointment-status { font-size: 14px }
+  html .bell-count { font-size: 14px }
+  html .text-btn { font-size: 14px }
+  html .notification-item b { font-size: 14px }
+  html .toast { font-size: 14px }
+  html .collab-chip { font-size: 14px }
+  html .booking-meta { font-size: 14px }
+  html .assigned-asset { font-size: 14px }
+  html .booking-grid span { font-size: 14px }
+  html .asset-code-big { font-size: 14px }
+  html .asset-info-grid span { font-size: 14px }
+  html .back-btn { font-size: 14px }
+  html .theme-toggle { font-size: 14px }
+  html .page-heading p { font-size: 14px }
+  html .asset-search-summary span { font-size: 14px }
+  html .code-check { font-size: 14px }
+  html .movement-impact b { font-size: 14px }
+  html .movement-impact span { font-size: 14px }
+  html .movement-block-title { font-size: 14px }
+  html .field-help { font-size: 14px }
+  html .movement-validation b { font-size: 14px }
+  html .movement-validation span { font-size: 14px }
+  html .movement-explain b { font-size: 14px }
+  html .movement-explain span { font-size: 14px }
+  html .people-table td small { font-size: 14px }
+  html .source-chip, html .source-mini { font-size: 14px }
+  html .legacy-person-row span, html .person-asset-row span, html .person-asset-row small { font-size: 14px }
+  html .person-info-grid span { font-size: 14px }
+  html .person-info-grid b { font-size: 14px }
+  html .person-exit-form>p { font-size: 14px }
+  html .conflict-row span { font-size: 14px }
+  html .reference-group h3 { font-size: 14px }
+  html .reference-row b { font-size: 14px }
+  html .reference-row span { font-size: 14px }
+  html .compact-info { font-size: 14px !important }
+  html .smart-select-value { font-size: 14px }
+  html .smart-select-search { font-size: 14px !important }
+  html .smart-select-option { font-size: 14px }
+  html .people-asset-count small { font-size: 14px }
+  html .page-heading .eyebrow { font-size: 14px }
+  html .page-heading p { font-size: 14px }
+  html .metric span { font-size: 14px }
+  html .people-table td:before { font-size: 14px }
+  html .asset-table td:before { font-size: 14px }
+  html .sort-marker { font-size: 14px }
+  html .map-summary span { font-size: 14px }
+  html .map-person-chip { font-size: 14px }
+  html .field-rule { font-size: 14px }
+  html nav button::after { font-size: 14px }
+  html .overview-number>span, html .section-kicker { font-size: 14px }
+  html .overview-number>small { font-size: 14px }
+  html .overview-stats span { font-size: 14px }
+  html .explore-head { font-size: 14px }
+  html .bar-row span { font-size: 14px }
+  html .conflict-type { font-size: 14px }
+  html .compare-vs { font-size: 14px }
+  html .compact-info { font-size: 14px !important }
+  html .brand-copy span { font-size: 14px }
+  html .nav-section-label { font-size: 14px }
+  html .account b { font-size: 14px }
+  html .account span { font-size: 14px }
+  html .eyebrow { font-size: 14px }
+  html label { font-size: 14px }
+  html .compact { font-size: 14px }
+  html .theme-toggle { font-size: 14px }
+  html .metric span { font-size: 14px }
+  html .ticket-table th { font-size: 14px }
+  html .badge, html .unassigned { font-size: 14px }
+  html .page-heading .eyebrow { font-size: 14px }
+  html .page-heading p { font-size: 14px }
+  html .metric span { font-size: 14px }
+  html .ticket-table td::before { font-size: 14px }
+  html .scanner-diag { font-size: 14px }
+  html.sd-embed .sidebar nav button { font-size: 14px !important }
+  html.sd-embed .metric span, html.sd-embed .queue-card span { font-size: 14px !important }
+  html.sd-embed .badge { font-size: 14px }
+  html.sd-embed .start-chip span { font-size: 14px }
+  html.sd-embed .nav-group-label { font-size: 14px }
+  html .start-hero .eyebrow { font-size: 14px }
+  html .start-text small { font-size: 14px }
+  html .start-chip span { font-size: 14px }
+  html .chat-meta small { font-size: 14px }
+  html .chat-meta em { font-size: 14px }
+  html .chat-avatar { font-size: 14px }
+  html .chat-bubble small { font-size: 14px }
+  html .start-group-title { font-size: 14px }
+  html .start-folder-badge { font-size: 14px }
+  html .ag-filter { font-size: 14px }
+  html .ag-legend { font-size: 14px }
+  html .ag-week-head div { font-size: 14px }
+  html .ag-hours { font-size: 14px }
+  html .ag-event { font-size: 14px }
+  html .ag-event b { font-size: 14px }
+  html .ag-empty { font-size: 14px }
+  html .ag-busy { font-size: 14px }
+  html .ag-free { font-size: 14px }
+  html .ag-ans { font-size: 14px }
+  html .ag-view { font-size: 14px }
+  html .ag-single .ag-event { font-size: 14px }
+  html .ag-month-head span { font-size: 14px }
+  html .ag-mday-num { font-size: 14px }
+  html .ag-mday .ag-event { font-size: 14px }
+  html .ag-more { font-size: 14px }
+  html .ag-month.compact .ag-month-head span { font-size: 14px }
+  html .ot-count { font-size: 14px }
+  html .ot-pin, html .ot-lock { font-size: 14px }
+  html .ot-cat { font-size: 14px }
+  html .ot-del { font-size: 14px }
+  html .ot-poll-tag { font-size: 14px }
+  html .ot-poll-num { font-size: 14px }
+  html .ot-poll-names { font-size: 14px }
+  html .ot-poll-hint { font-size: 14px }
+  html .ct-cap { font-size: 14px }
+  html .ct-del.confirm { font-size: 14px }
+  html .us-chip { font-size: 14px }
+  html .us-status { font-size: 14px }
+  html .us-members { font-size: 14px }
+  html .pl-zoom span { font-size: 14px }
+  html .pl-check { font-size: 14px }
+  html .pl-props p { font-size: 14px }
+  html .pl-tool-group small { font-size: 14px }
+  html .pl-tool { font-size: 14px }
+  html .pl-hint { font-size: 14px }
+}
