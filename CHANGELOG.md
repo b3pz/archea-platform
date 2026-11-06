@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.9.0 — Notifiche vere del browser (Web Push)
+
+- Le notifiche arrivano come **notifiche del sistema** (Windows, macOS, Android, iPhone con l'app sulla schermata Home), anche **a sito chiuso**.
+- In Inizio compare il riquadro **«Attiva le notifiche»** finché il dispositivo non è iscritto; su iPhone spiega come aggiungere l'app alla Home.
+- Dietro le quinte:
+  - tabella `push_subscriptions` (un dispositivo = l'ultimo utente che vi è entrato);
+  - tabella `push_config` con le chiavi VAPID, che crea il sito da solo al primo accesso del Super admin e che nessuno può leggere dal sito;
+  - a ogni riga nuova in `notifications` il database chiama la Edge Function **push** (con pg_net) che consegna il messaggio cifrato.
+- Da fare una volta: eseguire `SETUP_COMPLETO.sql` e pubblicare la Edge Function `push` seguendo `supabase/push.html` (con «Verify JWT» disattivato).
+
 ## 2.8.0 — Chat di gruppo e chat di progetto, telefono più leggibile
 
 - **Gruppi in chat**:

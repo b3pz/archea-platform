@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Notifiche vere · Edge Function push</title>
+<link rel="icon" type="image/svg+xml" href="../icons/archea-favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="../icons/archea-favicon-32.png">
+<style>
+:root{--bg:#f6f6f3;--ink:#1d2320;--muted:#5d6661;--line:#e5e8e5;--card:#fff;--btn:#222624;--btnink:#fff}
+@media (prefers-color-scheme:dark){:root{--bg:#141714;--ink:#e3e8e5;--muted:#a3aca7;--line:#2e332f;--card:#1b1d1b;--btn:#e3e8e5;--btnink:#1b1d1b}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:900px;margin:0 auto;padding:20px 16px 40px}h1{font-size:26px;letter-spacing:-.03em;margin:8px 0 4px}
+p{color:var(--muted);margin:6px 0}ol{padding-left:20px;color:var(--muted)}
+.bar{position:sticky;top:0;display:flex;gap:10px;flex-wrap:wrap;align-items:center;padding:12px 0;background:var(--bg)}
+button,a.btn{appearance:none;border:0;border-radius:12px;padding:12px 18px;font:700 16px/1 inherit;background:var(--btn);color:var(--btnink);cursor:pointer;text-decoration:none}
+a.btn.sec{background:var(--card);color:var(--ink);border:1px solid var(--line)}
+#ok{font-weight:700;color:#2f7a4f}
+textarea{width:100%;height:60vh;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);padding:12px;font:12px/1.45 ui-monospace,Menlo,Consolas,monospace}
+</style></head><body><main>
+<h1>Notifiche vere · Edge Function push</h1>
+<p>Serve una volta sola, dopo aver eseguito SETUP_COMPLETO.sql. Fa arrivare le notifiche su computer e telefono anche a sito chiuso.</p>
+<ol><li>Premi <b>Copia tutto</b>.</li><li>Apri Supabase → <b>Edge Functions</b> → <b>Deploy a new function</b> → <b>Via Editor</b>.</li><li>Nome della funzione: <b>push</b>. Cancella il testo di esempio, incolla e premi <b>Deploy function</b>.</li><li>Nella pagina della funzione apri <b>Details</b> e <b>disattiva «Verify JWT»</b> (Enforce JWT Verification), poi <b>Save</b>.</li><li>Entra nel sito come Super admin e premi <b>Attiva le notifiche</b> in Inizio: le chiavi si creano da sole.</li></ol>
+<div class="bar"><button id="copy" type="button">Copia tutto</button><a class="btn sec" href="https://supabase.com/dashboard" target="_blank" rel="noopener">Apri Supabase</a><span id="ok"></span></div>
+<textarea id="sql" readonly spellcheck="false">// ARCHEA Platform · Edge Function &quot;push&quot;
+// Manda le notifiche vere del browser (Web Push) a computer e telefoni, anche con il sito chiuso.
+//
+// Deploy dalla dashboard: Supabase → Edge Functions → Deploy a new function → &quot;Via Editor&quot;
+//   nome: push   → incolla questo file → Deploy
+//   poi, nella pagina della funzione → Details: DISATTIVA &quot;Verify JWT&quot; (Enforce JWT verification)
+//   e salva. La chiama solo il database, con una parola segreta che conosce solo lui.
+// Non servono Secrets: le chiavi le crea il sito e stanno nella tabella push_config.
+
+import webpush from &quot;npm:web-push@3.6.7&quot;;
+
+const URL_ = Deno.env.get(&quot;SUPABASE_URL&quot;)!;
+const SERVICE = Deno.env.get(&quot;SUPABASE_SERVICE_ROLE_KEY&quot;)!;
+const H = { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, &quot;Content-Type&quot;: &quot;application/json&quot; };
+
+async function rest(path: string, init: RequestInit = {}) {
+  const r = await fetch(`${URL_}/rest/v1/${path}`, { ...init, headers: { ...H, ...(init.headers || {}) } });
+  if (!r.ok) throw new Error(`${path}: HTTP ${r.status} ${await r.text()}`);
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+let cfgCache: { public_key: string; private_key: string; hook_secret: string } | null = null;
+async function config() {
+  if (!cfgCache) {
+    const rows = await rest(&quot;push_config?id=eq.1&amp;select=public_key,private_key,hook_secret&quot;);
+    cfgCache = rows?.[0] ?? null;
+  }
+  return cfgCache;
+}
+
+Deno.serve(async (req) =&gt; {
+  if (req.method !== &quot;POST&quot;) return new Response(&quot;Metodo non consentito&quot;, { status: 405 });
+  const cfg = await config();
+  if (!cfg?.private_key) return new Response(&quot;Notifiche non configurate&quot;, { status: 503 });
+  if (req.headers.get(&quot;x-archea-hook&quot;) !== cfg.hook_secret) return new Response(&quot;Non autorizzato&quot;, { status: 401 });
+
+  const n = await req.json();
+  if (!n?.user_id) return new Response(&quot;Dati mancanti&quot;, { status: 400 });
+
+  webpush.setVapidDetails(&quot;mailto:it@archea.it&quot;, cfg.public_key, cfg.private_key);
+  const subs = await rest(`push_subscriptions?user_id=eq.${n.user_id}&amp;select=id,endpoint,p256dh,auth`);
+  const payload = JSON.stringify({
+    id: n.id, title: n.title || &quot;ARCHEA&quot;, body: n.message || &quot;&quot;, ticket_id: n.ticket_id || null,
+  });
+
+  let sent = 0, removed = 0;
+  await Promise.all((subs || []).map(async (s: { id: number; endpoint: string; p256dh: string; auth: string }) =&gt; {
+    try {
+      await webpush.sendNotification({ endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } }, payload,
+        { TTL: 86400, urgency: &quot;high&quot;, topic: `archea-${n.id}`.slice(0, 32) });
+      sent++;
+    } catch (e) {
+      const code = (e as { statusCode?: number }).statusCode;
+      if (code === 404 || code === 410) { // dispositivo non più iscritto
+        await rest(`push_subscriptions?id=eq.${s.id}`, { method: &quot;DELETE&quot; }).catch(() =&gt; {});
+        removed++;
+      } else console.error(&quot;push&quot;, code, (e as Error).message);
+    }
+  }));
+  return new Response(JSON.stringify({ sent, removed }), { headers: { &quot;Content-Type&quot;: &quot;application/json&quot; } });
+});
+</textarea>
+<p>File: <code>supabase/functions/push/index.ts</code> · 62 righe</p>
+</main>
+<script>
+document.getElementById('copy').onclick=async()=>{const t=document.getElementById('sql');let ok=false;
+try{await navigator.clipboard.writeText(t.value);ok=true}catch(e){t.focus();t.select();t.setSelectionRange(0,t.value.length);try{ok=document.execCommand('copy')}catch(e2){}}
+document.getElementById('ok').textContent=ok?'Copiato ✓':'Seleziona il testo e copia a mano';};
+</script></body></html>

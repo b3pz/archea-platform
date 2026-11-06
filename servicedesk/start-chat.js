@@ -114,6 +114,7 @@ async function start() {
         </button>`).join('')}
       </div>`;
     document.querySelectorAll('[data-folder]').forEach(b => b.onclick = () => renderGroup(b.dataset.folder));
+    if (window.archeaPushBanner) window.archeaPushBanner();
   };
   const renderGroup = id => {
     document.documentElement.classList.add('sd-on-start');

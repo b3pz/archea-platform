@@ -181,3 +181,11 @@ html[data-theme="dark"] .chat-avatar.proj { background: #4f3814; color: #f5c48a;
 .cg-people { display: grid; gap: 6px; max-height: 46vh; overflow: auto; margin: 10px 0; }
 .cg-person { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 12px; cursor: pointer; }
 .cg-person input { width: 20px; height: 20px; min-height: 0 !important; }
+
+/* Riquadro "Attiva le notifiche" in Inizio */
+.push-banner{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:0 0 18px;padding:16px 18px;border-radius:18px;
+  border:2px solid #e8410f;background:color-mix(in srgb,#e8410f 7%,var(--card,#fff))}
+.push-banner b{font-size:1.08em;width:100%}
+.push-banner span{flex:1 1 260px;color:var(--muted,#5d6661)}
+.push-banner button{flex:0 0 auto}
+html[data-theme="dark"] .push-banner{background:color-mix(in srgb,#ff7a4d 12%,#1b1d1b);border-color:#ff7a4d}

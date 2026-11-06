@@ -353,6 +353,7 @@ function notifPopups(list){
   if(navigator.vibrate)navigator.vibrate(60);
 }
 async function enableSystemNotifications(){
+  if(window.archeaEnablePush)return window.archeaEnablePush();
   if(!('Notification' in window)){toast('Questo browser non supporta le notifiche. Su iPhone: aggiungi il sito alla schermata Home e aprilo da lì.');return}
   const r=await Notification.requestPermission();
   toast(r==='granted'?'Notifiche attivate':'Notifiche non permesse: si possono attivare dalle impostazioni del browser');
@@ -3447,6 +3448,7 @@ const deepScan=String(SD_PARAMS.get('scan')||'').replace(/[^a-f0-9]/gi,'').slice
 if(deepScan.length>=8){setTimeout(()=>openAssetScanner(null,{relay:deepScan}),400)}
 refreshNotifications();
 setInterval(refreshNotifications,15000);
+if(window.archeaPushSync)setTimeout(window.archeaPushSync,1500);
 setInterval(async()=>{
   try{
     if(session?.refresh_token) await refreshSession();

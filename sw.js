@@ -1,4 +1,4 @@
-const CACHE_NAME = 'archea-platform-v2.7.0';
+const CACHE_NAME = 'archea-platform-v2.9.0';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
@@ -64,3 +64,22 @@ self.addEventListener('notificationclick', event => {
     return clients.openWindow(url);
   })());
 });
+
+// notifica vera dal server (Web Push): arriva anche con il sito chiuso
+self.addEventListener('push', event => {
+  let d = {};
+  try { d = event.data ? event.data.json() : {}; } catch (e) { d = { title: 'ARCHEA', body: event.data ? event.data.text() : '' }; }
+  const base = self.registration.scope;
+  const url = base + (d.ticket_id ? `?ticket=${encodeURIComponent(d.ticket_id)}` : '') + '#/servicedesk';
+  event.waitUntil(self.registration.showNotification(d.title || 'ARCHEA', {
+    body: d.body || '',
+    icon: base + 'icons/archea-apple-touch-icon.png',
+    badge: base + 'icons/archea-favicon-32.png',
+    tag: d.id ? 'archea-' + d.id : undefined,
+    renotify: !!d.id,
+    data: { url },
+  }));
+});
+
+// il browser ha rinnovato l'iscrizione: la pagina la salva di nuovo al prossimo avvio
+self.addEventListener('pushsubscriptionchange', () => {});
