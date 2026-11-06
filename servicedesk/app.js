@@ -1833,6 +1833,7 @@ async function people(){
   let peopleSort='name',peopleSortDir='asc';
   const sites=(approvedSites||[]).map(x=>x.value).filter(Boolean);
   $('content').innerHTML=`
+    ${typeof hasPerm==='function'&&hasPerm('gestione_utenti')?`<div class="info-box us-hint">Questa è l'<b>anagrafica</b> (chi lavora in studio). Per far <b>entrare qualcuno nel portale</b> serve un account: <button class="primary compact" type="button" onclick="nav('utenti')">Utenti e gruppi → Aggiungi utente</button></div>`:''}
     <div class="metrics people-metrics">
       <div class="metric"><span>Persone master</span><b>${persons.length}</b></div>
       <div class="metric"><span>Attive</span><b>${persons.filter(x=>x.current_status==='ATTIVO').length}</b></div>
@@ -3049,75 +3050,76 @@ async function openAssetScanner(cachedRows=null){
   overlay.querySelector('#scannerManualCode').addEventListener('keydown',e=>{if(e.key==='Enter')openCode(e.target.value)});
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;
-    const formats=['qr_code','code_128','code_39','ean_13','ean_8','data_matrix'];
-    if('BarcodeDetector' in window){try{detector=new BarcodeDetector({formats})}catch{try{detector=new BarcodeDetector()}catch{detector=null}}}
-
-    // Safari/iOS non espone sempre BarcodeDetector: V8.2 usa Quagga2 come fallback 1D.
-    const canQuagga=typeof window.Quagga!=='undefined';
+    status.textContent='Preparo il lettore…';
+    detector=await getBarcodeDetector();
+    const torch=await improveCamera(stream);
+    if(torch){const b=document.createElement('button');b.type='button';b.className='secondary compact';b.textContent='🔦 Luce';let on=false;b.onclick=async()=>{on=!on;try{await torch.applyConstraints({advanced:[{torch:on}]})}catch{}};status.after(b)}
     status.innerHTML=detector
-      ? 'Fotocamera attiva. Inquadra il barcode: il codice asset verrà aperto automaticamente.'
-      : canQuagga
-        ? 'Fotocamera attiva. Scanner compatibile iPhone attivo: inquadra il barcode e tienilo fermo nel riquadro.'
-        : 'Fotocamera attiva. Scanner automatico non caricato: puoi comunque digitare il codice stampato.';
-
-    const canvas=document.createElement('canvas');
-    const ctx=canvas.getContext('2d',{willReadFrequently:true});
-    let lastQuagga=0,quaggaBusy=false,lastRaw='',sameRawCount=0;
-
+      ? 'Fotocamera attiva. Inquadra il codice a barre nel riquadro, a 10–20 cm: si apre da solo.'
+      : 'Lettore non caricato (controlla la connessione). Puoi digitare il codice stampato.';
+    const readFrame=makeFrameReader(video);
+    let lastRaw='',sameRawCount=0,busy=false,lastTry=0;
     const normalizeDetectedRaw=(raw)=>{
       const t=String(raw||'').toUpperCase().replace(/ARCHEA/g,' ').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
       // Etichette Archea: accetta A4021, A 4021, ARCHEA-A4021, ecc.
       const m=t.match(/(?:^|[^A-Z0-9])A\s*-?\s*(\d{3,6})(?:$|[^A-Z0-9])/i)||t.match(/^A\s*-?\s*(\d{3,6})$/i);
       return m?`A${m[1]}`:t.replace(/\s+/g,'');
     };
-
-    const quaggaFrame=async()=>{
-      if(!canQuagga||quaggaBusy||video.readyState<2||!video.videoWidth||!video.videoHeight)return null;
-      quaggaBusy=true;
-      try{
-        const vw=video.videoWidth,vh=video.videoHeight;
-        // Ritaglio centrale: coincide con il riquadro visivo e riduce falsi positivi.
-        const sw=Math.floor(vw*0.78),sh=Math.floor(vh*0.42),sx=Math.floor((vw-sw)/2),sy=Math.floor((vh-sh)/2);
-        const maxW=1100,scale=Math.min(1,maxW/sw);
-        canvas.width=Math.max(320,Math.floor(sw*scale));canvas.height=Math.max(180,Math.floor(sh*scale));
-        ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
-        const src=canvas.toDataURL('image/jpeg',0.86);
-        return await new Promise(resolve=>{
-          try{window.Quagga.decodeSingle({
-            src,
-            numOfWorkers:0,
-            locate:true,
-            inputStream:{size:Math.min(canvas.width,1000)},
-            locator:{patchSize:'medium',halfSample:true},
-            decoder:{readers:['code_128_reader','code_39_reader','code_39_vin_reader','ean_reader','ean_8_reader','upc_reader','upc_e_reader']}
-          },r=>resolve(r?.codeResult?.code||null))}catch{resolve(null)}
-        });
-      }finally{quaggaBusy=false}
-    };
-
     const scan=async()=>{
       if(stopped)return;
-      try{
-        let raw='';
-        if(detector&&video.readyState>=2){
-          const codes=await detector.detect(video);
-          raw=codes?.[0]?.rawValue||'';
-        }else if(canQuagga&&performance.now()-lastQuagga>450){
-          lastQuagga=performance.now();
-          raw=await quaggaFrame()||'';
-        }
-        if(raw){
-          const normalized=normalizeDetectedRaw(raw);
-          if(normalized===lastRaw)sameRawCount++;else{lastRaw=normalized;sameRawCount=1}
-          status.innerHTML=`Rilevato: <b>${esc(raw)}</b>${normalized!==raw?` → <b>${esc(normalized)}</b>`:''}`;
-          // Due letture uguali consecutive riducono aperture errate su barcode poco nitidi.
-          if(detector||sameRawCount>=2){await openCode(normalized);return}
-        }
-      }catch{}
+      if(detector&&!busy&&performance.now()-lastTry>110){
+        busy=true;lastTry=performance.now();
+        try{
+          const raw=await readFrame(detector);
+          if(raw&&!stopped){
+            const normalized=normalizeDetectedRaw(raw);
+            if(normalized===lastRaw)sameRawCount++;else{lastRaw=normalized;sameRawCount=1}
+            status.innerHTML=`Letto: <b>${esc(raw)}</b>${normalized!==raw?` → <b>${esc(normalized)}</b>`:''}`;
+            // Codice ARCHEA riconosciuto: si apre subito; altri codici dopo due letture uguali.
+            if(/^A\d{3,6}$/.test(normalized)||sameRawCount>=2){if(navigator.vibrate)navigator.vibrate(40);busy=false;await openCode(normalized);return}
+          }
+        }catch{}
+        busy=false;
+      }
       raf=requestAnimationFrame(scan);
     };
     scan();
   }catch(err){status.innerHTML=`Fotocamera non disponibile: ${esc(err.message)}. Puoi comunque digitare il codice.`}
+}
+
+
+// ============================================================
+// Lettore codici a barre unico (ZXing in WebAssembly, file locali in servicedesk/vendor/).
+// Funziona anche su iPhone, dove il browser non ha un lettore integrato.
+// ============================================================
+const BARCODE_FORMATS=['code_128','code_39','code_93','ean_13','ean_8','upc_a','upc_e','itf','codabar','qr_code','data_matrix'];
+let _barcodeDetector=null;
+async function getBarcodeDetector(){
+  if(_barcodeDetector)return _barcodeDetector;
+  if('BarcodeDetector' in window){
+    try{const sup=await window.BarcodeDetector.getSupportedFormats();if(sup.includes('code_128')){_barcodeDetector=new window.BarcodeDetector({formats:BARCODE_FORMATS.filter(f=>sup.includes(f))});return _barcodeDetector}}catch{}
+  }
+  if(window.ArcheaBarcodeDetector){try{_barcodeDetector=new window.ArcheaBarcodeDetector({formats:BARCODE_FORMATS});return _barcodeDetector}catch{}}
+  return null;
+}
+// Legge un fotogramma: prima il riquadro centrale ingrandito, poi tutta l'immagine.
+function makeFrameReader(video){
+  const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+  let turn=0;
+  return async(detector)=>{
+    const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh||video.readyState<2)return '';
+    const full=(turn++%3)===2;
+    const sw=full?vw:Math.floor(vw*0.8),sh=full?vh:Math.floor(vh*0.5),sx=Math.floor((vw-sw)/2),sy=Math.floor((vh-sh)/2);
+    const scale=Math.min(1,1400/sw);canvas.width=Math.floor(sw*scale);canvas.height=Math.floor(sh*scale);
+    ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
+    const codes=await detector.detect(canvas);
+    return codes&&codes.length?String(codes[0].rawValue||''):'';
+  };
+}
+async function improveCamera(stream){
+  const track=stream&&stream.getVideoTracks()[0];if(!track||!track.getCapabilities)return null;
+  try{const c=track.getCapabilities();const adv=[];if(c.focusMode&&c.focusMode.includes('continuous'))adv.push({focusMode:'continuous'});if(adv.length)await track.applyConstraints({advanced:adv})}catch{}
+  try{return track.getCapabilities().torch?track:null}catch{return null}
 }
 
 // ============================================================
@@ -3145,9 +3147,9 @@ async function openSerialScanner(targetInput){
   candidate.addEventListener('input',()=>{candidate.value=candidate.value.toUpperCase()});
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;
-    if('BarcodeDetector' in window){try{detector=new BarcodeDetector()}catch{detector=null}}
+    detector=await getBarcodeDetector();await improveCamera(stream);const readFrame=makeFrameReader(video);let busy=false;
     status.textContent=detector?'Fotocamera attiva. Inquadra barcode/QR del seriale.':'Fotocamera attiva. Puoi usare Leggi testo oppure inserire il seriale manualmente.';
-    const scan=async()=>{if(stopped)return;try{if(detector&&video.readyState>=2){const codes=await detector.detect(video);const raw=codes?.[0]?.rawValue||'';if(raw){const n=normalizeSerial(raw);if(n===lastRaw)same++;else{lastRaw=n;same=1} candidate.value=n;status.innerHTML=`Barcode rilevato: <b>${esc(n)}</b>`;if(same>=2&&navigator.vibrate)navigator.vibrate(35);}}}catch{}raf=requestAnimationFrame(scan)};scan();
+    const scan=async()=>{if(stopped)return;if(busy){raf=requestAnimationFrame(scan);return}try{if(detector&&video.readyState>=2){busy=true;const raw=await readFrame(detector).finally(()=>{busy=false});if(raw){const n=normalizeSerial(raw);if(n===lastRaw)same++;else{lastRaw=n;same=1} candidate.value=n;status.innerHTML=`Barcode rilevato: <b>${esc(n)}</b>`;if(same>=2&&navigator.vibrate)navigator.vibrate(35);}}}catch{}raf=requestAnimationFrame(scan)};scan();
   }catch(err){status.innerHTML=`Fotocamera non disponibile: ${esc(err.message)}. Inserisci il seriale manualmente.`}
   overlay.querySelector('#serialOcr').onclick=async()=>{
     if(!video.videoWidth){toast('Fotocamera non pronta');return}

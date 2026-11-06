@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.1.0 — Moduli del Workspace di nuovo visibili, utenti dal sito, lettore codici
+
+- **Moduli del Workspace di nuovo visibili** per gli account registrati: task, progetti, note, ore, contabilità, insight, Pianificazione, BIM, fornitori, materioteca, ARCHEAI e notifiche. Chi ha già un profilo nel Workspace (es. Francesco Diamanti) ritrova il suo menu completo. Le scritte "demo" sono diventate "dati di esempio" o "locale".
+- **Utenti e gruppi funziona senza Edge Function**: basta `SETUP_COMPLETO.sql` (nuova funzione `admin_users`).
+  - Elenco di **tutti gli account** che possono entrare.
+  - Aggiungi con password, modifica nome, ruolo, gruppi e password, disattiva, elimina.
+  - In "Persone" un avviso spiega la differenza tra anagrafica e account, con il pulsante per aggiungere un utente.
+- **Lettore codici a barre nuovo** (ZXing in WebAssembly, file nel sito, nessuna CDN):
+  - legge Code 128, Code 39, Code 93, EAN, UPC, ITF, Codabar, QR e DataMatrix anche su iPhone;
+  - un codice ARCHEA (A1234) si apre al primo colpo;
+  - fuoco continuo e pulsante luce dove il telefono li supporta.
+  
+  Prima su iPhone si usava Quagga, che spesso non riconosceva i codici.
+- **`supabase/PULIZIA_DATI.sql`**: cancella le attività, e a scelta anagrafica e utenti, per ripartire da zero. Struttura, gruppi, sale e auto restano.
+
 ## 2.0.0 — Solo account registrati
 
 - **Niente più demo**: si entra solo con un account ARCHEA registrato su Supabase. Gli account di prova e la password `demo` non funzionano più.

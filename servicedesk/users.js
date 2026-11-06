@@ -37,18 +37,28 @@ function applyPermNav() {
 }
 
 // ---------- chiamate al server ----------
+// Prima la funzione nel database (admin_users, da SETUP_COMPLETO.sql): non serve altro.
+// Se manca, si prova la Edge Function admin-users (necessaria solo per gli inviti via email).
+let US_MODE = 'sql';
 async function adminUsers(action, payload = {}) {
+  if (US_MODE === 'sql') {
+    try {
+      const clean = JSON.parse(JSON.stringify(payload));
+      return await api('/rest/v1/rpc/admin_users', { method: 'POST', body: { p_action: action, p: clean } });
+    } catch (err) {
+      if (!/admin_users|PGRST202|Could not find the function|404/i.test(String(err.message || err))) throw err;
+      US_MODE = 'edge';
+    }
+  }
   const res = await api('/functions/v1/admin-users', { method: 'POST', body: { action, ...payload } });
   if (res && res.error) throw new Error(res.error);
   return res;
 }
 function usSetupMessage(err) {
   $('content').innerHTML = `<div class="panel"><h3>Gestione utenti non ancora attivata</h3>
-    <p>Servono due passaggi, una volta sola:</p>
-    <ol><li>eseguire <code>supabase/SETUP_COMPLETO.sql</code> nel SQL Editor di Supabase;</li>
-    <li>pubblicare la funzione <code>admin-users</code>: Supabase → Edge Functions → Deploy a new function → Via Editor,
-    nome <b>admin-users</b>, incollare <code>supabase/functions/admin-users/index.ts</code> → Deploy.</li></ol>
-    <p class="muted-line">Dettaglio: ${esc(err.message || err)}</p></div>`;
+    <p>Serve un solo passaggio, una volta sola: Supabase → <b>SQL Editor</b> → incolla tutto <code>supabase/SETUP_COMPLETO.sql</code> → <b>Run</b>.</p>
+    <p>Poi ricarica questa pagina: vedrai l'elenco di <b>tutti gli account</b> che possono entrare nel portale e potrai aggiungerne di nuovi.</p>
+    <p class="muted-line">Dettaglio tecnico: ${esc(err.message || err)}</p></div>`;
 }
 
 let usState = { tab: 'utenti', users: [], groups: [], search: '' };
@@ -91,6 +101,7 @@ function usRender() {
     .filter(u => !q || normSearch(`${u.nome || ''} ${u.email} ${u.ruolo || ''}`).includes(q))
     .sort((a, b) => String(a.nome || a.email).localeCompare(String(b.nome || b.email), 'it'));
   $('content').innerHTML = tabs + `
+    <p class="us-intro">Qui ci sono <b>tutti gli account che possono entrare nel portale</b>. Per far entrare una persona nuova: <b>+ Aggiungi utente</b>, scrivi nome, email e password, e comunicagliele.</p>
     <div class="ot-toolbar">
       <input id="usSearch" placeholder="Cerca per nome, email o ruolo…" value="${esc(usState.search)}">
       <button class="primary" id="usAdd">+ Aggiungi utente</button>
@@ -122,16 +133,17 @@ function usRandomPassword() {
   return [...arr].map(n => chars[n % chars.length]).join('');
 }
 
-function usForm(u) {
+function usForm(u, prefill = null) {
   const isNew = !u;
+  if (prefill) u = null;
   const roles = Object.keys(RUOLI_LABEL).filter(r => r !== 'SUPER_IT' || isSuperIT() || (u && u.ruolo === 'SUPER_IT'));
   const isSelf = u && u.id === user.id;
   $('content').innerHTML = `
     <div class="panel us-form">
       <div class="ag-form-head"><h3>${isNew ? 'Aggiungi utente' : esc(u.nome || u.email)}</h3><button class="secondary compact" id="usBack">← Elenco</button></div>
       <form id="usForm" class="formgrid">
-        <label>Nome e cognome<input id="usNome" required minlength="2" value="${esc(u?.nome || '')}" placeholder="Es. Matteo Bianchi"></label>
-        <label>Email aziendale<input id="usEmail" type="email" required ${isNew ? '' : 'readonly'} value="${esc(u?.email || '')}" placeholder="nome.cognome@archea.it"></label>
+        <label>Nome e cognome<input id="usNome" required minlength="2" value="${esc(u?.nome || prefill?.nome || '')}" placeholder="Es. Matteo Bianchi"></label>
+        <label>Email aziendale<input id="usEmail" type="email" required ${isNew ? '' : 'readonly'} value="${esc(u?.email || prefill?.email || '')}" placeholder="nome.cognome@archea.it"></label>
         <div class="full"><b>Ruolo</b>
           <div class="us-roles">${roles.map(r => `<label class="us-role"><input type="radio" name="usRuolo" value="${r}" ${((u?.ruolo) || 'USER') === r ? 'checked' : ''} ${isSelf ? 'disabled' : ''}><span><b>${RUOLI_LABEL[r][0]}</b><small>${RUOLI_LABEL[r][1]}</small></span></label>`).join('')}</div>
           ${isSelf ? '<p class="muted-line">Non puoi cambiare il tuo ruolo.</p>' : ''}
@@ -143,7 +155,7 @@ function usForm(u) {
           <div class="full"><b>Come entra la prima volta</b>
             <div class="us-roles">
               <label class="us-role"><input type="radio" name="usMode" value="password" checked><span><b>Password temporanea</b><small>La crei tu adesso e gliela comunichi.</small></span></label>
-              <label class="us-role"><input type="radio" name="usMode" value="invite"><span><b>Invito per email</b><small>Riceve un'email da Supabase per scegliere la password.</small></span></label>
+              ${US_MODE === 'edge' ? `<label class="us-role"><input type="radio" name="usMode" value="invite"><span><b>Invito per email</b><small>Riceve un'email da Supabase per scegliere la password.</small></span></label>` : ''}
             </div>
           </div>
           <div class="full us-pass" id="usPassRow"><label>Password temporanea<input id="usPass" minlength="8" value="${usRandomPassword()}"></label><button type="button" class="secondary" id="usGen">Genera</button></div>`
@@ -285,3 +297,11 @@ function usGroupForm(g) {
     };
   };
 }
+
+// Da altre schermate (es. Persone): apre "Aggiungi utente" già compilato
+window.usAddAccount = async (nome, email) => {
+  await usersView();
+  const found = usState.users.find(u => String(u.email).toLowerCase() === String(email || '').toLowerCase());
+  if (found) return usForm(found);
+  usForm(null, { nome, email });
+};

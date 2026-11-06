@@ -11,7 +11,7 @@ Il Service Desk è una sezione del Workspace ("Service Desk IT") e usa lo **stes
 
 Solo con un **account ARCHEA registrato** (email e password su Supabase). Non esistono account di prova: chi non ha un account lo chiede al reparto IT, che lo crea da **Service Desk → Utenti e gruppi**.
 
-Dopo l'accesso si vedono solo le funzioni collegate ai dati veri: Service Desk, Calendario comune, Chat, Foto cantiere e Off topic. Tra un ruolo e l'altro cambia solo il numero di pulsanti.
+Dopo l'accesso si vedono tutti i moduli del Workspace (task, progetti, ore, contabilità, Pianificazione…) più le funzioni su Supabase: Service Desk, Calendario comune, Chat, Foto cantiere e Off topic. Chi ha già un profilo nel Workspace (es. Francesco) tiene il suo menu.
 
 ### Ruoli
 
@@ -29,7 +29,7 @@ I gruppi (Service Desk → Utenti e gruppi) aggiungono permessi singoli: gestion
 ## Attivare le funzioni nuove (una volta sola)
 
 1. Supabase → **SQL Editor** → New query → incolla **tutto** `supabase/SETUP_COMPLETO.sql` → **Run**. Crea chat, calendario, Off topic, sondaggi, gruppi e permessi. Si può rieseguire senza danni.
-2. Supabase → **Edge Functions** → **Deploy a new function** → *Via Editor*. Nome: `admin-users`; incolla `supabase/functions/admin-users/index.ts` → **Deploy**. Serve per gestire gli utenti dal sito.
+2. *(Facoltativo)* Edge Function `admin-users`: serve solo per invitare via email. Aggiungere, modificare, disattivare ed eliminare utenti funziona già con lo script del punto 1.
 
 Da quel momento utenti, ruoli e gruppi si gestiscono da **Service Desk → Utenti e gruppi**. Sale e auto si gestiscono da **Calendario → Sale e auto**.
 
@@ -76,4 +76,8 @@ Con un piano GitHub gratuito Pages funziona solo se la repository è pubblica.
 ## Limiti noti (onesti)
 
 - Il codice del Workspace è il **bundle compilato** della 0.14.5, modificato direttamente (come già si faceva). I sorgenti React nella repo di Francesco sono fermi alla 0.4/0.5 e non corrispondono più. Ricostruire i sorgenti è il primo lavoro dopo la presentazione.
-- I moduli del Workspace con dati finti (task, progetti, ore, contabilità, Property, Pianificazione, fornitori, materioteca…) sono **nascosti** finché non vengono collegati a tabelle Supabase. Il loro codice resta nel bundle; i due script aggiuntivi tolti in 2.0.0 (`planning-suite.js`, `archea-update-0143.js`) si recuperano dalla cronologia git.
+- I moduli del Workspace (task, progetti, ore, contabilità, Pianificazione…) salvano ancora **nel browser** di chi li usa, non su Supabase: due colleghi non vedono le stesse task. Il passo successivo è spostarli su tabelle Supabase.
+
+## Ripartire da zero con i dati
+
+`supabase/PULIZIA_DATI.sql`: scegli cosa cancellare (attività, anagrafica, utenti) e lo esegui nel SQL Editor. Fai prima un backup.

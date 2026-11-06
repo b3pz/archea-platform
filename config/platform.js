@@ -127,7 +127,6 @@
   // Solo account registrati: si cancellano i resti delle vecchie sessioni di prova
   try {
     ['archea_sd_demo', 'archea_sd_demo_db_v1'].forEach(function (k) { localStorage.removeItem(k); });
-    sessionStorage.removeItem('archea-demo-user');
     if (window.indexedDB && indexedDB.deleteDatabase) indexedDB.deleteDatabase('archea-demo-foto');
   } catch (e) {}
 
