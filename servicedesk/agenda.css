@@ -114,3 +114,50 @@
 .ag-online span { flex: 1 1 200px; }
 .ag-join { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 10px; text-decoration: none; }
 @media (max-width: 600px) { .ag-online-row { grid-template-columns: 1fr; } }
+
+/* ---------- viste Giorno / Settimana / Mese ---------- */
+.ag-views { display: inline-flex; padding: 3px; border: 1px solid var(--line); border-radius: 999px; background: var(--surface); }
+.ag-view { padding: 7px 16px; border: 0; border-radius: 999px; background: none; color: var(--text); font-size: 13.5px; font-weight: 600; }
+.ag-view.on { background: #222624; color: #fff; }
+.ag-range { text-transform: capitalize; }
+.ag-subbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+.ag-subbar .ag-legend { margin: 0; }
+.ag-single .ag-week-head div { font-size: 15px; text-transform: capitalize; }
+.ag-single .ag-event { font-size: 13.5px; padding: 6px 10px; }
+
+.ag-month { border: 1px solid var(--line); border-radius: 16px; overflow: hidden; background: var(--surface); }
+.ag-month-head { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); background: var(--surface-warm, #f8f7f3); border-bottom: 1px solid var(--line); }
+.ag-month-head span { padding: 9px 10px; font-size: 12px; font-weight: 650; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.ag-month-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); grid-auto-rows: minmax(112px, auto); }
+.ag-mday { display: flex; flex-direction: column; gap: 3px; min-width: 0; padding: 6px; border-top: 1px solid var(--line); border-left: 1px solid var(--line); }
+.ag-month-grid > .ag-mday:nth-child(7n + 1) { border-left: 0; }
+.ag-month-grid > .ag-mday:nth-child(-n + 7) { border-top: 0; }
+.ag-mday.out { background: #fafaf8; }
+.ag-mday.out .ag-mday-num { color: #b3b8b4; }
+.ag-mday-num { align-self: flex-start; min-width: 26px; height: 26px; padding: 0 6px; border: 0; border-radius: 999px; background: none; color: var(--text); font-size: 13px; font-weight: 650; }
+.ag-mday-num:hover { background: #e9ebe8; }
+.ag-mday.today .ag-mday-num { background: #3f7a57; color: #fff; }
+.ag-mday .ag-event { padding: 3px 6px; font-size: 11.5px; }
+.ag-mday .ag-event b { display: none; }
+.ag-more { align-self: flex-start; padding: 2px 6px; border: 0; background: none; color: var(--muted); font-size: 12px; font-weight: 600; }
+.ag-more:hover { color: var(--text); text-decoration: underline; }
+
+/* mese compatto (telefono): numeri con pallini, sotto l'elenco del giorno toccato */
+.ag-month.compact { margin-bottom: 14px; }
+.ag-month.compact .ag-month-grid { grid-auto-rows: 52px; }
+.ag-month.compact .ag-month-head span { padding: 7px 0; text-align: center; font-size: 11px; }
+.ag-month.compact .ag-mday { align-items: center; justify-content: center; gap: 4px; padding: 4px 0; border: 0; background: none; color: var(--text); }
+.ag-month.compact .ag-mday b { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%; font-size: 14px; }
+.ag-month.compact .ag-mday.out b { color: #b3b8b4; }
+.ag-month.compact .ag-mday.today b { background: #3f7a57; color: #fff; }
+.ag-dots { display: flex; gap: 3px; height: 6px; }
+.ag-dots i { width: 6px; height: 6px; border-radius: 50%; background: var(--ag-app); }
+.ag-dots i.ag-room { background: var(--ag-room); }
+.ag-dots i.ag-car { background: var(--ag-car); }
+
+@media (max-width: 900px) {
+  .ag-views { align-self: stretch; }
+  .ag-view { flex: 1; }
+  .ag-subbar { flex-direction: column; align-items: stretch; }
+}
+.ag-month.compact .ag-mday.sel:not(.today) b { box-shadow: inset 0 0 0 2px #222624; }

@@ -26,7 +26,8 @@ const AG_ONLINE = {
 function agSafeUrl(u) { const x = String(u || '').trim(); return /^https:\/\/[^\s"'<>]+$/i.test(x) ? x : ''; }
 
 let agState = {
-  weekStart: agMonday(new Date()),
+  view: (() => { try { return localStorage.getItem('archea_agenda_view') || 'settimana'; } catch { return 'settimana'; } })(),
+  anchor: new Date(),
   filter: 'TUTTI',
   events: [], attendees: [], resources: [], contacts: [],
   selected: null
@@ -59,8 +60,9 @@ function agFriendlyError(err) {
 }
 
 async function agLoad() {
-  const from = agState.weekStart.toISOString();
-  const to = agAddDays(agState.weekStart, 7).toISOString();
+  const [fromD, toD] = agRange();
+  const from = fromD.toISOString();
+  const to = toD.toISOString();
   const [events, resources, contacts] = await Promise.all([
     select('calendar_events', `select=*&start_at=lt.${encodeURIComponent(to)}&end_at=gt.${encodeURIComponent(from)}&stato=neq.ANNULLATO&order=start_at.asc`),
     agState.resources.length ? agState.resources : select('calendar_resources', 'select=*&attivo=eq.true&order=tipo.desc,nome.asc'),
@@ -90,26 +92,65 @@ function agEventChip(e, compact) {
   </button>`;
 }
 
-function agRenderWeek() {
-  const days = [...Array(7)].map((_, i) => agAddDays(agState.weekStart, i));
+// Intervallo visibile per la vista scelta (giorno, settimana, mese)
+function agRange() {
+  const a = new Date(agState.anchor); a.setHours(0, 0, 0, 0);
+  if (agState.view === 'giorno') return [a, agAddDays(a, 1)];
+  if (agState.view === 'mese') {
+    const first = new Date(a.getFullYear(), a.getMonth(), 1);
+    const gridStart = agMonday(first);
+    return [gridStart, agAddDays(gridStart, 42)];
+  }
+  const m = agMonday(a);
+  return [m, agAddDays(m, 7)];
+}
+function agShift(dir) {
+  const a = new Date(agState.anchor);
+  if (agState.view === 'giorno') a.setDate(a.getDate() + dir);
+  else if (agState.view === 'mese') { a.setDate(1); a.setMonth(a.getMonth() + dir); }
+  else a.setDate(a.getDate() + 7 * dir);
+  agState.anchor = a;
+}
+function agRangeLabel() {
+  const [from, to] = agRange();
+  const a = new Date(agState.anchor);
+  if (agState.view === 'giorno') return agDayLabel(a, true) + ' ' + a.getFullYear();
+  if (agState.view === 'mese') return a.toLocaleDateString('it-IT', { month: 'long', year: 'numeric' });
+  const end = agAddDays(from, 6);
+  return `${from.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}`;
+}
+function agDaysOfRange() {
+  const [from, to] = agRange();
+  const out = []; for (let d = new Date(from); d < to; d = agAddDays(d, 1)) out.push(new Date(d));
+  return out;
+}
+function agEventsOn(d, evs) {
+  const start = new Date(d); start.setHours(0, 0, 0, 0);
+  const end = agAddDays(start, 1);
+  return evs.filter(e => new Date(e.start_at) < end && new Date(e.end_at) > start);
+}
+
+// Griglia oraria (giorno = 1 colonna, settimana = 7 colonne)
+function agRenderTimeGrid(days) {
   const evs = agVisible();
   const today = new Date();
   const span = (AG_HOURS.to - AG_HOURS.from) * 60;
+  const cols = `56px repeat(${days.length}, minmax(0, 1fr))`;
   return `
-    <div class="ag-week">
-      <div class="ag-week-head"><span></span>${days.map(d => `<div class="${agSameDay(d, today) ? 'today' : ''}">${esc(agDayLabel(d))}</div>`).join('')}</div>
-      <div class="ag-week-body" style="--ag-rows:${AG_HOURS.to - AG_HOURS.from}">
+    <div class="ag-week${days.length === 1 ? ' ag-single' : ''}">
+      <div class="ag-week-head" style="grid-template-columns:${cols}"><span></span>${days.map(d => `<div class="${agSameDay(d, today) ? 'today' : ''}">${esc(agDayLabel(d, days.length === 1))}</div>`).join('')}</div>
+      <div class="ag-week-body" style="--ag-rows:${AG_HOURS.to - AG_HOURS.from};grid-template-columns:${cols}">
         <div class="ag-hours">${[...Array(AG_HOURS.to - AG_HOURS.from)].map((_, i) => `<span>${String(AG_HOURS.from + i).padStart(2, '0')}:00</span>`).join('')}</div>
         ${days.map(d => {
-          const dayEvs = evs.filter(e => agSameDay(e.start_at, d) || (new Date(e.start_at) < d && new Date(e.end_at) > d));
+          const dayEvs = agEventsOn(d, evs);
           return `<div class="ag-day${agSameDay(d, today) ? ' today' : ''}" data-day="${agYmd(d)}">
             ${dayEvs.map(e => {
               const s = new Date(e.start_at), en = new Date(e.end_at);
               const startMin = agSameDay(s, d) ? s.getHours() * 60 + s.getMinutes() : AG_HOURS.from * 60;
               const endMin = agSameDay(en, d) ? en.getHours() * 60 + en.getMinutes() : AG_HOURS.to * 60;
               const top = Math.max(0, startMin - AG_HOURS.from * 60) / span * 100;
-              const h = Math.max(18 / 6, (Math.min(endMin, AG_HOURS.to * 60) - Math.max(startMin, AG_HOURS.from * 60)) / span * 100);
-              return `<div class="ag-slot" style="top:${top}%;height:${h}%">${agEventChip(e, true)}</div>`;
+              const h = Math.max(3, (Math.min(endMin, AG_HOURS.to * 60) - Math.max(startMin, AG_HOURS.from * 60)) / span * 100);
+              return `<div class="ag-slot" style="top:${top}%;height:${h}%">${agEventChip(e, days.length > 1)}</div>`;
             }).join('')}
           </div>`;
         }).join('')}
@@ -117,11 +158,40 @@ function agRenderWeek() {
     </div>`;
 }
 
-function agRenderList() {
-  const days = [...Array(7)].map((_, i) => agAddDays(agState.weekStart, i));
+// Vista mese: 6 settimane, al massimo 3 eventi per giorno + "altri N"
+function agRenderMonth(compact) {
+  const days = agDaysOfRange();
+  const evs = agVisible();
+  const month = new Date(agState.anchor).getMonth();
+  const today = new Date();
+  const names = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  return `
+    <div class="ag-month${compact ? ' compact' : ''}">
+      <div class="ag-month-head">${names.map(n => `<span>${n}</span>`).join('')}</div>
+      <div class="ag-month-grid">
+        ${days.map(d => {
+          const dayEvs = agEventsOn(d, evs);
+          const cls = ['ag-mday', d.getMonth() !== month ? 'out' : '', agSameDay(d, today) ? 'today' : '', compact && agSameDay(d, agState.anchor) ? 'sel' : '', dayEvs.length ? 'busy' : ''].filter(Boolean).join(' ');
+          if (compact) {
+            return `<button class="${cls}" data-goday="${agYmd(d)}" aria-label="${esc(agDayLabel(d, true))}: ${dayEvs.length} eventi">
+              <b>${d.getDate()}</b>
+              <span class="ag-dots">${dayEvs.slice(0, 4).map(e => `<i class="${(AG_TYPES[e.tipo] || AG_TYPES.APPUNTAMENTO).cls}"></i>`).join('')}</span>
+            </button>`;
+          }
+          return `<div class="${cls}" data-day="${agYmd(d)}">
+            <button class="ag-mday-num" data-goday="${agYmd(d)}" title="Apri il giorno">${d.getDate()}</button>
+            ${dayEvs.slice(0, 3).map(e => agEventChip(e, true)).join('')}
+            ${dayEvs.length > 3 ? `<button class="ag-more" data-goday="${agYmd(d)}">+ altri ${dayEvs.length - 3}</button>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function agRenderList(days) {
   const evs = agVisible();
   return `<div class="ag-list">${days.map(d => {
-    const dayEvs = evs.filter(e => agSameDay(e.start_at, d));
+    const dayEvs = agEventsOn(d, evs);
     return `<section class="ag-list-day${agSameDay(d, new Date()) ? ' today' : ''}">
       <h4>${esc(agDayLabel(d, true))}</h4>
       ${dayEvs.length ? dayEvs.map(e => agEventChip(e, false)).join('') : '<p class="ag-empty">Libero</p>'}
@@ -130,39 +200,64 @@ function agRenderList() {
 }
 
 function agRender() {
-  const end = agAddDays(agState.weekStart, 6);
-  const range = `${agState.weekStart.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' })} – ${end.toLocaleDateString('it-IT', { day: 'numeric', month: 'short', year: 'numeric' })}`;
   const filters = [['TUTTI', 'Tutto'], ['MIEI', 'I miei'], ['APPUNTAMENTO', 'Appuntamenti'], ['SALA', 'Sale'], ['AUTO', 'Auto']];
+  const views = [['giorno', 'Giorno'], ['settimana', 'Settimana'], ['mese', 'Mese']];
+  const days = agDaysOfRange();
+  let desktop, mobile;
+  if (agState.view === 'mese') {
+    desktop = agRenderMonth(false);
+    const sel = agState.anchor;
+    mobile = agRenderMonth(true) + agRenderList([new Date(sel)]);
+  } else {
+    desktop = agRenderTimeGrid(days);
+    mobile = agRenderList(days);
+  }
   $('content').innerHTML = `
     <div class="ag-toolbar">
       <div class="ag-nav">
-        <button class="secondary compact" id="agPrev" aria-label="Settimana precedente">‹</button>
+        <button class="secondary compact" id="agPrev" aria-label="Indietro">‹</button>
         <button class="secondary compact" id="agToday">Oggi</button>
-        <button class="secondary compact" id="agNext" aria-label="Settimana successiva">›</button>
-        <b>${esc(range)}</b>
+        <button class="secondary compact" id="agNext" aria-label="Avanti">›</button>
+        <b class="ag-range">${esc(agRangeLabel())}</b>
       </div>
-      <div class="ag-filters">${filters.map(([k, l]) => `<button class="ag-filter${agState.filter === k ? ' on' : ''}" data-agf="${k}">${l}</button>`).join('')}</div>
+      <div class="ag-views" role="tablist">${views.map(([k, l]) => `<button role="tab" class="ag-view${agState.view === k ? ' on' : ''}" aria-selected="${agState.view === k}" data-agv="${k}">${l}</button>`).join('')}</div>
       <div class="ag-actions">
         <button class="secondary" data-agnew="SALA">Prenota sala</button>
         <button class="secondary" data-agnew="AUTO">Prenota auto</button>
         <button class="primary" data-agnew="APPUNTAMENTO">+ Appuntamento</button>
       </div>
     </div>
-    <div class="ag-legend">${Object.entries(AG_TYPES).filter(([k]) => k !== 'ATTREZZATURA').map(([, t]) => `<span class="${t.cls}"><i></i>${t.label}</span>`).join('')}</div>
-    <div class="ag-desktop">${agRenderWeek()}</div>
-    <div class="ag-mobile">${agRenderList()}</div>`;
+    <div class="ag-subbar">
+      <div class="ag-filters">${filters.map(([k, l]) => `<button class="ag-filter${agState.filter === k ? ' on' : ''}" data-agf="${k}">${l}</button>`).join('')}</div>
+      <div class="ag-legend">${Object.entries(AG_TYPES).filter(([k]) => k !== 'ATTREZZATURA').map(([, t]) => `<span class="${t.cls}"><i></i>${t.label}</span>`).join('')}</div>
+    </div>
+    <div class="ag-desktop">${desktop}</div>
+    <div class="ag-mobile">${mobile}</div>`;
 
-  $('agPrev').onclick = () => { agState.weekStart = agAddDays(agState.weekStart, -7); agRefresh(); };
-  $('agNext').onclick = () => { agState.weekStart = agAddDays(agState.weekStart, 7); agRefresh(); };
-  $('agToday').onclick = () => { agState.weekStart = agMonday(new Date()); agRefresh(); };
+  $('agPrev').onclick = () => { agShift(-1); agRefresh(); };
+  $('agNext').onclick = () => { agShift(1); agRefresh(); };
+  $('agToday').onclick = () => { agState.anchor = new Date(); agRefresh(); };
+  document.querySelectorAll('[data-agv]').forEach(b => b.onclick = () => {
+    agState.view = b.dataset.agv;
+    try { localStorage.setItem('archea_agenda_view', agState.view); } catch {}
+    agRefresh();
+  });
+  document.querySelectorAll('[data-goday]').forEach(b => b.onclick = e => {
+    e.stopPropagation();
+    agState.anchor = new Date(`${b.dataset.goday}T12:00:00`);
+    // sul telefono nel mese si resta sul mese e si mostra l'elenco del giorno toccato
+    if (!(agState.view === 'mese' && window.matchMedia('(max-width: 900px)').matches)) agState.view = 'giorno';
+    agRefresh();
+  });
   document.querySelectorAll('[data-agf]').forEach(b => b.onclick = () => { agState.filter = b.dataset.agf; agRender(); });
-  document.querySelectorAll('[data-agnew]').forEach(b => b.onclick = () => agForm(b.dataset.agnew));
+  document.querySelectorAll('[data-agnew]').forEach(b => b.onclick = () => agForm(b.dataset.agnew, agState.view === 'giorno' ? { date: agYmd(agState.anchor) } : {}));
   document.querySelectorAll('[data-ev]').forEach(b => b.onclick = e => { e.stopPropagation(); agDetail(b.dataset.ev); });
   document.querySelectorAll('.ag-day[data-day]').forEach(col => col.ondblclick = e => {
     const rect = col.getBoundingClientRect();
     const minutes = AG_HOURS.from * 60 + Math.round(((e.clientY - rect.top) / rect.height) * (AG_HOURS.to - AG_HOURS.from) * 60 / 30) * 30;
     agForm('APPUNTAMENTO', { date: col.dataset.day, start: `${String(Math.floor(minutes / 60)).padStart(2, '0')}:${String(minutes % 60).padStart(2, '0')}` });
   });
+  document.querySelectorAll('.ag-mday[data-day]').forEach(cell => cell.ondblclick = () => agForm('APPUNTAMENTO', { date: cell.dataset.day }));
 }
 
 async function agRefresh() {
@@ -315,7 +410,7 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
         await insert('calendar_attendees', invited.map(uid => ({ event_id: created.id, user_id: uid })), false);
       }
       toast(invited.length ? `Salvato · ${invited.length} invit${invited.length === 1 ? 'o' : 'i'} inviat${invited.length === 1 ? 'o' : 'i'}` : 'Salvato nel calendario');
-      agState.weekStart = agMonday(s);
+      agState.anchor = s;
       await agRefresh();
       window.scrollTo(0, 0);
     } catch (err) {

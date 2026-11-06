@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.2.1 — Calendario: viste Giorno, Settimana e Mese
+
+- Selettore **Giorno / Settimana / Mese**; la scelta viene ricordata.
+- Mese: fino a 3 eventi per giorno e "+ altri N"; un clic sul numero apre il giorno, doppio clic crea un appuntamento.
+- Sul telefono il mese è compatto, con pallini colorati, e sotto c'è l'elenco del giorno toccato.
+
 ## 1.2.0 — Calendario comune, riunioni online, aiuto "?"
 
 - **Calendario comune**: appuntamenti con inviti e notifica, prenotazione di sale meeting e auto senza doppie prenotazioni, risposta Partecipo/Non partecipo, annullamento con avviso.
