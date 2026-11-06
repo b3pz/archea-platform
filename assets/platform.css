@@ -76,3 +76,33 @@ html, body { max-width: 100%; overflow-x: hidden; }
 
 /* La prima pagina e l Inizio del Service Desk, che ha gia il suo saluto e il suo titolo */
 .servicedesk-host-head { display: none !important; }
+
+/* ---- Un solo Service Desk aperto per tutta la sessione (assets/sd-shell.js) ---- */
+.archea-sd-frame {
+  position: fixed; left: 0; top: 0; width: 0; height: 0;
+  border: 1px solid var(--line, #e5e8e5); border-radius: 18px;
+  background: #f1f0eb; visibility: hidden; z-index: 5;
+}
+html[data-theme="dark"] .archea-sd-frame { background: #1b1d1b; border-color: #2e332f; }
+.mobile-scene ~ .archea-sd-frame, html.archea-mobile .archea-sd-frame { border: 0; border-radius: 0; }
+.sd-slot { background: transparent !important; }
+
+/* ---- Barra laterale raggruppata: sostituisce il menu a voci singole ---- */
+html.archea-sidenav .desk-sidebar > nav { display: none !important; }
+.desk-sidebar .archea-nav { color: rgba(255,255,255,.78); }
+.archea-nav { display: flex; flex-direction: column; gap: 2px; padding: 6px 10px; overflow-y: auto; flex: 1 1 auto; min-height: 0; }
+.archea-nav button {
+  appearance: none; border: 0; background: none; color: rgba(255,255,255,.78); cursor: pointer;
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  font: 600 15px/1.25 inherit; padding: 10px 12px; border-radius: 10px; user-select: none;
+}
+.archea-nav button:hover { background: rgba(255,255,255,.07); color: #fff; }
+.archea-nav button svg { flex: 0 0 18px; opacity: .85; }
+.archea-nav .archea-nav-home.on, .archea-nav-items button.on { background: rgba(255,255,255,.88); color: #1d2320; }
+.archea-nav-head span { flex: 1; }
+.archea-nav-head i { font-style: normal; font-size: 18px; opacity: .55; transition: transform .15s; }
+.archea-nav-group.open .archea-nav-head i { transform: rotate(90deg); }
+.archea-nav-group.open > .archea-nav-head { color: #fff; }
+.archea-nav-items { display: none; flex-direction: column; gap: 1px; margin: 0 0 6px 20px; padding-left: 8px; border-left: 1px solid rgba(255,255,255,.14); }
+.archea-nav-group.open .archea-nav-items { display: flex; }
+.archea-nav-items button { font-weight: 500; font-size: 14.5px; padding: 8px 10px; }

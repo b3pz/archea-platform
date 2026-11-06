@@ -28081,13 +28081,13 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           }),
         ],
       }),
-      e.jsx("iframe", {
-        className: `servicedesk-frame${isChat ? " chat" : ""}`,
-        title: isChat ? "Chat" : isAgenda ? "Calendario comune" : "Service Desk IT",
-        src,
-        // senza questi permessi il browser blocca fotocamera (scanner etichette, foto cantiere) e posizione
-        allow: "camera; geolocation; clipboard-write; fullscreen",
-      }, src),
+      // Un solo Service Desk per tutta la sessione (assets/sd-shell.js): qui c'è solo il posto dove compare,
+      // così cambiando sezione non si ricarica e non ripassa dal login.
+      e.jsx("div", {
+        className: `servicedesk-frame sd-slot${isChat ? " chat" : ""}`,
+        "data-view": isChat ? "chat" : isAgenda ? "agenda" : isOff ? "offtopic" : isFoto ? "cantiere" : "",
+        "data-src": src,
+      }),
     ],
   });
 }
@@ -28594,6 +28594,7 @@ function _v() {
             .filter((V, i, arr) => arr.findIndex((W) => W[0] === V[0]) === i),
         ]
       : RoleCatalog)),
+    _tabsOut = (window.__archeaTabs = M.map((V) => [V[0], V[1]])),
     roleMain = ITManager
       ? ["servicedesk", "calendario", "chat", "prenota"]
       : Reception

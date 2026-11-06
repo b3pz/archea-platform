@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.0.0 — Menu unico a sinistra, niente più login a ogni cambio di pagina
+
+- **Un solo menu**, nella barra a sinistra: le funzioni sono raggruppate (Il mio lavoro, Progetti e cantieri, Reparto IT, Persone e spazi, Calendario e prenotazioni, Comunicazione, Amministrazione). Un tocco apre il gruppo, un tocco la funzione. Sparita la fila di schede in alto.
+- **Reparto IT**: la prima pagina è la Dashboard.
+- **Inizio** senza passaggi: i gruppi mostrano subito le loro funzioni, niente cartelle da aprire.
+- **Sessione**: il Service Desk si apre una volta sola e resta aperto mentre si cambia sezione; all'avvio, se la sessione è valida, entra subito senza mostrare il login (il controllo si fa dopo, in silenzio).
+
 ## 2.9.0 — Notifiche vere del browser (Web Push)
 
 - Le notifiche arrivano come **notifiche del sistema** (Windows, macOS, Android, iPhone con l'app sulla schermata Home), anche **a sito chiuso**.

@@ -199,6 +199,7 @@ function save(s){
 function clear(){
   session=user=profile=null;
   localStorage.removeItem('archea_sd_session');
+  try{sessionStorage.removeItem('archea_sd_boot')}catch{}
 }
 
 let refreshPromise=null;
@@ -3438,9 +3439,67 @@ function nav(v){
 
   updateBackButton();
 }
-async function boot(){const raw=localStorage.getItem('archea_sd_session');if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];try{if(typeof loadPerms==='function')await loadPerms()}catch{}$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
-$('hrNav').classList.toggle('hidden',!isHR());
-$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic','cantiere'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
+// Dentro la piattaforma (shell=1): il menu sta nella barra laterale della piattaforma, qui solo il contenuto.
+// La piattaforma tiene questo Service Desk sempre aperto e lo comanda con nav()/startAction().
+const SHELL=EMBED&&SD_PARAMS.get('shell')==='1';
+window.sdCurrentView=()=>currentView;
+if(SHELL){
+  document.documentElement.classList.add('sd-shell');
+  const _nav=nav;
+  nav=function(v){const r=_nav.apply(this,arguments);previousView=null;updateBackButton();return r};
+}
+// Avvio veloce: se la sessione è ancora valida e conosciamo già profilo e permessi (stessa scheda),
+// si entra subito senza rifare i controlli e senza mostrare il login; la verifica avviene dopo, in silenzio.
+const BOOT_KEY='archea_sd_boot';
+function jwtSub(t){try{return JSON.parse(atob(String(t).split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).sub||null}catch{return null}}
+function saveBootCache(){try{sessionStorage.setItem(BOOT_KEY,JSON.stringify({uid:user.id,email:user.email||'',profile,perms:typeof MY_PERMS!=='undefined'?MY_PERMS:[]}))}catch{}}
+function readBootCache(){try{return JSON.parse(sessionStorage.getItem(BOOT_KEY)||'null')}catch{return null}}
+async function loadIdentity(){
+  user=await api('/auth/v1/user');
+  const p=await select('profiles',`select=*&id=eq.${user.id}`);
+  if(!p.length)throw Object.assign(new Error('Profilo non trovato'),{noProfile:true});
+  profile=p[0];
+  try{if(typeof loadPerms==='function')await loadPerms()}catch{}
+  saveBootCache();
+}
+function showSignedOut(msg){
+  $('login').classList.remove('hidden');$('app').classList.add('hidden');
+  if(msg)$('loginErr').textContent=msg;
+  if(EMBED)showEmbedSignedOut();
+}
+async function boot(){
+  const raw=localStorage.getItem('archea_sd_session');
+  if(raw){try{session=JSON.parse(raw)}catch{session=null}}
+  const valid=session?.access_token&&(!session.expires_at||session.expires_at*1000>Date.now()+30000);
+  const cache=readBootCache();
+  if(valid&&cache&&cache.uid&&cache.uid===jwtSub(session.access_token)&&cache.profile){
+    user={id:cache.uid,email:cache.email};profile=cache.profile;
+    try{if(typeof MY_PERMS!=='undefined')MY_PERMS=cache.perms||[]}catch{}
+    startApp();
+    // verifica in background: se il ruolo o i permessi sono cambiati, si aggiorna la vista
+    loadIdentity().then(()=>{if(cache.profile.ruolo!==profile.ruolo||JSON.stringify(cache.perms||[])!==JSON.stringify(typeof MY_PERMS!=='undefined'?MY_PERMS:[])){applyRoleNav();nav(currentView||'start')}})
+      .catch(e=>{if(e.noProfile||/401|JWT|token|sessione/i.test(e.message)){clear();showSignedOut(e.noProfile?'Profilo non trovato':'')}});
+    return;
+  }
+  if(!session){showSignedOut();return}
+  try{await loadIdentity()}catch(e){clear();showSignedOut(e.noProfile?'Profilo non trovato':'');return}
+  startApp();
+}
+function applyRoleNav(){
+  $('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;
+  $('userNav').classList.toggle('hidden',isITRole()||isHR());
+  $('hrNav').classList.toggle('hidden',!isHR());
+  $('itNav').classList.toggle('hidden',!isITRole());
+  try{if(window.parent!==window&&window.parent.archeaSdReady)window.parent.archeaSdReady(window)}catch{}
+}
+function firstView(){
+  const v=SD_PARAMS.get('view');
+  if(['chat','agenda','offtopic','cantiere'].includes(v))return v;
+  // il reparto IT parte dalla Dashboard; gli altri dall'Inizio
+  return isITRole()?'home':'start';
+}
+function startApp(){
+applyRoleNav();$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=firstView();previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');
 if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
 // Telefono aperto dal QR del computer: parte subito il lettore che invia i codici al computer

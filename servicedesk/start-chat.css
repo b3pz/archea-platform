@@ -189,3 +189,20 @@ html[data-theme="dark"] .chat-avatar.proj { background: #4f3814; color: #f5c48a;
 .push-banner span{flex:1 1 260px;color:var(--muted,#5d6661)}
 .push-banner button{flex:0 0 auto}
 html[data-theme="dark"] .push-banner{background:color-mix(in srgb,#ff7a4d 12%,#1b1d1b);border-color:#ff7a4d}
+
+/* Inizio senza passaggi: gruppi con le funzioni già visibili */
+.start-sections{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px;align-items:start}
+.start-sec{border:1px solid var(--line,#e5e8e5);border-radius:18px;padding:16px;background:var(--card,#fff)}
+.start-sec h4{display:flex;align-items:center;gap:10px;margin:0 0 12px;font-size:1.12em;flex-wrap:wrap}
+.start-sec h4 .start-icon{width:34px;height:34px}
+.start-sec-actions{display:flex;flex-direction:column;gap:6px}
+.start-act{display:flex;align-items:center;gap:12px;width:100%;text-align:left;padding:11px 12px;border-radius:12px;
+  border:1px solid transparent;background:var(--soft,#f4f4f0);color:inherit;font:inherit;cursor:pointer;user-select:none}
+.start-act:hover{border-color:var(--ink,#1d2320)}
+.start-act .start-icon{width:30px;height:30px;flex:0 0 30px}
+.start-act b{font-weight:650}
+.start-sec .start-summary{margin:0 0 10px}
+.start-folder,.start-action{user-select:none}
+html[data-theme="dark"] .start-sec{background:#1b1d1b;border-color:#2e332f}
+html[data-theme="dark"] .start-act{background:#232623}
+@media (max-width:760px){.start-sections{grid-template-columns:1fr}.start-act{padding:14px}}

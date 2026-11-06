@@ -62,6 +62,11 @@ function startGroups() {
   return g;
 }
 function startActionsForRole() { return startGroups().flatMap(g => g[4]); }
+// per la barra laterale della piattaforma: gruppi e voci con le loro etichette
+window.sdNavGroups = () => startGroups().map(([id, title, sub, ic, keys]) => ({
+  id, title, icon: ic,
+  items: keys.map(k => ({ key: k, label: (START_ACTIONS[k] || [k])[0], view: k.startsWith('ws:') ? null : (k === 'appt' || k === 'room' || k === 'car' ? 'agenda' : k === 'scan' ? 'censimento' : (START_ACTIONS[k] || [])[2] || k) }))
+}));
 function startActionsBase() { return startActionsForRole(); }
 
 function greetingWord() {
@@ -98,22 +103,27 @@ async function start() {
   const groups = startGroups();
   const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${NAV_ICON_PATHS[k] || NAV_ICON_PATHS.mine}</svg>`;
   const badgeFor = id => id === 'it' && itBadge ? `<em class="start-folder-badge">${esc(itBadge)}</em>` : '';
+  // Inizio in un colpo d'occhio: ogni gruppo con le sue funzioni già aperte (un clic e sei dentro)
   const renderHome = () => {
     document.documentElement.classList.add('sd-on-start');
     $('content').innerHTML = `
       <section class="start-hero">
-        <span class="eyebrow">SERVICE DESK</span>
         <h3>${greetingWord()}, ${esc(first)}!</h3>
         <p>Cosa facciamo?</p>
       </section>
-      <div class="start-folders">
-        ${groups.map(([id, title, sub, ic, keys]) => `<button class="start-folder" data-folder="${id}">
-          <span class="start-icon">${icon(ic)}</span>
-          <span class="start-text"><b>${esc(title)}${badgeFor(id)}</b><small>${esc(sub)}</small></span>
-          <i class="start-folder-arrow" aria-hidden="true">›</i>
-        </button>`).join('')}
-      </div>`;
-    document.querySelectorAll('[data-folder]').forEach(b => b.onclick = () => renderGroup(b.dataset.folder));
+      <div class="start-sections">
+        ${groups.map(([id, title, sub, ic, keys]) => `<section class="start-sec" data-sec="${id}">
+          <h4><span class="start-icon">${icon(ic)}</span>${esc(title)}${badgeFor(id)}</h4>
+          ${id === 'it' ? itSummary : ''}
+          <div class="start-sec-actions">${keys.filter(k => START_ACTIONS[k]).map(key => {
+            const [t, s2, ic2] = START_ACTIONS[key];
+            return `<button class="start-act" data-start="${key}" title="${esc(s2)}"><span class="start-icon">${icon(ic2)}</span><b>${esc(t)}</b></button>`;
+          }).join('')}</div>
+        </section>`).join('')}
+      </div>
+      ${userSummary}`;
+    document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startAction(b.dataset.start));
+    document.querySelectorAll('[data-open-ticket]').forEach(b => b.onclick = () => openSubView('ticket-detail', () => detail(+b.dataset.openTicket)));
     if (window.archeaPushBanner) window.archeaPushBanner();
   };
   const renderGroup = id => {
