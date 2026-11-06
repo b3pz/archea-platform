@@ -1,5 +1,19 @@
 # Changelog
 
+## 1.6.0 — Icona "archea" e telefono più leggibile
+
+- Nuova icona **archea**:
+  - nelle schede del browser una "a" bianca su fondo scuro, leggibile anche a 16 px;
+  - sulla schermata Home del telefono e nell'app installata la scritta "archea".
+  - Al posto delle vecchie icone con la scritta ARCHEA, che a piccole dimensioni diventava illeggibile.
+- Telefono:
+  - il Service Desk occupa tutto lo schermo, senza riquadro e titoli doppi;
+  - testi a 16–17 px e pulsanti più alti;
+  - i campi sono a 16 px, così iOS non ingrandisce più la pagina quando li tocchi;
+  - contatori compatti su tre colonne;
+  - calendario, chat e Off topic più grandi;
+  - le planimetrie partono ingrandite e si scorrono col dito.
+
 ## 1.5.0 — Planimetrie disegnabili
 
 - **Planimetrie** (Service Desk, per IT e HR): pianta per sede e piano, con chi siede dove.

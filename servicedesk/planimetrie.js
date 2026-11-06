@@ -160,6 +160,8 @@ async function planimetrieView() {
   }
   if (epoch !== navigationEpoch) return;
   pl.mode = 'uso'; pl.sel = null; pl.tool = null; pl.moving = null;
+  // sul telefono la pianta parte ingrandita: nomi leggibili, si scorre col dito
+  if (!pl.zoomSet) { pl.zoom = window.matchMedia('(max-width: 700px)').matches ? 2.4 : 1; pl.zoomSet = true; }
   if (!pl.plans.length) return plEmpty();
   const keep = pl.plan && pl.plans.find(p => p.id === pl.plan.id);
   pl.plan = structuredClone(keep || pl.plans[0]);
@@ -226,7 +228,7 @@ function plRender() {
       </div>
     </div>
     ${pl.moving ? `<div class="pl-banner">Sposta <b>${esc(pl.moving.asset_code)}</b>: tocca la postazione o la WRKA di destinazione. <button class="secondary compact" id="plMoveCancel">Annulla</button></div>` : ''}
-    ${edit ? `<p class="pl-hint">${plHintText()}</p>` : `<p class="muted-line pl-stats">${esc(p.sede)} · ${occ} occupate su ${seats.length} postazioni · tocca una postazione per assegnare una persona, una WRKA per i dispositivi.</p>`}
+    ${edit ? `<p class="pl-hint">${plHintText()}</p>` : `<p class="muted-line pl-stats">${esc(p.sede)} · ${occ} occupate su ${seats.length} postazioni<span class="pl-stats-hint"> · tocca una postazione per assegnare una persona, una WRKA per i dispositivi.</span></p>`}
     <div class="pl-body${edit ? ' edit' : ''}">
       ${edit ? plToolbarHtml() : ''}
       <div class="pl-canvas" id="plCanvas">${plSvg({ edit })}</div>

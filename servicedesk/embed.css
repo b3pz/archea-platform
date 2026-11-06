@@ -121,3 +121,33 @@ html.sd-solo-chat main { padding: 0 !important; }
 html.sd-solo .chat-shell { height: calc(100dvh - 62px); min-height: 0; border: 0; border-radius: 0; }
 html.sd-solo .notification-wrap .bell { width: 36px; height: 36px; min-height: 36px; }
 html.sd-solo .topbar .top-actions { gap: 6px; }
+
+/* ---------- Telefono: testi e comandi più grandi, niente zoom automatico di iOS ---------- */
+@media (max-width: 700px) {
+  html.sd-embed { -webkit-text-size-adjust: 100%; }
+  html.sd-embed body { font-size: 16.5px; line-height: 1.5; }
+  html.sd-embed input, html.sd-embed select, html.sd-embed textarea, html.sd-embed button { font-size: 16px !important; }
+  html.sd-embed input, html.sd-embed select { min-height: 48px; }
+  html.sd-embed main { padding: 0 14px calc(20px + env(safe-area-inset-bottom)) !important; }
+  html.sd-embed .sidebar { padding: 8px 8px !important; }
+  html.sd-embed .sidebar nav button { min-height: 44px !important; font-size: 15px !important; padding: 8px 14px !important; }
+  html.sd-embed .topbar { padding: 12px 0 8px !important; align-items: center; }
+  html.sd-embed .page-heading h2 { font-size: 23px; margin: 0; }
+  html.sd-embed .page-heading p { font-size: 15px; margin: 2px 0 0; }
+  html.sd-embed .back-btn { font-size: 15px; min-height: 40px; }
+  html.sd-embed.sd-demo .topbar::after { display: inline-block !important; content: "DEMO"; padding: 3px 8px; font-size: 10.5px; }
+  /* riquadri numerici più compatti: più contenuto visibile senza scorrere */
+  html.sd-embed .metric, html.sd-embed .queue-card { padding: 12px 14px !important; min-height: 0 !important; }
+  html.sd-embed .metric b, html.sd-embed .queue-card b { font-size: 26px !important; margin-top: 2px !important; line-height: 1.1; }
+  html.sd-embed .metric span, html.sd-embed .queue-card span { font-size: 12px !important; }
+  html.sd-embed .metrics, html.sd-embed .queue-stats { gap: 8px !important; grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+  html.sd-embed .metric, html.sd-embed .queue-card { display: grid !important; align-content: start; gap: 2px; }
+  html.sd-embed .metric span, html.sd-embed .queue-card span { letter-spacing: .02em !important; line-height: 1.2; }
+  html.sd-embed .panel { padding: 16px !important; border-radius: 14px; }
+  html.sd-embed .panel h3 { font-size: 19px; }
+  html.sd-embed .badge { font-size: 12.5px; }
+  html.sd-embed table td, html.sd-embed table th { font-size: 15.5px; }
+  html.sd-embed .primary, html.sd-embed .secondary { min-height: 46px; }
+  /* aiuto "?" più facile da toccare */
+  html.sd-embed .help-q { width: 26px !important; height: 26px !important; font-size: 14px !important; }
+}

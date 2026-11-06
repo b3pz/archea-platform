@@ -109,11 +109,16 @@
 .chat-placeholder b { display: block; color: var(--text); font-size: 18px; }
 
 @media (max-width: 760px) {
-  .start-hero h3 { font-size: 28px; }
-  .start-hero p { font-size: 17px; }
+  .start-hero { padding: 4px 2px 14px; }
+  .start-hero h3 { font-size: 30px; }
+  .start-hero p { font-size: 19px; }
   .start-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
-  .start-action { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 0; padding: 14px; }
+  .start-action { flex-direction: column; align-items: flex-start; gap: 10px; min-height: 118px; padding: 16px 14px; }
+  .start-icon { width: 46px; height: 46px; }
+  .start-text b { font-size: 16.5px; line-height: 1.25; }
   .start-text small { display: none; }
+  .chat-contact-text b { font-size: 16.5px; }
+  .chat-bubble { font-size: 16.5px; }
   .start-summary { grid-template-columns: 1fr 1fr; }
   .chat-shell { grid-template-columns: 1fr; height: calc(100dvh - 150px); }
   .chat-shell.has-active .chat-list { display: none; }

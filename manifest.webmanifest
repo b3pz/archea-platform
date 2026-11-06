@@ -1,30 +1,18 @@
 {
-  "name": "Archea Workspace",
-  "short_name": "Archea",
-  "description": "Workspace dimostrativa installabile per portfolio, pianificazione, task, risorse, ore e attività ARCHEA.",
+  "name": "Archea Platform",
+  "short_name": "archea",
+  "description": "Service Desk, calendario, chat, planimetrie e workspace dello studio ARCHEA.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "any",
-  "background_color": "#ffffff",
-  "theme_color": "#222624",
+  "background_color": "#1d2320",
+  "theme_color": "#1d2320",
   "lang": "it",
   "icons": [
-    {
-      "src": "icons/icon-192-v023.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512-v023.png",
-      "sizes": "512x512",
-      "type": "image/png"
-    },
-    {
-      "src": "icons/icon-512-v023.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "maskable"
-    }
+    { "src": "icons/archea-favicon.svg", "sizes": "any", "type": "image/svg+xml" },
+    { "src": "icons/archea-icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icons/archea-icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icons/archea-icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }

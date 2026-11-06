@@ -50,11 +50,19 @@
   background: #f1f0eb;
 }
 
-/* Mobile: header in alto e tabbar in basso */
-.mobile-scene .servicedesk-host-head h1 { font-size: 26px; }
+/* Telefono: il Service Desk occupa tutto lo spazio tra l'intestazione e la barra in basso */
+.mobile-scene .servicedesk-host { gap: 0; }
+.mobile-scene .servicedesk-host-head { display: none; }
 .mobile-scene .servicedesk-frame {
-  height: calc(100dvh - 250px - var(--safe-b, 0px));
-  min-height: 460px;
-  border-radius: 16px;
+  width: calc(100% + 40px);
+  margin: 0 -20px;
+  height: calc(100dvh - 132px - var(--safe-b, 0px));
+  min-height: 420px;
+  border: 0;
+  border-radius: 0;
 }
-.mobile-scene .servicedesk-host-head p { display: none; }
+
+/* iOS ingrandisce la pagina se un campo ha testo sotto i 16px: lo evitiamo ovunque */
+@media (max-width: 700px) {
+  input, select, textarea { font-size: 16px !important; }
+}

@@ -81,3 +81,10 @@
 .ot-poll-names { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
 .ot-poll-hint { margin: 0; font-size: 12.5px; }
 .ot-poll > .secondary { justify-self: start; }
+
+@media (max-width: 700px) {
+  .ot-topic-title b { font-size: 17px; }
+  .ot-text { font-size: 16.5px; }
+  .ot-poll-opt { padding: 14px; }
+  .ot-poll-label { font-size: 16.5px; }
+}
