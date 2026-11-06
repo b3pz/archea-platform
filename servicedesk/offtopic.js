@@ -187,16 +187,19 @@ async function otOpen(id) {
       <article class="panel ot-post first">
         <div class="ot-post-head">
           <span class="chat-avatar">${esc(chatInitials(topic.author_nome))}</span>
-          <div><b>${esc(topic.author_nome || 'Collega')}</b><small>${new Date(topic.created_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })}</small></div>
+          <div><b>${esc(topic.author_nome || 'Collega')}</b><small>${new Date(topic.created_at).toLocaleString('it-IT', { dateStyle: 'medium', timeStyle: 'short' })}${topic.edited_at ? ' · modificato' : ''}</small></div>
           <span class="ot-cat ${c.cls}">${c.label}</span>
         </div>
-        <h3>${topic.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${topic.locked ? '<em class="ot-lock">Chiuso</em>' : ''}${esc(topic.titolo)}</h3>
-        <div class="ot-text">${otBody(topic.corpo)}</div>
+        <div id="otTopicBody">
+          <h3>${topic.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${topic.locked ? '<em class="ot-lock">Chiuso</em>' : ''}${esc(topic.titolo)}</h3>
+          <div class="ot-text">${otBody(topic.corpo)}</div>
+        </div>
         ${fotoGridHtml(topic.immagini)}
         ${poll ? otPollHtml(poll, pollOpts, pollVotes, topic) : ''}
         <div class="button-row ot-actions">
           ${canMod ? `<button class="secondary compact" id="otPin">${topic.pinned ? 'Togli evidenza' : 'Metti in evidenza'}</button>
                       <button class="secondary compact" id="otLock">${topic.locked ? 'Riapri' : 'Chiudi alle risposte'}</button>` : ''}
+          ${otMine(topic) ? '<button class="secondary compact" id="otEditTopic">✏️ Modifica</button>' : ''}
           ${canMod || otMine(topic) ? '<button class="secondary compact danger-outline" id="otDelTopic">Elimina argomento</button>' : ''}
         </div>
       </article>
@@ -204,10 +207,13 @@ async function otOpen(id) {
         <article class="panel ot-post">
           <div class="ot-post-head">
             <span class="chat-avatar">${esc(chatInitials(r.author_nome))}</span>
-            <div><b>${esc(r.author_nome || 'Collega')}</b><small>${otWhen(r.created_at)}</small></div>
-            ${canMod || otMine(r) ? `<button class="text-btn ot-del" data-otdel="${r.id}">Elimina</button>` : ''}
+            <div><b>${esc(r.author_nome || 'Collega')}</b><small>${otWhen(r.created_at)}${r.edited_at ? ' · modificato' : ''}</small></div>
+            <span class="ot-post-tools">
+              ${otMine(r) ? `<button class="text-btn" data-otedit="${r.id}">Modifica</button>` : ''}
+              ${canMod || otMine(r) ? `<button class="text-btn ot-del" data-otdel="${r.id}">Elimina</button>` : ''}
+            </span>
           </div>
-          ${r.corpo && r.corpo !== '📷' ? `<div class="ot-text">${otBody(r.corpo)}</div>` : ''}
+          <div data-otbody="${r.id}">${r.corpo && r.corpo !== '📷' ? `<div class="ot-text">${otBody(r.corpo)}</div>` : ''}</div>
           ${fotoGridHtml(r.immagini, { small: true })}
         </article>`).join('')}
       ${canReply ? `<form id="otReplyForm" class="panel ot-reply">
@@ -243,6 +249,43 @@ async function otOpen(id) {
       catch (err) { toast(err.message); }
     };
   };
+  // Modifica argomento (solo l'autore): titolo, categoria e testo
+  if ($('otEditTopic')) $('otEditTopic').onclick = () => {
+    $('otEditTopic').disabled = true;
+    $('otTopicBody').innerHTML = `<form id="otEditForm" class="formgrid ot-edit">
+        <label>Categoria<select id="otEditCat">${Object.entries(OT_CATS).map(([k, cc]) => `<option value="${k}" ${topic.categoria === k ? 'selected' : ''}>${cc.label}</option>`).join('')}</select></label>
+        <label class="full">Titolo<input id="otEditTitle" required minlength="3" maxlength="160" value="${esc(topic.titolo)}"></label>
+        <label class="full">Messaggio<textarea id="otEditText" rows="6" required maxlength="8000">${esc(topic.corpo)}</textarea></label>
+        <div class="full button-row"><button class="primary" id="otEditSave">Salva modifiche</button><button type="button" class="secondary" id="otEditCancel">Annulla</button></div>
+      </form>`;
+    $('otEditCancel').onclick = () => otOpen(topic.id);
+    $('otEditForm').onsubmit = async e => {
+      e.preventDefault(); $('otEditSave').disabled = true;
+      try {
+        await update('forum_topics', `id=eq.${topic.id}`, { titolo: $('otEditTitle').value.trim(), corpo: $('otEditText').value.trim(), categoria: $('otEditCat').value });
+        toast('Modifiche salvate'); otOpen(topic.id);
+      } catch (err) { toast(err.message); $('otEditSave').disabled = false; }
+    };
+    setTimeout(() => $('otEditTitle')?.focus(), 30);
+  };
+  // Modifica risposta (solo l'autore)
+  document.querySelectorAll('[data-otedit]').forEach(b => b.onclick = () => {
+    const r = replies.find(x => String(x.id) === b.dataset.otedit); if (!r) return;
+    const box = document.querySelector(`[data-otbody="${r.id}"]`);
+    b.disabled = true;
+    box.innerHTML = `<form class="ot-edit" data-oteditform="${r.id}"><textarea rows="3" maxlength="8000">${esc(r.corpo === '📷' ? '' : r.corpo)}</textarea>
+      <div class="button-row"><button class="primary compact">Salva</button><button type="button" class="secondary compact" data-otcancel>Annulla</button></div></form>`;
+    const form = box.querySelector('form'), ta = form.querySelector('textarea');
+    ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
+    form.querySelector('[data-otcancel]').onclick = () => otOpen(topic.id);
+    form.onsubmit = async e => {
+      e.preventDefault();
+      const text = ta.value.trim() || ((r.immagini || []).length ? '📷' : '');
+      if (!text) return toast('Scrivi qualcosa');
+      try { await update('forum_replies', `id=eq.${r.id}`, { corpo: text }); toast('Risposta modificata'); otOpen(topic.id); }
+      catch (err) { toast(err.message); }
+    };
+  });
   document.querySelectorAll('[data-otdel]').forEach(b => b.onclick = () => {
     b.textContent = 'Conferma';
     b.onclick = async () => {

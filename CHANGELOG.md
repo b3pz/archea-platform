@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.1 — Off topic: modifica
+
+- **Modifica** dei propri argomenti (titolo, categoria, testo) e delle proprie risposte. Dopo la modifica, accanto all'ora compare "modificato".
+- Solo l'autore può cambiare il testo. I moderatori continuano a mettere in evidenza, chiudere ed eliminare, ma non possono riscrivere le parole degli altri: lo blocca il database.
+- Migrazione `20261107_offtopic_modifica.sql`, inclusa in `SETUP_COMPLETO.sql`.
+
 ## 2.3.0 — Tema scuro
 
 - **Tema scuro** per tutta la piattaforma: Workspace, Service Desk, Pianificazione e login.

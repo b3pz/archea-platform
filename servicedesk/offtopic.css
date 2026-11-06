@@ -88,3 +88,7 @@
   .ot-poll-opt { padding: 14px; }
   .ot-poll-label { font-size: 16.5px; }
 }
+.ot-post-tools { margin-left: auto; display: inline-flex; gap: 12px; }
+.ot-post-head .ot-post-tools .ot-del { margin-left: 0; }
+.ot-edit textarea, .ot-edit input, .ot-edit select { width: 100%; }
+.ot-edit .button-row { margin-top: 8px; }
