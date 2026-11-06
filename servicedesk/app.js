@@ -3317,6 +3317,8 @@ function nav(v){
 async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
 $('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
+const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');
+if(deepTicket){openSubView('ticket-detail',()=>detail(+deepTicket))}
 refreshNotifications();
 setInterval(refreshNotifications,30000);
 setInterval(async()=>{

@@ -35,9 +35,13 @@ Il database demo è **condiviso tra gli account di prova** nello stesso browser:
 | `HR` | HR Manager |
 | `USER` | Architect, oppure il profilo dell'account demo con la stessa email |
 
-## Attivare la chat (una volta sola)
+## Attivare chat e calendario (una volta sola)
 
-Supabase → **SQL Editor** → New query → incolla `supabase/migrations/20261106_chat.sql` → **Run**.
+Supabase → **SQL Editor** → New query. Incolla ed esegui (**Run**), in quest'ordine:
+1. `supabase/migrations/20261106_chat.sql`
+2. `supabase/migrations/20261106_calendario.sql`
+
+Sale e auto si modificano da Supabase → Table Editor → `calendar_resources`.
 
 ## Aggiungere un collega reale
 

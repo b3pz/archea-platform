@@ -11,6 +11,19 @@ const AG_TYPES = {
   ATTREZZATURA: { label: 'Attrezzatura', short: 'Attrezz.', cls: 'ag-gear' }
 };
 const AG_HOURS = { from: 7, to: 21 };
+// Riunioni online: la piattaforma crea la riunione, qui si salva il link per tutti.
+const AG_ONLINE = {
+  ZOOM: { label: 'Zoom', create: () => 'https://zoom.us/meeting/schedule' },
+  MEET: { label: 'Google Meet', create: () => 'https://meet.google.com/new' },
+  TEAMS: {
+    label: 'Microsoft Teams',
+    create: (title, s, e) => `https://teams.microsoft.com/l/meeting/new?subject=${encodeURIComponent(title || 'Riunione ARCHEA')}` +
+      (s ? `&startTime=${encodeURIComponent(s.toISOString())}` : '') + (e ? `&endTime=${encodeURIComponent(e.toISOString())}` : '')
+  },
+  WEBEX: { label: 'Webex', create: () => 'https://web.webex.com/meet' },
+  ALTRO: { label: 'Altra piattaforma', create: null }
+};
+function agSafeUrl(u) { const x = String(u || '').trim(); return /^https:\/\/[^\s"'<>]+$/i.test(x) ? x : ''; }
 
 let agState = {
   weekStart: agMonday(new Date()),
@@ -72,8 +85,8 @@ function agEventChip(e, compact) {
   const mine = e.organizer_id === user.id || agAttendeesOf(e).some(a => a.user_id === user.id);
   return `<button class="ag-event ${t.cls}${mine ? ' mine' : ''}" data-ev="${e.id}">
     <b>${agHm(e.start_at)}–${agHm(e.end_at)}</b>
-    <span>${esc(e.titolo)}</span>
-    ${!compact && r ? `<small>${esc(r.nome)}</small>` : ''}
+    <span>${e.meeting_provider ? '● ' : ''}${esc(e.titolo)}</span>
+    ${!compact && (r || e.meeting_provider) ? `<small>${esc(r ? r.nome : (AG_ONLINE[e.meeting_provider] || {}).label || 'Online')}</small>` : ''}
   </button>`;
 }
 
@@ -196,7 +209,12 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
         <label>Dalle<input id="agStart" type="time" required step="900" value="${slot.start}"></label>
         <label>Alle<input id="agEnd" type="time" required step="900" value="${endDefault}"></label>
         <label id="agResWrap">Risorsa<select id="agRes"></select></label>
-        <label id="agPlaceWrap">Luogo <span class="optional">(facoltativo)</span><input id="agPlace" placeholder="Studio, cantiere, online…"></label>
+        <label id="agPlaceWrap">Luogo <span class="optional">(facoltativo)</span><input id="agPlace" placeholder="Studio, cantiere, indirizzo…"></label>
+        <label id="agOnlineWrap">Riunione online<select id="agOnline"><option value="">Nessuna (in presenza)</option>${Object.entries(AG_ONLINE).map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('')}</select></label>
+        <div class="full ag-online-row hidden" id="agLinkRow">
+          <label>Link della riunione<input id="agLink" type="url" inputmode="url" placeholder="https://…"></label>
+          <button type="button" class="secondary" id="agCreateMeeting">Crea su <span id="agProviderName"></span></button>
+        </div>
         <div class="full" id="agAvail"></div>
         <div class="full ag-people">
           <b>Invita colleghi</b> <span class="optional">(ricevono una notifica)</span>
@@ -247,6 +265,22 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
     document.querySelectorAll('#agPeople label[data-name]').forEach(l => l.classList.toggle('hidden', !!q && !l.dataset.name.includes(q)));
   };
   $('agCancel').onclick = () => agRender();
+  const syncOnline = () => {
+    const prov = AG_ONLINE[$('agOnline').value];
+    $('agLinkRow').classList.toggle('hidden', !prov);
+    $('agCreateMeeting').classList.toggle('hidden', !prov || !prov.create);
+    if (prov) $('agProviderName').textContent = prov.label;
+  };
+  $('agOnline').onchange = syncOnline;
+  $('agCreateMeeting').onclick = () => {
+    const prov = AG_ONLINE[$('agOnline').value];
+    if (!prov || !prov.create) return;
+    const [s, e] = range();
+    window.open(prov.create($('agTitle').value.trim(), isNaN(s) ? null : s, isNaN(e) ? null : e), '_blank', 'noopener');
+    toast('Crea la riunione, copia il link e incollalo qui');
+    setTimeout(() => $('agLink')?.focus(), 200);
+  };
+  syncOnline();
   fillResources();
   setTimeout(() => $('agTitle')?.focus(), 30);
 
@@ -258,6 +292,9 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
     if (!(e > s)) { $('agResult').textContent = 'L\'orario di fine deve essere dopo l\'inizio.'; return; }
     if (t !== 'APPUNTAMENTO' && !$('agRes').value) { $('agResult').textContent = 'Scegli la risorsa da prenotare.'; return; }
     const invited = [...document.querySelectorAll('#agPeople input:checked')].map(x => x.value);
+    const provider = $('agOnline').value || null;
+    const link = agSafeUrl($('agLink').value);
+    if (provider && $('agLink').value.trim() && !link) { $('agResult').textContent = 'Il link deve iniziare con https://'; return; }
     $('agSave').disabled = true;
     try {
       const rows = await insert('calendar_events', {
@@ -266,6 +303,8 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
         descrizione: $('agNotes').value.trim() || null,
         luogo: $('agPlace').value.trim() || null,
         resource_id: t === 'APPUNTAMENTO' ? null : +$('agRes').value,
+        meeting_provider: provider,
+        meeting_url: link || null,
         start_at: s.toISOString(),
         end_at: e.toISOString(),
         organizer_id: user.id,
@@ -302,6 +341,7 @@ function agDetail(id) {
       <p class="ag-when">${esc(agDayLabel(e.start_at, true))} · ${agHm(e.start_at)}–${sameDay ? agHm(e.end_at) : `${esc(agDayLabel(e.end_at, true))} ${agHm(e.end_at)}`}</p>
       ${r ? `<p><b>${esc(r.nome)}</b>${r.sede ? ` · ${esc(r.sede)}` : ''}${r.dettagli ? `<br><small>${esc(r.dettagli)}</small>` : ''}</p>` : ''}
       ${e.luogo ? `<p>Luogo: ${esc(e.luogo)}</p>` : ''}
+      ${e.meeting_provider ? `<div class="ag-online"><span>Riunione online · <b>${esc((AG_ONLINE[e.meeting_provider] || {}).label || e.meeting_provider)}</b></span>${agSafeUrl(e.meeting_url) ? `<a class="primary ag-join" href="${esc(agSafeUrl(e.meeting_url))}" target="_blank" rel="noopener">Partecipa alla riunione</a><button class="secondary compact" id="agCopyLink">Copia link</button>` : '<small class="muted-line">Link non ancora inserito</small>'}</div>` : ''}
       ${e.descrizione ? `<p>${esc(e.descrizione)}</p>` : ''}
       <p class="muted-line">Organizzato da ${esc(e.organizer_nome || agContactName(e.organizer_id))}</p>
       ${att.length ? `<div class="ag-att"><b>Partecipanti</b>${att.map(a => `<span class="ag-att-row"><span>${esc(agContactName(a.user_id))}</span><em class="ag-ans ${a.risposta === 'ACCETTATO' ? 'yes' : a.risposta === 'RIFIUTATO' ? 'no' : ''}">${esc(a.risposta)}</em></span>`).join('')}</div>` : ''}
@@ -312,6 +352,7 @@ function agDetail(id) {
       </div>
     </div>`;
   $('agBack').onclick = () => agRender();
+  if ($('agCopyLink')) $('agCopyLink').onclick = () => { navigator.clipboard?.writeText(agSafeUrl(e.meeting_url)).then(() => toast('Link copiato'), () => toast(agSafeUrl(e.meeting_url))); };
   document.querySelectorAll('[data-agans]').forEach(b => b.onclick = async () => {
     try {
       await update('calendar_attendees', `event_id=eq.${e.id}&user_id=eq.${user.id}`, { risposta: b.dataset.agans });

@@ -108,3 +108,9 @@
   .ag-filters { overflow-x: auto; flex-wrap: nowrap; }
   .ag-filter { flex: none; }
 }
+.ag-online-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 10px; align-items: end; }
+.ag-online-row.hidden { display: none; }
+.ag-online { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; padding: 12px 14px; border-radius: 12px; background: var(--ag-app-bg); }
+.ag-online span { flex: 1 1 200px; }
+.ag-join { display: inline-flex; align-items: center; padding: 9px 16px; border-radius: 10px; text-decoration: none; }
+@media (max-width: 600px) { .ag-online-row { grid-template-columns: 1fr; } }

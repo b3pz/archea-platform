@@ -32,6 +32,10 @@ create table if not exists public.calendar_events (
   updated_at   timestamptz not null default now(),
   check (end_at > start_at)
 );
+-- Riunioni online (Zoom, Google Meet, Teams, Webex, altro)
+alter table public.calendar_events add column if not exists meeting_provider text;
+alter table public.calendar_events add column if not exists meeting_url text
+  check (meeting_url is null or meeting_url ~* '^https://');
 create index if not exists calendar_events_range_idx on public.calendar_events (start_at, end_at);
 
 -- Nessuna doppia prenotazione della stessa sala/auto nello stesso orario

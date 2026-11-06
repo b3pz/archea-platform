@@ -1,15 +1,16 @@
-const CACHE_NAME = 'archea-platform-v1.0.0';
+const CACHE_NAME = 'archea-platform-v1.2.0';
 const APP_SHELL = [
   './',
-  './config/platform.js?v=1.0.0',
-  './assets/workspace.js?v=1.0.0',
-  './assets/workspace.css?v=1.0.0',
-  './assets/platform.css?v=1.0.0',
-  './assets/planning-suite.js?v=1.0.0',
-  './assets/planning-suite.css?v=1.0.0',
-  './assets/archea-update-0142.css?v=1.0.0',
-  './assets/archea-update-0143.css?v=1.0.0',
-  './assets/archea-update-0143.js?v=1.0.0',
+  './config/platform.js?v=1.2.0',
+  './config/help.js?v=1.2.0',
+  './assets/workspace.js?v=1.2.0',
+  './assets/workspace.css?v=1.2.0',
+  './assets/platform.css?v=1.2.0',
+  './assets/planning-suite.js?v=1.2.0',
+  './assets/planning-suite.css?v=1.2.0',
+  './assets/archea-update-0142.css?v=1.2.0',
+  './assets/archea-update-0143.css?v=1.2.0',
+  './assets/archea-update-0143.js?v=1.2.0',
 ];
 
 self.addEventListener('install', event => {

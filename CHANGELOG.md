@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.0 — Calendario comune, riunioni online, aiuto "?"
+
+- **Calendario comune**: appuntamenti con inviti e notifica, prenotazione di sale meeting e auto senza doppie prenotazioni, risposta Partecipo/Non partecipo, annullamento con avviso.
+- **Riunioni online**: Zoom, Google Meet, Microsoft Teams, Webex o altro. Il pulsante "Crea" apre la piattaforma, il link si salva e tutti vedono "Partecipa alla riunione".
+- **Aiuto "?"** accanto ai campi da compilare, con la spiegazione di cosa scrivere (`config/help.js`).
+- **Account reale**: menu con in primo piano Service Desk, Calendario e Chat. I moduli ancora dimostrativi restano in "Altro" come "Anteprima demo".
+- **Link Telegram**: il vecchio sito `Archea_IT` reindirizza alla piattaforma. I link `?ticket=` aprono direttamente il ticket.
+- Pulizia: note delle vecchie versioni riassunte in `docs/STORICO.md`.
+
 ## 1.1.0 — Inizio e Chat
 
 - **Inizio**: il Service Desk si apre sempre con un saluto ("Buongiorno, Giuseppe! Cosa facciamo?") e i pulsanti delle azioni possibili per il ruolo, cioè utente, HR o IT. Per l'IT ci sono anche i contatori (non assegnati, urgenti, assegnati a te).

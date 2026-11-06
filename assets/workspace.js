@@ -27963,7 +27963,15 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
     (!current || current.id !== n.id) &&
       window.ArcheaAuth.setDemo({ id: n.id, nome: n.nome, email: n.email, ruolo: n.sdRole || "USER" });
   }
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : ""}`;
+  const deepTicket = (() => {
+      try {
+        const q = new URLSearchParams(location.search);
+        return q.get("ticket") || q.get("tkt") || q.get("id") || "";
+      } catch {
+        return "";
+      }
+    })();
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${!isChat && !isAgenda && deepTicket ? `&ticket=${encodeURIComponent(deepTicket)}` : ""}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [
@@ -28489,8 +28497,28 @@ function _v() {
       ["fornitori", "Fornitori", SupplierStudioIcon, "Aziende, referenti, listini e schede"],
       ["materioteca", "Materioteca", MaterialStudioIcon, "Catalogo dei campioni dello studio"],
     ],
-    M = ITManager ? ITCatalog : Reception ? ReceptionCatalog : HRManager ? HRCatalog : DepartmentHead ? DepartmentCatalog : w ? X : D,
-    q = ITManager
+    RoleCatalog = ITManager ? ITCatalog : Reception ? ReceptionCatalog : HRManager ? HRCatalog : DepartmentHead ? DepartmentCatalog : w ? X : D,
+    // Account reale: in primo piano solo le funzioni collegate ai dati veri;
+    // i moduli ancora dimostrativi restano in "Altro" come anteprima.
+    LiveCore = [
+      ["servicedesk", "Service Desk", ServiceDeskIcon, "Inizio, ticket, asset e persone"],
+      ["calendario", "Calendario", Wt, "Appuntamenti, sale meeting e auto"],
+      ["chat", "Chat", Td, "Messaggi tra colleghi"],
+    ],
+    M = n.live
+      ? [
+          ...LiveCore,
+          ...RoleCatalog.filter((V) => !["servicedesk", "calendario", "chat", "prenota"].includes(V[0])).map((V) => [
+            V[0],
+            V[1],
+            V[2],
+            `Anteprima demo · ${V[3]}`,
+          ]),
+        ]
+      : RoleCatalog,
+    q = n.live
+      ? ["servicedesk", "calendario", "chat"]
+      : ITManager
       ? ["servicedesk", "calendario", "chat", "prenota"]
       : Reception
       ? ["oggi", "pacchi", "calendario", "chat"]
@@ -28510,7 +28538,7 @@ function _v() {
           ...(A ? ["cantiere", "contabilita", "insight"] : []),
           "calendario",
         ],
-    [Z, Qe] = ke(`archea-desktop-main-menu-${n.id}`, q);
+    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live-" : ""}${n.id}`, q);
   C.useEffect(() => {
     Qe((V) => V.filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
   }, [n.id]);
@@ -28888,7 +28916,7 @@ function _v() {
                   e.jsx("span", {
                     className: "desk-demo-label",
                     children:
-                      t.meta.source === "excel" ? "DATI EXCEL" : "DATI DIMOSTRATIVI",
+                      n.live ? "ACCOUNT REALE · LIVE" : t.meta.source === "excel" ? "DATI EXCEL" : "DATI DIMOSTRATIVI",
                   }),
                   e.jsx(Mv, {}),
                 ],
@@ -29044,6 +29072,12 @@ function Vv() {
     g = ["avanzamento", "bio"],
     b = s === "servicedesk"
       ? s
+      : n && n.live
+      ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
+        ? s
+        : ["oggi", "progetti", "note", "ore", "bio", "insight", "bim", "inarchea", "fornitori", "materioteca", "abacotecnico", "visual", "interior", "concept"].includes(s)
+          ? s
+          : "servicedesk"
       : ITManager
       ? ["calendario", "chat", "prenota", "inarchea", "bim", "fornitori", "materioteca"].includes(s)
         ? s
@@ -29068,8 +29102,10 @@ function Vv() {
           g.includes(s)
         ? "oggi"
         : s,
-    v = ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
-    h = ITManager
+    v = n && n.live ? ITMobile : ITManager ? ITMobile : Reception ? ReceptionMobile : HRManager ? HRMobile : DepartmentHead ? DepartmentMobile : m ? Uv : x ? Fv : Lv,
+    h = n && n.live
+      ? ["prenota", "oggi", "progetti", "note", "ore", "inarchea", "bim", "fornitori", "materioteca", "abacotecnico"]
+      : ITManager
       ? ["prenota", "inarchea", "bim", "fornitori", "materioteca"]
       : Reception
       ? ["prenota", "servicedesk", "fornitori", "materioteca"]
