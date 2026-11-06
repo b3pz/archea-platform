@@ -1,5 +1,16 @@
 # Changelog
 
+## 2.7.1 — Inizio a cartelle, foto cantiere con i progetti
+
+- **Inizio a cartelle**: sotto il saluto ci sono poche cartelle grandi, ognuna con una riga che spiega cosa contiene. Le funzioni si vedono solo aprendo la cartella, che ha "‹ Inizio" per tornare indietro.
+  - Le cartelle: Il mio lavoro, Progetti e cantieri (PM), Reparto IT, HR · Persone, Persone e spazi, Calendario e prenotazioni, Comunicazione, Amministrazione.
+  - I contatori dei ticket dell'IT stanno dentro "Reparto IT". Sulla cartella resta solo l'avviso "N da assegnare".
+  - Le ultime richieste stanno dentro "Il mio lavoro".
+  - Sulla prima pagina non ci sono più la barra delle sezioni e il titolo doppio.
+- **Foto cantiere con i progetti**:
+  - la voce sta in "Il mio lavoro" e, per i PM, in "Progetti e cantieri", non più in Comunicazione;
+  - le commesse tra cui scegliere sono **i progetti veri creati dai PM**. Se una commessa è anche nell'elenco GPS (`servicedesk/cantieri.js`), il cantiere si riconosce dalla posizione.
+
 ## 2.7.0 — Si parte da "Inizio", funzioni raggruppate, Organico compilabile dall'HR
 
 - **La prima pagina è sempre "Inizio"**: saluto, "Cosa facciamo?" e pulsanti grandi. È la prima voce del menu e il primo tasto in basso sul telefono. "Oggi" di Francesco resta nel menu. Tolto il titolo doppio "Service Desk IT".

@@ -38,28 +38,30 @@ const START_ACTIONS = {
   'ws:oggi':           ['Il mio lavoro di oggi', 'Task in scadenza, ore e scadenze', 'home'],
   'ws:bio':            ['Organico', 'Ruoli, contratti e dati del personale', 'persone'],
   'ws:projectmanager': ['Nuovo progetto e squadra', 'Crea la commessa e scegli chi ci lavora', 'planimetrie'],
-  'ws:progetti':       ['Progetti', 'Avanzamento delle commesse', 'home'],
+  'ws:progetti':       ['Progetti', 'Le commesse e il loro avanzamento', 'home'],
   'ws:ore':            ['Ore', 'Ore registrate da te e dal team', 'calendar']
 };
 START_ACTIONS['hr-new'] = ['Ingresso, uscita o spostamento', 'Nuovo arrivo, chi lascia lo studio, cambio sede', 'hr-new'];
 
 // Inizio: le funzioni raggruppate per argomento. Ogni ruolo vede i suoi gruppi, tutto visibile.
+// Inizio: poche "cartelle" grandi; dentro ognuna le sue funzioni (restano nascoste finché non la apri)
+// [id, titolo, descrizione, icona, azioni]
 function startGroups() {
-  const it = isITRole(), hr = isHR() || it, pm = typeof hasPerm === 'function' && hasPerm('gestione_progetti');
+  const it = isITRole(), hrOnly = isHR() && !it, pm = typeof hasPerm === 'function' && hasPerm('gestione_progetti');
   const admin = typeof hasPerm === 'function' && hasPerm('gestione_utenti');
   const g = [];
-  g.push(['Il mio lavoro', ['ws:taskmanager', 'new', 'mine', 'ws:oggi']]);
-  if (pm) g.push(['Progetti (PM)', ['ws:projectmanager', 'ws:progetti', 'ws:ore']]);
-  if (it) g.push(['Reparto IT', ['it', 'home', 'scan', 'censimento', 'calendar', 'prenotazioni', 'eliminazioni']]);
-  if (isHR() && !it) g.push(['HR · Persone', ['hr-new', 'persone', 'hr-history', 'hr-stats', 'ws:bio']]);
-  if (it) g.push(['Persone', ['persone', 'movimenti', 'ws:bio']]);
-  if (hr) g.push(['Spazi e postazioni', ['planimetrie', 'mappa']]);
-  g.push(['Calendario e prenotazioni', ['appt', 'room', 'car', 'agenda', ...(it ? [] : ['booking'])]]);
-  g.push(['Comunicazione', ['chat', 'cantiere', 'offtopic']]);
-  if (admin) g.push(['Amministrazione', ['utenti']]);
+  // le foto di cantiere stanno con i progetti: nel lavoro di tutti, e nella cartella Progetti per i PM
+  g.push(['lavoro', 'Il mio lavoro', 'Le tue task, i tuoi ticket, le foto di cantiere', 'mine', ['ws:taskmanager', 'new', 'mine', 'cantiere', 'ws:oggi']]);
+  if (pm) g.push(['pm', 'Progetti e cantieri', 'Crea progetti, assegna task, foto di cantiere', 'cantiere', ['ws:projectmanager', 'ws:progetti', 'cantiere', 'ws:ore']]);
+  if (it) g.push(['it', 'Reparto IT', 'Ticket da gestire, asset e censimento', 'it', ['it', 'home', 'scan', 'censimento', 'calendar', 'prenotazioni', 'eliminazioni']]);
+  if (hrOnly) g.push(['hr', 'HR · Persone', 'Ingressi, uscite, spostamenti e organico', 'persone', ['hr-new', 'persone', 'hr-history', 'hr-stats', 'ws:bio', 'planimetrie', 'mappa']]);
+  if (it) g.push(['persone', 'Persone e spazi', 'Anagrafica, movimenti, planimetrie', 'persone', ['persone', 'movimenti', 'ws:bio', 'planimetrie', 'mappa']]);
+  g.push(['calendario', 'Calendario e prenotazioni', 'Appuntamenti, sale, auto e materiale', 'agenda', ['appt', 'room', 'car', 'agenda', ...(it ? [] : ['booking'])]]);
+  g.push(['comunicazione', 'Comunicazione', 'Chat con i colleghi e Off topic', 'chat', ['chat', 'offtopic']]);
+  if (admin) g.push(['admin', 'Amministrazione', 'Utenti, gruppi e permessi', 'utenti', ['utenti']]);
   return g;
 }
-function startActionsForRole() { return startGroups().flatMap(([, keys]) => keys); }
+function startActionsForRole() { return startGroups().flatMap(g => g[4]); }
 function startActionsBase() { return startActionsForRole(); }
 
 function greetingWord() {
@@ -72,52 +74,71 @@ async function start() {
   const first = String(profile?.nome || user?.email || '').trim().split(/\s+/)[0] || 'ciao';
   page('Inizio', 'Service Desk ARCHEA');
 
-  let summary = '';
+  // contatori e ultime richieste: dentro le rispettive cartelle, non sulla prima pagina
+  let itSummary = '', userSummary = '', itBadge = '';
   try {
     if (isITRole()) {
       const d = await select('tickets', 'select=id,stato,priorita,assigned_to');
       const open = d.filter(x => x.stato !== 'CHIUSO');
+      const unassigned = open.filter(x => !x.assigned_to).length;
+      if (unassigned) itBadge = `${unassigned} da assegnare`;
       const chips = [
-        ['Non assegnati', open.filter(x => !x.assigned_to).length],
+        ['Non assegnati', unassigned],
         ['Urgenti', open.filter(x => x.priorita === 'URGENTE').length],
         ['Assegnati a te', open.filter(x => x.assigned_to === user.id).length],
         ['Aperti', open.length]
       ];
-      summary = `<div class="start-summary">${chips.map(([l, n]) => `<button class="start-chip" data-start="it"><b>${n}</b><span>${esc(l)}</span></button>`).join('')}</div>`;
-    } else {
-      const d = await select('tickets', `select=id,numero_ticket,oggetto,stato,created_at&richiedente_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc&limit=3`);
-      if (d.length) {
-        summary = `<div class="panel start-recent"><h3>Le tue ultime richieste</h3>${d.map(t => `<button class="start-ticket" data-open-ticket="${t.id}"><b>${esc(t.numero_ticket || num(t.id))}</b><span>${esc(t.oggetto)}</span>${badge(t.stato)}</button>`).join('')}</div>`;
-      }
+      itSummary = `<div class="start-summary">${chips.map(([l, n]) => `<button class="start-chip" data-start="it"><b>${n}</b><span>${esc(l)}</span></button>`).join('')}</div>`;
     }
+    const mineT = await select('tickets', `select=id,numero_ticket,oggetto,stato,created_at&richiedente_email=eq.${encodeURIComponent(user.email)}&order=created_at.desc&limit=3`);
+    if (mineT.length) userSummary = `<div class="panel start-recent"><h3>Le tue ultime richieste</h3>${mineT.map(t => `<button class="start-ticket" data-open-ticket="${t.id}"><b>${esc(t.numero_ticket || num(t.id))}</b><span>${esc(t.oggetto)}</span>${badge(t.stato)}</button>`).join('')}</div>`;
   } catch (e) { console.warn('Riepilogo inizio non disponibile:', e.message); }
   if (epoch !== navigationEpoch) return;
 
-  const actions = startActionsForRole();
-  $('content').innerHTML = `
-    <section class="start-hero">
-      <span class="eyebrow">SERVICE DESK</span>
-      <h3>${greetingWord()}, ${esc(first)}!</h3>
-      <p>Cosa facciamo?</p>
-    </section>
-    ${summary}
-    ${startGroups().map(([label, keys], gi) => `
-      <section class="start-group">
-        <h4 class="start-group-title">${esc(label)}</h4>
-        <div class="start-grid">
-          ${keys.filter(k => START_ACTIONS[k]).map((key, i) => {
-            const [title, sub, icon] = START_ACTIONS[key];
-            return `<button class="start-action${gi === 0 && i === 0 ? ' primary-action' : ''}" data-start="${key}">
-              <span class="start-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${NAV_ICON_PATHS[icon] || NAV_ICON_PATHS.mine}</svg></span>
-              <span class="start-text"><b>${esc(title)}</b><small>${esc(sub)}</small></span>
-            </button>`;
-          }).join('')}
-        </div>
-      </section>`).join('')}`;
-
-  document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startAction(b.dataset.start));
+  const groups = startGroups();
+  const icon = k => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${NAV_ICON_PATHS[k] || NAV_ICON_PATHS.mine}</svg>`;
+  const badgeFor = id => id === 'it' && itBadge ? `<em class="start-folder-badge">${esc(itBadge)}</em>` : '';
+  const renderHome = () => {
+    document.documentElement.classList.add('sd-on-start');
+    $('content').innerHTML = `
+      <section class="start-hero">
+        <span class="eyebrow">SERVICE DESK</span>
+        <h3>${greetingWord()}, ${esc(first)}!</h3>
+        <p>Cosa facciamo?</p>
+      </section>
+      <div class="start-folders">
+        ${groups.map(([id, title, sub, ic, keys]) => `<button class="start-folder" data-folder="${id}">
+          <span class="start-icon">${icon(ic)}</span>
+          <span class="start-text"><b>${esc(title)}${badgeFor(id)}</b><small>${esc(sub)}</small></span>
+          <i class="start-folder-arrow" aria-hidden="true">›</i>
+        </button>`).join('')}
+      </div>`;
+    document.querySelectorAll('[data-folder]').forEach(b => b.onclick = () => renderGroup(b.dataset.folder));
+  };
+  const renderGroup = id => {
+    document.documentElement.classList.add('sd-on-start');
+    const grp = groups.find(x => x[0] === id); if (!grp) return renderHome();
+    const [, title, sub, , keys] = grp;
+    $('content').innerHTML = `
+      <button class="secondary compact start-back" id="startBack">‹ Inizio</button>
+      <section class="start-hero small"><h3>${esc(title)}</h3><p>${esc(sub)}</p></section>
+      ${id === 'it' ? itSummary : id === 'lavoro' ? userSummary : ''}
+      <div class="start-grid">
+        ${keys.filter(k => START_ACTIONS[k]).map((key, i) => {
+          const [t, s2, ic] = START_ACTIONS[key];
+          return `<button class="start-action${i === 0 ? ' primary-action' : ''}" data-start="${key}">
+            <span class="start-icon">${icon(ic)}</span>
+            <span class="start-text"><b>${esc(t)}</b><small>${esc(s2)}</small></span>
+          </button>`;
+        }).join('')}
+      </div>`;
+    $('startBack').onclick = renderHome;
+    document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startAction(b.dataset.start));
+    document.querySelectorAll('[data-open-ticket]').forEach(b => b.onclick = () => openSubView('ticket-detail', () => detail(+b.dataset.openTicket)));
+    window.scrollTo(0, 0);
+  };
+  renderHome();
   if (typeof fotoFlushQueue === 'function') fotoFlushQueue();
-  document.querySelectorAll('[data-open-ticket]').forEach(b => b.onclick = () => openSubView('ticket-detail', () => detail(+b.dataset.openTicket)));
 }
 
 function startAction(key) {

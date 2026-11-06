@@ -167,7 +167,16 @@ async function fotoSaveSitePhoto(it) {
 let ctState = { filtro: '', photos: [], pos: null, posAt: 0 };
 
 // Elenco cantieri (servicedesk/cantieri.js) + quelli già usati nelle foto
-function ctElenco() { return Array.isArray(window.ARCHEA_CANTIERI) ? window.ARCHEA_CANTIERI.filter(c => c && c.nome) : []; }
+function ctElenco() {
+  const gps = Array.isArray(window.ARCHEA_CANTIERI) ? window.ARCHEA_CANTIERI.filter(c => c && c.nome) : [];
+  const projects = (ctState.projects || []).map(p => {
+    // se nell'elenco GPS c'è lo stesso codice, la commessa prende anche le coordinate
+    const g = gps.find(c => c.nome.split('·')[0].trim().toUpperCase() === String(p.codice).toUpperCase());
+    return g ? { ...g, nome: p.nome } : { nome: p.nome };
+  });
+  const names = new Set(projects.map(p => p.nome.split('·')[0].trim().toUpperCase()));
+  return [...projects, ...gps.filter(c => !names.has(c.nome.split('·')[0].trim().toUpperCase()))];
+}
 function ctDistanza(a, b) {
   const R = 6371000, r = x => x * Math.PI / 180;
   const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
@@ -225,6 +234,12 @@ async function cantiereView() {
     $('content').innerHTML = `<div class="panel"><h3>Foto cantiere non ancora attivate</h3><p>Va eseguito di nuovo <code>supabase/SETUP_COMPLETO.sql</code> nel SQL Editor di Supabase: ora crea anche lo spazio per le foto.</p><p class="muted-line">Dettaglio: ${esc(err.message)}</p></div>`;
     return;
   }
+  // commesse: i progetti veri del Workspace (creati dai PM), più l'elenco con le coordinate GPS
+  try {
+    const pr = await select('ws_records', 'select=data&collection=eq.progetti&limit=1000');
+    ctState.projects = (pr || []).map(r => r.data).filter(d => d && d.codice)
+      .map(d => ({ nome: d.nome ? `${d.codice} · ${d.nome}` : d.codice, codice: d.codice }));
+  } catch (e) { ctState.projects = []; }
   if (epoch !== navigationEpoch) return;
   const queued = ((await fotoQueue('all')) || []).filter(i => i.user_id === user.id);
   ctRender(queued);

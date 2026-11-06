@@ -130,3 +130,26 @@
 .start-group:first-of-type { margin-top: 8px; }
 .start-group-title { margin: 0 0 10px; font-size: 13px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted, #5d6661); }
 html.sd-embed .start-group-title { color: var(--ws-ink2, #5d6661); }
+/* Inizio a cartelle */
+.start-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; margin-top: 18px; }
+.start-folder { position: relative; display: flex; align-items: center; gap: 16px; min-height: 92px; padding: 18px 20px; text-align: left;
+  border: 1px solid var(--line); border-radius: 18px; background: var(--surface, #fff); color: inherit; cursor: pointer; font: inherit; transition: border-color .15s, transform .15s; }
+.start-folder:hover { border-color: var(--accent, #9ca09b); transform: translateY(-1px); }
+.start-folder .start-icon { width: 48px; height: 48px; flex: 0 0 48px; }
+.start-folder .start-text b { font-size: 18px; }
+.start-folder .start-text small { font-size: 14px; }
+.start-folder-arrow { margin-left: auto; font-style: normal; font-size: 28px; line-height: 1; opacity: .45; }
+.start-folder-badge { position: absolute; top: 10px; right: 14px; padding: 3px 9px; border-radius: 999px; background: #b3261e; color: #fff; font: 700 12px/1.3 inherit; font-style: normal; }
+.start-back { margin-bottom: 6px; }
+.start-hero.small h3 { font-size: 26px; margin: 4px 0 2px; }
+html.sd-embed .start-folder { background: var(--ws-bg); border-color: var(--ws-line); }
+html.sd-embed .start-folder .start-icon { background: var(--ws-soft); }
+@media (max-width: 700px) {
+  .start-folders { grid-template-columns: 1fr; }
+  .start-folder { min-height: 84px; }
+}
+.start-folder-badge { position: static; display: inline-block; margin-left: 10px; vertical-align: 2px; }
+.start-folder .start-text small { display: block !important; }
+/* sulla prima pagina le cartelle sono già il menu: niente barra delle sezioni né titolo doppio */
+html.sd-embed.sd-on-start .sidebar { display: none !important; }
+html.sd-on-start .page-heading { display: none !important; }
