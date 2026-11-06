@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.8.0 — Foto cantiere: elenco cantieri e GPS
+
+- **Elenco cantieri** pronto da scegliere (`servicedesk/cantieri.js`): 7 commesse dimostrative con indirizzo e coordinate, da sostituire con quelle vere.
+- **GPS**:
+  - "📍 Trova il cantiere dove sono" sceglie da solo il cantiere in cui ti trovi e mostra la distanza;
+  - se la posizione è già concessa, il cantiere viene proposto appena apri la pagina;
+  - la posizione si salva sulle foto in automatico (si può togliere, e la scelta viene ricordata);
+  - le foto con posizione hanno il segno 📍 e si aprono sulla mappa;
+  - scegliendo un cantiere nell'archivio compaiono l'indirizzo e il link alla mappa.
+
 ## 1.7.2 — iPhone: pagina a larghezza schermo
 
 - Su iPhone il riquadro del Service Desk poteva allargarsi fino al suo contenuto e far rimpicciolire tutta la pagina. Ora resta largo quanto lo schermo.

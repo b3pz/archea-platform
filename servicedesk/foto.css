@@ -33,3 +33,8 @@
   .foto-grid { grid-template-columns: repeat(2, 1fr); }
   .foto-grid.small { grid-template-columns: repeat(3, 1fr); }
 }
+.ct-near { display: flex; gap: 8px; flex-wrap: wrap; margin-top: -4px; }
+.ct-near button { min-height: 40px; }
+.ct-gps-info:empty { display: none; }
+.ct-gps-info { margin: -4px 0 0; }
+.ct-gps-info .link-btn { border: 0; background: none; padding: 0; color: #1f6f4a; font: inherit; font-weight: 700; text-decoration: underline; cursor: pointer; }

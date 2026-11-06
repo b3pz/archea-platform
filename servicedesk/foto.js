@@ -167,7 +167,55 @@ async function fotoSaveSitePhoto(it) {
 }
 
 // ---------- vista: Foto cantiere ----------
-let ctState = { filtro: '', photos: [] };
+let ctState = { filtro: '', photos: [], pos: null, posAt: 0 };
+
+// Elenco cantieri (servicedesk/cantieri.js) + quelli già usati nelle foto
+function ctElenco() { return Array.isArray(window.ARCHEA_CANTIERI) ? window.ARCHEA_CANTIERI.filter(c => c && c.nome) : []; }
+function ctDistanza(a, b) {
+  const R = 6371000, r = x => x * Math.PI / 180;
+  const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function ctMetri(m) { return m < 1000 ? `${Math.round(m / 10) * 10} m` : `${(m / 1000).toFixed(m < 10000 ? 1 : 0).replace('.', ',')} km`; }
+function ctPiuVicino(pos) {
+  let best = null;
+  ctElenco().forEach(c => {
+    if (typeof c.lat !== 'number' || typeof c.lng !== 'number') return;
+    const d = ctDistanza({ lat: pos.latitude, lng: pos.longitude }, c);
+    if (!best || d < best.d) best = { c, d };
+  });
+  return best;
+}
+function ctGpsOn() { try { return localStorage.getItem('archea_ct_gps') !== '0'; } catch { return true; } }
+function ctPosizione(fresca = false) {
+  if (!navigator.geolocation) return Promise.resolve(null);
+  if (!fresca && ctState.pos && Date.now() - ctState.posAt < 120000) return Promise.resolve(ctState.pos);
+  return new Promise(res => navigator.geolocation.getCurrentPosition(
+    p => { ctState.pos = p.coords; ctState.posAt = Date.now(); res(p.coords); },
+    err => { ctState.gpsErr = err && err.code === 1 ? 'negato' : 'non disponibile'; res(null); },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: fresca ? 0 : 30000 }));
+}
+async function ctTrovaVicino(compila) {
+  const info = $('ctGpsInfo'); if (!info) return;
+  info.innerHTML = '📍 Cerco la posizione…';
+  const pos = await ctPosizione(true);
+  if (!$('ctGpsInfo')) return;
+  if (!pos) {
+    info.innerHTML = ctState.gpsErr === 'negato'
+      ? '📍 Posizione non concessa. Su iPhone: Impostazioni → Privacy → Localizzazione → Safari → "Mentre usi l\'app".'
+      : '📍 Posizione non disponibile ora (prova all\'aperto).';
+    return;
+  }
+  const near = ctPiuVicino(pos), acc = `±${Math.round(pos.accuracy)} m`;
+  if (!near) { info.innerHTML = `📍 Posizione trovata (${acc}).`; return; }
+  const dentro = near.d <= (near.c.raggio || 400);
+  if (dentro && compila) { $('ctCantiere').value = near.c.nome; }
+  info.innerHTML = dentro
+    ? `📍 Sei al cantiere <b>${esc(near.c.nome)}</b> (${ctMetri(near.d)}, ${acc})${compila ? ' · scelto in automatico' : ` · <button type="button" class="link-btn" id="ctUsaVicino">Usa questo</button>`}`
+    : `📍 Nessun cantiere qui vicino. Il più vicino è <b>${esc(near.c.nome)}</b> a ${ctMetri(near.d)}.`;
+  const b = $('ctUsaVicino'); if (b) b.onclick = () => { $('ctCantiere').value = near.c.nome; b.remove(); };
+}
 
 async function cantiereView() {
   const epoch = navigationEpoch;
@@ -188,16 +236,21 @@ async function cantiereView() {
 
 function ctRender(queued = []) {
   let last = ''; try { last = localStorage.getItem('archea_ultimo_cantiere') || ''; } catch {}
-  const cantieri = [...new Set(ctState.photos.map(p => p.cantiere))].sort((a, b) => a.localeCompare(b, 'it'));
+  const elenco = ctElenco();
+  const cantieri = [...new Set([...elenco.map(c => c.nome), ...ctState.photos.map(p => p.cantiere)])].sort((a, b) => a.localeCompare(b, 'it'));
+  const gpsOn = ctGpsOn();
+  const sel = elenco.find(c => c.nome === ctState.filtro);
   const list = ctState.photos.filter(p => !ctState.filtro || p.cantiere === ctState.filtro);
   const byDay = {};
   list.forEach(p => { const d = new Date(p.taken_at).toLocaleDateString('it-IT', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }); (byDay[d] = byDay[d] || []).push(p); });
   $('content').innerHTML = `
     <section class="panel ct-shoot">
-      <label class="full">Cantiere / commessa<input id="ctCantiere" list="ctCantieri" value="${esc(last)}" placeholder="Es. P51 · Via Cavour, Firenze" autocomplete="off"></label>
+      <label class="full">Cantiere / commessa<input id="ctCantiere" list="ctCantieri" value="${esc(last)}" placeholder="Scegli dall'elenco o scrivi" autocomplete="off"></label>
+      <div class="ct-near"><button type="button" class="secondary" id="ctVicino">📍 Trova il cantiere dove sono</button></div>
+      <p id="ctGpsInfo" class="muted-line ct-gps-info"></p>
       <datalist id="ctCantieri">${cantieri.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
       <label class="full">Nota <span class="optional">(facoltativa)</span><input id="ctNota" placeholder="Es. getto solaio, fessura parete nord…"></label>
-      <label class="ct-gps"><input type="checkbox" id="ctGps" style="width:auto"> Salva anche la posizione GPS</label>
+      <label class="ct-gps"><input type="checkbox" id="ctGps" style="width:auto" ${gpsOn ? 'checked' : ''}> Salva la posizione GPS sulle foto</label>
       <div class="ct-buttons">
         <label class="primary ct-camera">📷 Scatta foto<input type="file" accept="image/*" capture="environment" multiple hidden id="ctCam"></label>
         <label class="secondary ct-gallery">Carica dalla galleria<input type="file" accept="image/*" multiple hidden id="ctGal"></label>
@@ -205,11 +258,12 @@ function ctRender(queued = []) {
       <p id="ctStatus" class="muted-line">${queued.length ? `<b>${queued.length} foto in attesa di connessione</b>: partono da sole appena torna la rete.` : 'Le foto vengono ridotte (circa 300–600 KB) e salvate nell\'archivio privato dello studio.'}</p>
     </section>
     <div class="ct-filter">
+      ${sel ? `<p class="muted-line">${esc(sel.indirizzo || '')}${typeof sel.lat === 'number' ? ` · <a href="https://www.google.com/maps?q=${sel.lat},${sel.lng}" target="_blank" rel="noopener">Apri sulla mappa</a>` : ''}</p>` : ''}
       <label>Mostra<select id="ctFiltro"><option value="">Tutti i cantieri (${ctState.photos.length})</option>${cantieri.map(c => `<option value="${esc(c)}" ${ctState.filtro === c ? 'selected' : ''}>${esc(c)} (${ctState.photos.filter(p => p.cantiere === c).length})</option>`).join('')}</select></label>
     </div>
     ${Object.keys(byDay).length ? Object.entries(byDay).map(([d, ps]) => `
       <section class="ct-day"><h4>${esc(d)}</h4>
-        <div class="foto-grid">${ps.map(p => `<button type="button" class="foto-thumb" data-foto="${esc(p.path)}" data-info="${esc(`<b>${esc(p.cantiere)}</b> · ${new Date(p.taken_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })} · ${esc(p.author_nome || '')}${p.nota ? '<br>' + esc(p.nota) : ''}${p.lat != null ? `<br><a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">Apri posizione</a>` : ''}`)}"><img alt="" loading="lazy"><span class="ct-cap">${esc(p.cantiere)}${p.nota ? ' · ' + esc(p.nota) : ''}</span>${p.author_id === user.id || isITRole() ? `<span class="ct-del" data-ctdel="${p.id}" title="Elimina">×</span>` : ''}</button>`).join('')}</div>
+        <div class="foto-grid">${ps.map(p => `<button type="button" class="foto-thumb" data-foto="${esc(p.path)}" data-info="${esc(`<b>${esc(p.cantiere)}</b> · ${new Date(p.taken_at).toLocaleString('it-IT', { dateStyle: 'short', timeStyle: 'short' })} · ${esc(p.author_nome || '')}${p.nota ? '<br>' + esc(p.nota) : ''}${p.lat != null ? `<br>📍 <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank" rel="noopener">Apri posizione sulla mappa</a>` : ''}`)}"><img alt="" loading="lazy"><span class="ct-cap">${p.lat != null ? '📍 ' : ''}${esc(p.cantiere)}${p.nota ? ' · ' + esc(p.nota) : ''}</span>${p.author_id === user.id || isITRole() ? `<span class="ct-del" data-ctdel="${p.id}" title="Elimina">×</span>` : ''}</button>`).join('')}</div>
       </section>`).join('') : '<div class="panel ot-empty"><b>Ancora nessuna foto.</b><p>Scrivi il cantiere e premi "Scatta foto".</p></div>'}`;
 
   const handle = async e => {
@@ -219,8 +273,10 @@ function ctRender(queued = []) {
     try { localStorage.setItem('archea_ultimo_cantiere', cantiere); } catch {}
     const nota = $('ctNota').value.trim();
     let pos = null;
-    if ($('ctGps').checked && navigator.geolocation) {
-      pos = await new Promise(r => navigator.geolocation.getCurrentPosition(p => r(p.coords), () => r(null), { enableHighAccuracy: true, timeout: 8000 }));
+    if ($('ctGps').checked) {
+      $('ctStatus').textContent = '📍 Leggo la posizione…';
+      pos = await ctPosizione();
+      if (!pos) toast('Posizione non disponibile: foto salvate senza GPS');
     }
     let ok = 0, waiting = 0;
     for (const [i, f] of files.entries()) {
@@ -241,6 +297,12 @@ function ctRender(queued = []) {
   $('ctCam').onchange = handle;
   $('ctGal').onchange = handle;
   $('ctFiltro').onchange = e => { ctState.filtro = e.target.value; ctRender(queued); };
+  $('ctVicino').onclick = () => ctTrovaVicino(true);
+  $('ctGps').onchange = e => { try { localStorage.setItem('archea_ct_gps', e.target.checked ? '1' : '0'); } catch {} if (e.target.checked) ctTrovaVicino(!$('ctCantiere').value.trim()); };
+  // Se la posizione è già stata concessa, propone subito il cantiere dove sei (senza chiedere nulla)
+  if (gpsOn && navigator.permissions?.query) {
+    navigator.permissions.query({ name: 'geolocation' }).then(st => { if (st.state === 'granted') ctTrovaVicino(!$('ctCantiere')?.value.trim()); }).catch(() => {});
+  }
   document.querySelectorAll('[data-ctdel]').forEach(x => x.onclick = ev => {
     ev.stopPropagation();
     if (x.dataset.confirm !== '1') { x.dataset.confirm = '1'; x.textContent = 'Elimina?'; x.classList.add('confirm'); return; }
