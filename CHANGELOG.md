@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.1 — Controllo completo
+
+- Controllo automatico: 11 account, su computer e telefono, tutte le voci di menu e tutte le schermate del Service Desk.
+- **Corretto**: con Reception e Responsabili di reparto (Interior, Concept, Visual) un errore nell'agenda di "Oggi" bloccava l'aggiornamento della pagina. L'errore era già nel Workspace originale (`archea-update-0143.js`).
+
 ## 1.7.0 — Foto cantiere, foto in Off topic, fotocamera sbloccata
 
 - **Foto cantiere** (per tutti):

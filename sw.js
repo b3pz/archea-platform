@@ -1,4 +1,4 @@
-const CACHE_NAME = 'archea-platform-v1.7.0';
+const CACHE_NAME = 'archea-platform-v1.7.1';
 const APP_SHELL = [
   './',
   './config/platform.js?v=1.2.0',
@@ -10,7 +10,7 @@ const APP_SHELL = [
   './assets/planning-suite.css?v=1.2.0',
   './assets/archea-update-0142.css?v=1.2.0',
   './assets/archea-update-0143.css?v=1.2.0',
-  './assets/archea-update-0143.js?v=1.2.0',
+  './assets/archea-update-0143.js?v=1.7.1',
 ];
 
 self.addEventListener('install', event => {
