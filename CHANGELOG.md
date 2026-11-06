@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.1.1 — Lettore codici: anche da computer
+
+- Ogni immagine viene letta in tre modi a turno: riquadro centrale, riquadro ingrandito 2× (codici piccoli o lontani, tipici della webcam del Mac) e immagine intera, con contrasto aumentato.
+- **Leggi da una foto**: scegli o scatti una foto dell'etichetta e il codice viene letto dalla foto, a piena risoluzione.
+- **Lettore USB**: da computer il campo del codice è già attivo, quindi un lettore di codici a barre USB funziona da solo (scrive il codice e preme Invio).
+- Sotto la fotocamera compare una riga di controllo: lettore usato, risoluzione e immagini analizzate.
+
 ## 2.1.0 — Moduli del Workspace di nuovo visibili, utenti dal sito, lettore codici
 
 - **Moduli del Workspace di nuovo visibili** per gli account registrati: task, progetti, note, ore, contabilità, insight, Pianificazione, BIM, fornitori, materioteca, ARCHEAI e notifiche. Chi ha già un profilo nel Workspace (es. Francesco Diamanti) ritrova il suo menu completo. Le scritte "demo" sono diventate "dati di esempio" o "locale".

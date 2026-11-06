@@ -1600,3 +1600,5 @@ html[data-theme="dark"] .surface-raised{color:var(--text)}
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition-duration:.001ms!important;animation-duration:.001ms!important;animation-iteration-count:1!important}
 }
+.scanner-photo-btn{display:flex;align-items:center;justify-content:center;min-height:44px;padding:0 14px;border:1px solid var(--line);border-radius:12px;background:var(--soft,#f3f4f3);font-weight:700;cursor:pointer}
+.scanner-diag{font-size:12px;opacity:.75;margin-top:4px}

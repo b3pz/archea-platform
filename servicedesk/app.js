@@ -3029,12 +3029,20 @@ async function openAssetScanner(cachedRows=null){
     <div class="scanner-head"><div><span class="eyebrow">V8 · VERIFICA SUL CAMPO</span><h3>Scansiona asset</h3></div><button class="ghost compact" id="closeScanner">Chiudi</button></div>
     <div class="scanner-video-wrap"><video id="scannerVideo" autoplay playsinline muted></video><div class="scanner-frame"></div></div>
     <div id="scannerStatus" class="info-box">Avvio fotocamera…</div>
-    <div class="scanner-manual"><label>Codice asset<input id="scannerManualCode" autocomplete="off" autocapitalize="characters" placeholder="Es. A4076"></label><button id="scannerOpenCode" class="primary">Apri asset</button></div>
-    <p class="muted-line">Se l'etichetta contiene QR/barcode, il browser prova a riconoscerla automaticamente. Per le etichette solo testuali puoi usare la fotocamera come supporto e digitare il codice.</p>
+    <div class="scanner-actions-row"><label class="secondary scanner-photo-btn">📷 Leggi da una foto<input id="scannerPhoto" type="file" accept="image/*" capture="environment" hidden></label></div>
+    <div class="scanner-manual"><label>Codice asset<input id="scannerManualCode" autocomplete="off" autocapitalize="characters" placeholder="Es. A4076 (o usa il lettore USB)"></label><button id="scannerOpenCode" class="primary">Apri asset</button></div>
+    <p class="muted-line" id="scannerTips">Tieni l'etichetta ferma, ben illuminata e dritta nel riquadro. <b>Dal computer</b> la webcam non mette a fuoco da vicino: allontana l'etichetta a 25–40 cm, usa "Leggi da una foto" oppure un lettore di codici USB (scrive il codice qui sotto da solo).</p>
+    <p class="muted-line scanner-diag" id="scannerDiag"></p>
   </div>`;
   document.body.appendChild(overlay);
   const video=overlay.querySelector('#scannerVideo');const status=overlay.querySelector('#scannerStatus');
   let stream=null,stopped=false,raf=0,detector=null;
+  const normalizeDetectedRaw=(raw)=>{
+    const t=String(raw||'').toUpperCase().replace(/ARCHEA/g,' ').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
+    // Etichette Archea: accetta A4021, A 4021, ARCHEA-A4021, ecc.
+    const m=t.match(/(?:^|[^A-Z0-9])A\s*-?\s*(\d{3,6})(?:$|[^A-Z0-9])/i)||t.match(/^A\s*-?\s*(\d{3,6})$/i);
+    return m?`A${m[1]}`:t.replace(/\s+/g,'');
+  };
   const close=()=>{stopped=true;if(raf)cancelAnimationFrame(raf);if(stream)stream.getTracks().forEach(t=>t.stop());overlay.remove()};
   overlay.querySelector('#closeScanner').onclick=close;
   overlay.addEventListener('click',e=>{if(e.target===overlay)close()});
@@ -3047,6 +3055,15 @@ async function openAssetScanner(cachedRows=null){
     close();openSubView('asset-detail',()=>assetDetail(a.id));
   }
   overlay.querySelector('#scannerOpenCode').onclick=()=>openCode(overlay.querySelector('#scannerManualCode').value);
+  // Da computer il campo è subito attivo: un lettore USB scrive il codice e preme Invio da solo
+  if(!matchMedia('(pointer: coarse)').matches)setTimeout(()=>overlay.querySelector('#scannerManualCode')?.focus(),300);
+  overlay.querySelector('#scannerPhoto').onchange=async e=>{
+    const f=e.target.files&&e.target.files[0];e.target.value='';if(!f)return;
+    status.textContent='Leggo il codice dalla foto…';
+    try{const raw=await readCodeFromFile(f);if(!raw){status.innerHTML='Nessun codice trovato nella foto. Riprova più vicino, dritto e con più luce.';return}
+      status.innerHTML=`Letto: <b>${esc(raw)}</b>`;await openCode(normalizeDetectedRaw(raw));}
+    catch(err){status.textContent='Errore: '+err.message}
+  };
   overlay.querySelector('#scannerManualCode').addEventListener('keydown',e=>{if(e.key==='Enter')openCode(e.target.value)});
   try{
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});video.srcObject=stream;
@@ -3059,12 +3076,9 @@ async function openAssetScanner(cachedRows=null){
       : 'Lettore non caricato (controlla la connessione). Puoi digitare il codice stampato.';
     const readFrame=makeFrameReader(video);
     let lastRaw='',sameRawCount=0,busy=false,lastTry=0;
-    const normalizeDetectedRaw=(raw)=>{
-      const t=String(raw||'').toUpperCase().replace(/ARCHEA/g,' ').replace(/[–—]/g,'-').replace(/\s+/g,' ').trim();
-      // Etichette Archea: accetta A4021, A 4021, ARCHEA-A4021, ecc.
-      const m=t.match(/(?:^|[^A-Z0-9])A\s*-?\s*(\d{3,6})(?:$|[^A-Z0-9])/i)||t.match(/^A\s*-?\s*(\d{3,6})$/i);
-      return m?`A${m[1]}`:t.replace(/\s+/g,'');
-    };
+    const diag=overlay.querySelector('#scannerDiag');
+    const engine=detector?(window.ArcheaBarcodeDetector&&detector instanceof window.ArcheaBarcodeDetector?'ZXing':'integrato nel browser'):'nessuno';
+    const diagTimer=setInterval(()=>{if(stopped||!document.body.contains(overlay))return clearInterval(diagTimer);diag.textContent=`Lettore ${engine} · fotocamera ${video.videoWidth}×${video.videoHeight} · immagini analizzate ${readFrame.frames}`},700);
     const scan=async()=>{
       if(stopped)return;
       if(detector&&!busy&&performance.now()-lastTry>110){
@@ -3102,19 +3116,44 @@ async function getBarcodeDetector(){
   if(window.ArcheaBarcodeDetector){try{_barcodeDetector=new window.ArcheaBarcodeDetector({formats:BARCODE_FORMATS});return _barcodeDetector}catch{}}
   return null;
 }
-// Legge un fotogramma: prima il riquadro centrale ingrandito, poi tutta l'immagine.
+// Legge un fotogramma alternando: riquadro centrale, riquadro ingrandito 2x (codici piccoli o lontani),
+// immagine intera. Contrasto aumentato per le webcam dei computer, che non mettono a fuoco da vicino.
 function makeFrameReader(video){
   const canvas=document.createElement('canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+  const modes=['crop','zoom','full'];
   let turn=0;
-  return async(detector)=>{
+  const reader=async(detector)=>{
     const vw=video.videoWidth,vh=video.videoHeight;if(!vw||!vh||video.readyState<2)return '';
-    const full=(turn++%3)===2;
-    const sw=full?vw:Math.floor(vw*0.8),sh=full?vh:Math.floor(vh*0.5),sx=Math.floor((vw-sw)/2),sy=Math.floor((vh-sh)/2);
-    const scale=Math.min(1,1400/sw);canvas.width=Math.floor(sw*scale);canvas.height=Math.floor(sh*scale);
+    const mode=modes[turn++%modes.length];reader.frames++;
+    let sw=vw,sh=vh;
+    if(mode!=='full'){sw=Math.floor(vw*0.8);sh=Math.floor(vh*0.5)}
+    if(mode==='zoom'){sw=Math.floor(vw*0.55);sh=Math.floor(vh*0.35)}
+    const sx=Math.floor((vw-sw)/2),sy=Math.floor((vh-sh)/2);
+    const scale=mode==='zoom'?Math.min(2,2000/sw):Math.min(1,1400/sw);
+    canvas.width=Math.floor(sw*scale);canvas.height=Math.floor(sh*scale);
+    try{ctx.filter='grayscale(1) contrast(1.5)'}catch{}
+    ctx.imageSmoothingQuality='high';
     ctx.drawImage(video,sx,sy,sw,sh,0,0,canvas.width,canvas.height);
     const codes=await detector.detect(canvas);
     return codes&&codes.length?String(codes[0].rawValue||''):'';
   };
+  reader.frames=0;
+  return reader;
+}
+// Legge il codice da una foto (file): utile da computer o quando la fotocamera dal vivo non mette a fuoco
+async function readCodeFromFile(file){
+  const detector=await getBarcodeDetector();if(!detector)throw new Error('Lettore non disponibile');
+  const bmp=await createImageBitmap(file);
+  const c=document.createElement('canvas'),x=c.getContext('2d',{willReadFrequently:true});
+  const tries=[[1,0,0,1,1],[1,0.1,0.25,0.8,0.5],[0.6,0,0,1,1]];
+  for(const [sc,fx,fy,fw,fh] of tries){
+    const sw=bmp.width*fw,sh=bmp.height*fh,k=Math.min(sc,2400/sw);
+    c.width=Math.floor(sw*k);c.height=Math.floor(sh*k);
+    try{x.filter='grayscale(1) contrast(1.4)'}catch{}
+    x.drawImage(bmp,bmp.width*fx,bmp.height*fy,sw,sh,0,0,c.width,c.height);
+    const r=await detector.detect(c);if(r&&r.length)return String(r[0].rawValue||'');
+  }
+  return '';
 }
 async function improveCamera(stream){
   const track=stream&&stream.getVideoTracks()[0];if(!track||!track.getCapabilities)return null;
