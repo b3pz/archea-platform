@@ -9,7 +9,7 @@ const EMBED=SD_PARAMS.get('embed')==='1'&&window.parent!==window;
 const DEMO=SD_PARAMS.get('mode')==='demo'&&!!window.SDDemo;
 if(EMBED)document.documentElement.classList.add('sd-embed');
 if(DEMO)document.documentElement.classList.add('sd-demo');
-if(EMBED&&SD_PARAMS.get('solo')==='1')document.documentElement.classList.add('sd-solo');
+if(EMBED&&SD_PARAMS.get('solo')==='1')document.documentElement.classList.add('sd-solo','sd-solo-'+(SD_PARAMS.get('view')||'start'));
 let session=null,user=null,profile=null;
 let currentView=null;
 let previousView=null;
@@ -209,6 +209,11 @@ async function refreshSession(){
 
   refreshPromise=(async()=>{
     try{
+      // Workspace, Service Desk e pagina storica condividono la sessione su questo dominio:
+      // se un'altra pagina l'ha già rinnovata, si usa quella (riusare un refresh token
+      // già consumato farebbe revocare la sessione da Supabase).
+      const stored=readStoredSession();
+      if(stored?.access_token&&stored.access_token!==session?.access_token){session=stored;user=stored.user||user;return stored}
       if(!session?.refresh_token) throw new Error('Refresh token mancante');
 
       const r=await fetch(BASE+'/auth/v1/token?grant_type=refresh_token',{
@@ -259,8 +264,10 @@ function showSessionExpired(){
   }
 }
 
+function readStoredSession(){try{return JSON.parse(localStorage.getItem('archea_sd_session')||'null')}catch{return null}}
 async function api(path,{method='GET',body=null,auth=true,headers={},_retry=true}={}){
   if(DEMO)return window.SDDemo.api(path,{method,body,headers});
+  if(auth&&session){const st=readStoredSession();if(st?.access_token&&st.access_token!==session.access_token)session=st}
   const h={'apikey':KEY,'Content-Type':'application/json',...headers};
   if(auth&&session?.access_token) h.Authorization='Bearer '+session.access_token;
 
@@ -322,9 +329,9 @@ async function refreshNotifications(){
   const d=await select('notifications',`select=*&user_id=eq.${user.id}&order=created_at.desc&limit=30`);
   const unread=d.filter(n=>!n.is_read).length;
   $('bellCount').textContent=unread;$('bellCount').classList.toggle('hidden',unread===0);
-  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'1':''}">
+  $('notificationList').innerHTML=d.length?d.map(n=>`<div class="notification-item ${n.is_read?'':'unread'}" data-nid="${n.id}" data-tid="${n.ticket_id||''}" data-chatn="${n.title==='Nuovo messaggio'?'chat':/appuntamento/i.test(n.title||'')&&!n.ticket_id?'agenda':''}">
     <b>${esc(n.title)}</b><div>${esc(n.message)}</div><small>${fmt(n.created_at)}</small></div>`).join(''):'<div class="empty">Nessuna notifica</div>';
-  document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);else if(x.dataset.chatn)nav('chat');refreshNotifications()});
+  document.querySelectorAll('[data-nid]').forEach(x=>x.onclick=async()=>{await update('notifications',`id=eq.${x.dataset.nid}`,{is_read:true});$('notificationPanel').classList.add('hidden');if(x.dataset.tid)detail(+x.dataset.tid);else if(x.dataset.chatn)nav(x.dataset.chatn);refreshNotifications()});
 }
 $('bellBtn').onclick=()=>{$('notificationPanel').classList.toggle('hidden');if(!$('notificationPanel').classList.contains('hidden'))refreshNotifications()}
 $('markAllRead').onclick=async()=>{await update('notifications',`user_id=eq.${user.id}&is_read=eq.false`,{is_read:true});refreshNotifications()}
@@ -3242,7 +3249,10 @@ const NAV_ICON_PATHS={
   'hr-history':'<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
   'hr-stats':'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
   start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
-  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>'
+  chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>',
+  agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3v3H8z"/>',
+  room:'<path d="M3 21h18M5 21V6l7-3 7 3v15M9 21v-5h6v5M9 10h.01M15 10h.01"/>',
+  car:'<path d="M5 17h14v-5l-2-5H7l-2 5v5Z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/><path d="M5 12h14"/>'
 };
 function navIconKey(view){return view==='calendar'?'calendar':view==='movimenti'?'movimenti':view==='persone'?'persone':view==='prenotazioni'?'prenotazioni':view==='censimento'?'censimento':view==='mappa'?'mappa':view==='eliminazioni'?'eliminazioni':view}
 function installNavIcons(){
@@ -3278,6 +3288,7 @@ function nav(v){
   if(v!=='chat'&&typeof chatStop==='function')chatStop();
   if(v==='start')return start();
   if(v==='chat')return chatView();
+  if(v==='agenda')return agendaView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
@@ -3305,7 +3316,7 @@ function nav(v){
 }
 async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
-$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=SD_PARAMS.get('view')==='chat'?'chat':'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
+$('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 refreshNotifications();
 setInterval(refreshNotifications,30000);
 setInterval(async()=>{

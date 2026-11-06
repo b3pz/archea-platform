@@ -107,6 +107,10 @@
         return await loadProfile(session);
       } catch (e) {
         if (!session.refresh_token) { write(SESSION_KEY, null); return null; }
+        var latest = read(SESSION_KEY);
+        if (latest && latest.access_token && latest.access_token !== session.access_token) {
+          try { return await loadProfile(latest); } catch (e3) { session = latest; }
+        }
         try {
           var fresh = await call('/auth/v1/token?grant_type=refresh_token', {
             method: 'POST', body: { refresh_token: session.refresh_token }

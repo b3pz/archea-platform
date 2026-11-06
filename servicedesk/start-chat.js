@@ -12,6 +12,10 @@ const START_ACTIONS = {
   mine:           ['I miei ticket', 'Segui lo stato delle tue richieste', 'mine'],
   booking:        ['Prenota materiale', 'Matterport, iPad, laptop…', 'prenotazioni'],
   chat:           ['Chat', 'Scrivi a un collega o al reparto IT', 'chat'],
+  agenda:         ['Calendario comune', 'Appuntamenti, sale e auto di tutti', 'agenda'],
+  appt:           ['Fissa un appuntamento', 'Invita i colleghi: ricevono la notifica', 'agenda'],
+  room:           ['Prenota sala meeting', 'Controlla se è libera e prenota', 'room'],
+  car:            ['Prenota auto', 'Auto aziendali per cantieri e trasferte', 'car'],
   it:             ['Coda ticket', 'Prendi in carico e gestisci', 'it'],
   home:           ['Dashboard', 'Panoramica e carico del team', 'home'],
   scan:           ['Scansiona asset', 'Apri la scheda con la fotocamera', 'censimento'],
@@ -22,14 +26,14 @@ const START_ACTIONS = {
   'hr-history':   ['Storico movimenti', 'Movimenti da confermare', 'hr-history'],
   'hr-stats':     ['Statistiche HR', 'Andamento di ingressi e uscite', 'hr-stats'],
   mappa:          ['Mappa', 'Postazioni e magazzino', 'mappa'],
-  calendar:       ['Calendario', 'Appuntamenti con gli utenti', 'calendar'],
+  calendar:       ['Appuntamenti IT', 'Appuntamenti legati ai ticket', 'calendar'],
   prenotazioni:   ['Prenotazioni', 'Materiale in prestito', 'prenotazioni']
 };
 
 function startActionsForRole() {
-  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'hr-history', 'chat', 'hr-stats', 'new', 'mine'];
-  return ['new', 'mine', 'booking', 'chat'];
+  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'home'];
+  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'hr-stats', 'new', 'mine'];
+  return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'booking'];
 }
 
 function greetingWord() {
@@ -89,6 +93,13 @@ function startAction(key) {
   if (key === 'scan') {
     nav('censimento');
     setTimeout(() => { try { openAssetScanner(); } catch (e) { toast('Scanner non disponibile'); } }, 250);
+    return;
+  }
+  if (key === 'appt' || key === 'room' || key === 'car') {
+    navigationEpoch++;
+    currentView = 'agenda';
+    setActiveNavigation('agenda');
+    agendaView({ newType: key === 'appt' ? 'APPUNTAMENTO' : key === 'room' ? 'SALA' : 'AUTO' });
     return;
   }
   if (key === 'booking') {

@@ -221,6 +221,26 @@
       data_conflicts: [
         { id: 1, source_type: 'DEVICE', conflict_type: 'ASSEGNATARIO DIVERSO', conflict_key: 'A4016', status: 'APERTO', details: { excel: 'Luca Ricci', portale: 'Chiara Moretti' }, created_at: iso(8) }
       ],
+      calendar_resources: [
+        { id: 1, tipo: 'SALA', nome: 'Sala meeting grande', sede: 'FIRENZE', dettagli: '12 posti · schermo e videoconferenza', attivo: true },
+        { id: 2, tipo: 'SALA', nome: 'Sala meeting piccola', sede: 'FIRENZE', dettagli: '6 posti · schermo', attivo: true },
+        { id: 3, tipo: 'AUTO', nome: 'Auto aziendale 1', sede: 'FIRENZE', dettagli: 'Fiat Panda · targa demo', attivo: true },
+        { id: 4, tipo: 'AUTO', nome: 'Auto aziendale 2', sede: 'FIRENZE', dettagli: 'Toyota Yaris · targa demo', attivo: true }
+      ],
+      calendar_events: (function () {
+        function at(dayOffset, h, m) { var d = new Date(); var dow = (d.getDay() + 6) % 7; d.setDate(d.getDate() - dow + dayOffset); d.setHours(h, m || 0, 0, 0); return d.toISOString(); }
+        return [
+          { id: 1, tipo: 'SALA', titolo: 'Riunione di commessa P51', resource_id: 1, start_at: at(0, 10), end_at: at(0, 11, 30), stato: 'CONFERMATO', organizer_id: IT1.id, organizer_nome: IT1.nome, created_at: iso(5) },
+          { id: 2, tipo: 'AUTO', titolo: 'Sopralluogo cantiere via Cavour', resource_id: 3, start_at: at(1, 8, 30), end_at: at(1, 13), stato: 'CONFERMATO', organizer_id: IT2.id, organizer_nome: IT2.nome, created_at: iso(4) },
+          { id: 3, tipo: 'APPUNTAMENTO', titolo: 'Consegna laptop nuovo ingresso', luogo: 'Ufficio IT', start_at: at(2, 15), end_at: at(2, 15, 30), stato: 'CONFERMATO', organizer_id: IT1.id, organizer_nome: IT1.nome, created_at: iso(3) },
+          { id: 4, tipo: 'SALA', titolo: 'Revisione tavole concorso', resource_id: 2, start_at: at(3, 14), end_at: at(3, 16), stato: 'CONFERMATO', organizer_id: HR1.id, organizer_nome: HR1.nome, created_at: iso(2) },
+          { id: 5, tipo: 'APPUNTAMENTO', titolo: 'Colloquio nuovo collaboratore', luogo: 'Sala meeting piccola', start_at: at(4, 11), end_at: at(4, 12), stato: 'CONFERMATO', organizer_id: HR1.id, organizer_nome: HR1.nome, created_at: iso(1) }
+        ];
+      })(),
+      calendar_attendees: [
+        { event_id: 1, user_id: IT2.id, risposta: 'ACCETTATO', created_at: iso(5) },
+        { event_id: 3, user_id: IT2.id, risposta: 'IN ATTESA', created_at: iso(3) }
+      ],
       chat_messages: [
         { id: 1, sender_id: IT1.id, recipient_id: IT2.id, body: 'Oggi pomeriggio sostituisco il plotter al 2° piano.', created_at: iso(0, 9), read_at: iso(0, 9) },
         { id: 2, sender_id: IT2.id, recipient_id: IT1.id, body: 'Perfetto, io seguo i nuovi ingressi.', created_at: iso(0, 10), read_at: null }
@@ -244,7 +264,11 @@
     try {
       var raw = localStorage.getItem(DB_KEY);
       var stored = raw ? JSON.parse(raw) : null;
-      if (stored && stored._meta && stored.tickets) return stored;
+      if (stored && stored._meta && stored.tickets) {
+        var fresh = seed(me);
+        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
+        return stored;
+      }
     } catch (e) {}
     return seed(me);
   }
@@ -382,6 +406,7 @@
         if (r.id == null) r.id = nextId(table);
         if (table === 'tickets') { r.updated_at = now; r.created_by = r.created_by || me.id; }
         if (table === 'map_positions' && r.is_active == null) r.is_active = true;
+        if (table === 'calendar_events') checkOverlap(r);
         if (table === 'people') { r.normalized_name_key = r.normalized_name_key || norm((r.first_name || '') + (r.surname || '')); }
         rows(table).push(r);
         touchTicket(r.ticket_id, table);
@@ -395,6 +420,7 @@
       var hit = filtered(table, q);
       hit.forEach(function (r) {
         var before = clone(r);
+        if (table === 'calendar_events') checkOverlap(Object.assign(clone(r), clone(body)));
         Object.assign(r, clone(body));
         onUpdate(table, before, r);
         if (table === 'tickets') {
@@ -415,6 +441,17 @@
     }
     throw new Error('Metodo non supportato in demo: ' + method);
   }
+
+  function checkOverlap(ev) {
+    if (!(new Date(ev.end_at) > new Date(ev.start_at))) throw new Error('new row violates check constraint "calendar_events_check" (end_at)');
+    if (ev.resource_id == null || ev.stato === 'ANNULLATO') return;
+    var clash = rows('calendar_events').some(function (o) {
+      return o.id !== ev.id && String(o.resource_id) === String(ev.resource_id) && o.stato !== 'ANNULLATO' &&
+        new Date(o.start_at) < new Date(ev.end_at) && new Date(o.end_at) > new Date(ev.start_at);
+    });
+    if (clash) throw new Error('conflicting key value violates exclusion constraint "calendar_events_no_overlap"');
+  }
+  function fmtShort(d) { var x = new Date(d); return String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + ' ' + x.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); }
 
   // ---------- notifiche (in produzione le crea il database) ----------
   function ticketById(id) { return rows('tickets').find(function (t) { return String(t.id) === String(id); }); }
@@ -442,6 +479,11 @@
   function label(t) { return (t.numero_ticket || tkt(t.id)) + ' · ' + (t.oggetto || ''); }
 
   function onInsert(table, r) {
+    if (table === 'calendar_attendees') {
+      var ev = rows('calendar_events').find(function (e) { return e.id === r.event_id; });
+      if (ev) notify([r.user_id], null, 'Nuovo appuntamento', (ev.organizer_nome || 'Un collega') + ' ti ha invitato: ' + ev.titolo + ' · ' + fmtShort(ev.start_at));
+      return;
+    }
     if (table === 'chat_messages') {
       var sender = rows('profiles').find(function (p) { return p.id === r.sender_id; });
       notify([r.recipient_id], null, 'Nuovo messaggio', ((sender && sender.nome) || 'Collega') + ': ' + String(r.body || '').slice(0, 120));
@@ -466,6 +508,17 @@
   }
 
   function onUpdate(table, before, r) {
+    if (table === 'calendar_attendees' && r.risposta !== before.risposta) {
+      var e1 = rows('calendar_events').find(function (e) { return e.id === r.event_id; });
+      var who = rows('profiles').find(function (p) { return p.id === r.user_id; });
+      if (e1) notify([e1.organizer_id], null, 'Risposta appuntamento', ((who && who.nome) || 'Un collega') + ' ha ' + String(r.risposta).toLowerCase() + ': ' + e1.titolo);
+      return;
+    }
+    if (table === 'calendar_events' && r.stato === 'ANNULLATO' && before.stato !== 'ANNULLATO') {
+      var ids = rows('calendar_attendees').filter(function (a) { return a.event_id === r.id; }).map(function (a) { return a.user_id; });
+      notify(ids, null, 'Appuntamento annullato', r.titolo + ' · ' + fmtShort(r.start_at));
+      return;
+    }
     if (table === 'tickets') {
       var requester = profileIdByEmail(r.richiedente_email);
       if (r.assigned_to && r.assigned_to !== before.assigned_to) {

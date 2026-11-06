@@ -27956,13 +27956,14 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
   const { viewer: n, language: l } = Y(),
     live = !!(n && n.live),
     mode = live ? "live" : "demo",
-    isChat = View === "chat";
+    isChat = View === "chat",
+    isAgenda = View === "agenda";
   if (!live && n && window.ArcheaAuth) {
     const current = window.ArcheaAuth.getDemo();
     (!current || current.id !== n.id) &&
       window.ArcheaAuth.setDemo({ id: n.id, nome: n.nome, email: n.email, ruolo: n.sdRole || "USER" });
   }
-  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${isChat ? "&view=chat&solo=1" : ""}`;
+  const src = `./servicedesk/?embed=1&mode=${mode}&lang=${l}&u=${encodeURIComponent(n ? n.id : "")}${isChat ? "&view=chat&solo=1" : isAgenda ? "&view=agenda&solo=1" : ""}`;
   return e.jsxs("section", {
     className: `servicedesk-host ${mode}`,
     children: [
@@ -27972,9 +27973,13 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           e.jsxs("div", {
             children: [
               e.jsx("small", { children: "ARCHEA PLATFORM" }),
-              e.jsx("h1", { children: isChat ? "Chat" : "Service Desk IT" }),
+              e.jsx("h1", { children: isChat ? "Chat" : isAgenda ? (l === "en" ? "Shared calendar" : "Calendario comune") : "Service Desk IT" }),
               e.jsx("p", {
-                children: isChat
+                children: isAgenda
+                  ? l === "en"
+                    ? `Meetings, rooms and cars · ${live ? "live" : "demo"}`
+                    : `Appuntamenti, sale meeting e auto · ${live ? "dati reali" : "dimostrativo"}`
+                  : isChat
                   ? l === "en"
                     ? `Messages between colleagues · ${live ? "live" : "demo"}`
                     : `Messaggi tra colleghi · ${live ? "dati reali" : "dimostrativa"}`
@@ -27995,7 +28000,7 @@ function ServiceDeskScreen({ view: View = "" } = {}) {
           }),
         ],
       }),
-      e.jsx("iframe", { className: `servicedesk-frame${isChat ? " chat" : ""}`, title: isChat ? "Chat" : "Service Desk IT", src }, src),
+      e.jsx("iframe", { className: `servicedesk-frame${isChat ? " chat" : ""}`, title: isChat ? "Chat" : isAgenda ? "Calendario comune" : "Service Desk IT", src }, src),
     ],
   });
 }
@@ -28567,7 +28572,7 @@ function _v() {
                     : ie === "chat"
                       ? e.jsx(ServiceDeskScreen, { view: "chat" })
                       : ie === "calendario"
-                        ? e.jsx(Ev, { events: p, setEvents: y, tasks: o })
+                        ? e.jsx(ServiceDeskScreen, { view: "agenda" })
                         : ie === "contabilita"
                           ? e.jsx(Ov, {})
                           : ie === "avanzamento"
@@ -28592,7 +28597,7 @@ function _v() {
                                     : ie === "departmentmanager" && DepartmentHead
                                       ? e.jsx(DepartmentProjectsDemo, { type: DeptType, manager: !0 })
                                     : ie === "prenota"
-                                      ? e.jsx(kv, {})
+                                      ? e.jsx(ServiceDeskScreen, { view: "agenda" })
                                       : ie === "inarchea"
                                         ? e.jsx(bv, {})
                         : ie === "fornitori"
@@ -29139,9 +29144,9 @@ function Vv() {
             : b === "cantiere"
               ? e.jsx(Aj, {})
               : b === "calendario"
-                ? e.jsx(Ej, {})
+                ? e.jsx(ServiceDeskScreen, { view: "agenda" })
                 : b === "prenota"
-                  ? e.jsx(Pj, {})
+                  ? e.jsx(ServiceDeskScreen, { view: "agenda" })
                   : b === "inarchea"
                     ? e.jsx(Ij, {})
                     : b === "contabilita"

@@ -110,6 +110,14 @@ html.sd-embed.sd-demo .topbar::after {
 
 /* Solo chat (scheda Chat del Workspace) */
 html.sd-solo .sidebar,
-html.sd-solo .topbar { display: none !important; }
-html.sd-solo main { padding: 0 !important; }
-html.sd-solo .chat-shell { height: 100dvh; min-height: 0; border: 0; border-radius: 0; }
+html.sd-solo .page-heading-wrap,
+html.sd-solo .mobile-menu-btn { display: none !important; }
+/* resta solo la campanella delle notifiche, in una riga sottile */
+html.sd-solo .topbar { display: flex !important; justify-content: flex-end; padding: 0 0 8px !important; margin: 0 !important; }
+html.sd-solo.sd-demo .topbar::after { display: none; }
+html.sd-solo-chat .topbar { padding: 8px 10px !important; border-bottom: 1px solid var(--line) !important; }
+html.sd-solo main { padding: 14px 16px 20px !important; }
+html.sd-solo-chat main { padding: 0 !important; }
+html.sd-solo .chat-shell { height: calc(100dvh - 62px); min-height: 0; border: 0; border-radius: 0; }
+html.sd-solo .notification-wrap .bell { width: 36px; height: 36px; min-height: 36px; }
+html.sd-solo .topbar .top-actions { gap: 6px; }
