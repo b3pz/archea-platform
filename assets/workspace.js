@@ -26375,7 +26375,13 @@ function zv({ staffProfiles: t = {}, projects: n }) {
     [a, l] = C.useState("all"),
     // account reale: le persone vere dell'anagrafica (non quelle di esempio)
     zvLive = zvViewer && zvViewer.live && window.ArcheaWsCloud,
-    o = (zvLive ? window.ArcheaWsCloud.staff() : Object.values(Pe))
+    zvStaff = zvLive
+      ? (window.ArcheaWsCloud.staff().length
+          ? window.ArcheaWsCloud.staff()
+          // senza accesso all'anagrafica HR: i colleghi con un account
+          : (s && s.persone ? s.persone : []).map((x) => ({ id: x.id, name: x.nome, studio: "", years: null, role: x.ruolo === "responsabile" ? "Project Manager" : "Collega", contract: null, annualCompensation: null, expiresAt: null })))
+      : Object.values(Pe),
+    o = zvStaff
       .map((d) => {
         var u;
         return {
