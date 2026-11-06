@@ -109,4 +109,5 @@ html.archea-sidenav .desk-sidebar > nav { display: none !important; }
 
 /* Menu a sinistra con tutte le funzioni: se non ci stanno, si scorre (non si tagliano) */
 .desk-sidebar { min-height: 0; }
-.desk-sidebar > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.desk-sidebar > nav { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; align-content: start; justify-content: flex-start; grid-auto-rows: max-content; }
+.desk-sidebar > nav > button { flex: 0 0 auto; }

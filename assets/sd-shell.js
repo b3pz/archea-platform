@@ -24,8 +24,18 @@
     return frame;
   }
   // chiamata dal Service Desk quando ha caricato profilo e permessi
+  let landed = false;
   window.archeaSdReady = function (win) {
     sdWin = win; ready = true; lastView = null;
+    // Prima pagina del PM (che non è IT né HR): il riepilogo del lavoro di oggi
+    if (!landed) {
+      landed = true;
+      try {
+        const pmOnly = win.hasPerm && win.hasPerm('gestione_progetti') && !win.isITRole() && !win.isHR();
+        const atStart = !location.hash || location.hash === '#/' || location.hash === '#/servicedesk' || location.hash === '#/oggi';
+        if (pmOnly && atStart && !/[?&](ticket|scan)=/.test(location.search)) setTimeout(() => goTab('oggi'), 0);
+      } catch (e) {}
+    }
     try {
       const groups = win.sdNavGroups();
       localStorage.setItem(NAV_CACHE, JSON.stringify(groups));
