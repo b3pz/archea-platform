@@ -160,9 +160,11 @@
       }
     }
   }
+  // Menu raggruppato a sinistra disattivato: si usa la barra delle funzioni in alto (preferita)
+  const SIDE_NAV = false;
   function ensureNavMounted() {
     const side = document.querySelector('.desk-sidebar');
-    const on = live() && side;
+    const on = SIDE_NAV && live() && side;
     document.documentElement.classList.toggle('archea-sidenav', !!on);
     if (!on) return;
     if (!document.getElementById('archeaNav')) {

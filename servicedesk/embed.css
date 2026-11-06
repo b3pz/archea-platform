@@ -232,11 +232,3 @@ html.sd-embed .nav-toggle { display: none; }
   html.sd-embed .nav-toggle em { margin-left: auto; font-style: normal; opacity: .6; }
   html.sd-embed nav.nav-grouped:not(.open) > .nav-group { display: none; }
 }
-
-/* Dentro la piattaforma con la barra laterale raggruppata: niente fila di schede, solo il contenuto */
-@media (min-width: 761px) {
-  html.sd-shell .sidebar,
-  html.sd-shell .mobile-menu-btn,
-  html.sd-shell .mobile-nav-backdrop { display: none !important; }
-  html.sd-shell main { padding-top: 18px !important; }
-}
