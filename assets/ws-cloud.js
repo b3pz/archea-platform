@@ -1,11 +1,11 @@
 // ARCHEA Platform · progetti, task, ore e note del Workspace salvati su Supabase (tabella ws_records)
 // Le schermate di Francesco restano le stesse: questo modulo sostituisce il salvataggio nel browser.
 (function () {
-  var KEYS = { progetti: 'codice', task: 'id', ore: 'id', note: 'id', team: 'id' };
+  var KEYS = { progetti: 'codice', task: 'id', ore: 'id', note: 'id', team: 'id', staff: 'id' };
   var S = {
     started: false, loaded: false, version: 0,
-    data: { progetti: [], task: [], ore: [], note: [], team: [] },
-    server: { progetti: {}, task: {}, ore: {}, note: {}, team: {} },   // id -> JSON salvato
+    data: { progetti: [], task: [], ore: [], note: [], team: [], staff: [] },
+    server: { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} },   // id -> JSON salvato
     perms: [], people: [], pmNames: [], listeners: new Set(), timer: 0, pending: 0, me: null
   };
 
@@ -41,7 +41,7 @@
       if (!part || part.length < 1000) break;
       from += 1000;
     }
-    var data = { progetti: [], task: [], ore: [], note: [], team: [] }, server = { progetti: {}, task: {}, ore: {}, note: {}, team: {} };
+    var data = { progetti: [], task: [], ore: [], note: [], team: [], staff: [] }, server = { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} };
     rows.forEach(function (r) { if (!data[r.collection]) return; data[r.collection].push(r.data); server[r.collection][r.id] = JSON.stringify(r.data); });
     if (S.pending) return; // non sovrascrivere modifiche in corso
     S.data = data; S.server = server; S.loaded = true; emit();
@@ -88,7 +88,7 @@
     S.timer = setInterval(function () { if (document.visibilityState === 'visible') loadAll().catch(function () {}); }, 20000);
     document.addEventListener('visibilitychange', function () { if (document.visibilityState === 'visible') loadAll().catch(function () {}); });
   }
-  function stop() { clearInterval(S.timer); S.started = false; S.loaded = false; S.data = { progetti: [], task: [], ore: [], note: [], team: [] }; S.server = { progetti: {}, task: {}, ore: {}, note: {}, team: {} }; emit(); }
+  function stop() { clearInterval(S.timer); S.started = false; S.loaded = false; S.data = { progetti: [], task: [], ore: [], note: [], team: [], staff: [] }; S.server = { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} }; emit(); }
 
   async function persist(col, next) {
     var srv = S.server[col], seen = {}, writes = [];

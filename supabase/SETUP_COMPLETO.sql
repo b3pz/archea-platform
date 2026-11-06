@@ -1356,13 +1356,21 @@ create index if not exists ws_records_updated on public.ws_records (updated_at d
 -- 'team' = squadra di ogni progetto (schermata Project Manager)
 alter table public.ws_records drop constraint if exists ws_records_collection_check;
 alter table public.ws_records add constraint ws_records_collection_check
-  check (collection in ('progetti', 'task', 'ore', 'note', 'team'));
+  check (collection in ('progetti', 'task', 'ore', 'note', 'team', 'staff'));
 
 -- 3) Funzioni di controllo
 create or replace function public.ws_is_pm()
 returns boolean language sql stable security definer set search_path = public as $$
   select public.has_perm('gestione_progetti');
 $$;
+
+-- HR e super admin: gli unici che vedono e modificano i dati dell'Organico (contratti, compensi)
+create or replace function public.ws_is_hr()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and ruolo in ('HR', 'SUPER_IT'));
+$$;
+revoke all on function public.ws_is_hr() from public, anon;
+grant execute on function public.ws_is_hr() to authenticated;
 
 create or replace function public.ws_my_name()
 returns text language sql stable security definer set search_path = public as $$
@@ -1385,41 +1393,51 @@ alter table public.ws_records enable row level security;
 
 drop policy if exists ws_read on public.ws_records;
 create policy ws_read on public.ws_records for select to authenticated using (
+  case when collection = 'staff' then public.ws_is_hr() else (
   collection in ('progetti', 'note', 'team')
   or public.ws_is_pm()
   or created_by = auth.uid()
   or (collection = 'task' and public.ws_assigned_to_me(data->>'assegnatario'))
   or (collection = 'ore' and lower(btrim(data->>'persona')) = public.ws_my_name())
+  ) end
 );
 
 drop policy if exists ws_insert on public.ws_records;
 create policy ws_insert on public.ws_records for insert to authenticated with check (
+  case when collection = 'staff' then public.ws_is_hr() else (
   public.ws_is_pm()
   or collection = 'note'
   -- task personale: assegnata solo a sé stessi
   or (collection = 'task' and lower(btrim(data->>'assegnatario')) = public.ws_my_name())
   or (collection = 'ore' and lower(btrim(data->>'persona')) = public.ws_my_name())
+  ) end
 );
 
 drop policy if exists ws_update on public.ws_records;
 create policy ws_update on public.ws_records for update to authenticated
   using (
+    case when collection = 'staff' then public.ws_is_hr() else (
     public.ws_is_pm()
     or (collection = 'task' and public.ws_assigned_to_me(data->>'assegnatario'))
     or (collection = 'ore' and lower(btrim(data->>'persona')) = public.ws_my_name())
     or (collection = 'note' and created_by = auth.uid())
+    ) end
   )
   with check (
+    case when collection = 'staff' then public.ws_is_hr() else (
     public.ws_is_pm()
     or collection in ('task', 'note')
     or (collection = 'ore' and lower(btrim(data->>'persona')) = public.ws_my_name())
+    ) end
   );
 
 drop policy if exists ws_delete on public.ws_records;
 create policy ws_delete on public.ws_records for delete to authenticated using (
+  case when collection = 'staff' then public.ws_is_hr() else (
   public.ws_is_pm()
   or (collection = 'ore' and lower(btrim(data->>'persona')) = public.ws_my_name())
   or (collection = 'note' and created_by = auth.uid())
+  ) end
 );
 
 grant select, insert, update, delete on public.ws_records to authenticated;

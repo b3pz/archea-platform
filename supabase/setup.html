@@ -1377,13 +1377,21 @@ create index if not exists ws_records_updated on public.ws_records (updated_at d
 -- &#x27;team&#x27; = squadra di ogni progetto (schermata Project Manager)
 alter table public.ws_records drop constraint if exists ws_records_collection_check;
 alter table public.ws_records add constraint ws_records_collection_check
-  check (collection in (&#x27;progetti&#x27;, &#x27;task&#x27;, &#x27;ore&#x27;, &#x27;note&#x27;, &#x27;team&#x27;));
+  check (collection in (&#x27;progetti&#x27;, &#x27;task&#x27;, &#x27;ore&#x27;, &#x27;note&#x27;, &#x27;team&#x27;, &#x27;staff&#x27;));
 
 -- 3) Funzioni di controllo
 create or replace function public.ws_is_pm()
 returns boolean language sql stable security definer set search_path = public as $$
   select public.has_perm(&#x27;gestione_progetti&#x27;);
 $$;
+
+-- HR e super admin: gli unici che vedono e modificano i dati dell&#x27;Organico (contratti, compensi)
+create or replace function public.ws_is_hr()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and ruolo in (&#x27;HR&#x27;, &#x27;SUPER_IT&#x27;));
+$$;
+revoke all on function public.ws_is_hr() from public, anon;
+grant execute on function public.ws_is_hr() to authenticated;
 
 create or replace function public.ws_my_name()
 returns text language sql stable security definer set search_path = public as $$
@@ -1406,41 +1414,51 @@ alter table public.ws_records enable row level security;
 
 drop policy if exists ws_read on public.ws_records;
 create policy ws_read on public.ws_records for select to authenticated using (
+  case when collection = &#x27;staff&#x27; then public.ws_is_hr() else (
   collection in (&#x27;progetti&#x27;, &#x27;note&#x27;, &#x27;team&#x27;)
   or public.ws_is_pm()
   or created_by = auth.uid()
   or (collection = &#x27;task&#x27; and public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatario&#x27;))
   or (collection = &#x27;ore&#x27; and lower(btrim(data-&gt;&gt;&#x27;persona&#x27;)) = public.ws_my_name())
+  ) end
 );
 
 drop policy if exists ws_insert on public.ws_records;
 create policy ws_insert on public.ws_records for insert to authenticated with check (
+  case when collection = &#x27;staff&#x27; then public.ws_is_hr() else (
   public.ws_is_pm()
   or collection = &#x27;note&#x27;
   -- task personale: assegnata solo a sé stessi
   or (collection = &#x27;task&#x27; and lower(btrim(data-&gt;&gt;&#x27;assegnatario&#x27;)) = public.ws_my_name())
   or (collection = &#x27;ore&#x27; and lower(btrim(data-&gt;&gt;&#x27;persona&#x27;)) = public.ws_my_name())
+  ) end
 );
 
 drop policy if exists ws_update on public.ws_records;
 create policy ws_update on public.ws_records for update to authenticated
   using (
+    case when collection = &#x27;staff&#x27; then public.ws_is_hr() else (
     public.ws_is_pm()
     or (collection = &#x27;task&#x27; and public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatario&#x27;))
     or (collection = &#x27;ore&#x27; and lower(btrim(data-&gt;&gt;&#x27;persona&#x27;)) = public.ws_my_name())
     or (collection = &#x27;note&#x27; and created_by = auth.uid())
+    ) end
   )
   with check (
+    case when collection = &#x27;staff&#x27; then public.ws_is_hr() else (
     public.ws_is_pm()
     or collection in (&#x27;task&#x27;, &#x27;note&#x27;)
     or (collection = &#x27;ore&#x27; and lower(btrim(data-&gt;&gt;&#x27;persona&#x27;)) = public.ws_my_name())
+    ) end
   );
 
 drop policy if exists ws_delete on public.ws_records;
 create policy ws_delete on public.ws_records for delete to authenticated using (
+  case when collection = &#x27;staff&#x27; then public.ws_is_hr() else (
   public.ws_is_pm()
   or (collection = &#x27;ore&#x27; and lower(btrim(data-&gt;&gt;&#x27;persona&#x27;)) = public.ws_my_name())
   or (collection = &#x27;note&#x27; and created_by = auth.uid())
+  ) end
 );
 
 grant select, insert, update, delete on public.ws_records to authenticated;
@@ -1475,7 +1493,7 @@ select g.id, p.id from public.access_groups g, public.profiles p
 where g.nome = &#x27;Project Manager&#x27; and p.ruolo = &#x27;SUPER_IT&#x27;
 on conflict do nothing;
 </textarea>
-<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 1455 righe</p>
+<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 1473 righe</p>
 </main>
 <script>
 document.getElementById('copy').onclick=async()=>{const t=document.getElementById('sql');let ok=false;

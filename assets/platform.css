@@ -73,3 +73,6 @@
 
 /* Nessun elemento può allargare la pagina oltre lo schermo (su iPhone la rimpiccioliva tutta) */
 html, body { max-width: 100%; overflow-x: hidden; }
+
+/* La prima pagina e l Inizio del Service Desk, che ha gia il suo saluto e il suo titolo */
+.servicedesk-host-head { display: none !important; }

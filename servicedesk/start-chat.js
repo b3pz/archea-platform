@@ -31,18 +31,36 @@ const START_ACTIONS = {
   mappa:          ['Postazioni', 'Elenco postazioni e magazzino', 'mappa'],
   planimetrie:    ['Planimetrie', 'Chi siede dove, sposta persone e dispositivi', 'planimetrie'],
   calendar:       ['Appuntamenti IT', 'Appuntamenti legati ai ticket', 'calendar'],
-  prenotazioni:   ['Prenotazioni', 'Materiale in prestito', 'prenotazioni']
+  prenotazioni:   ['Prestiti materiale', 'Gestisci il materiale in prestito', 'prenotazioni'],
+  eliminazioni:   ['Eliminazioni', 'Richieste di eliminazione da approvare', 'eliminazioni'],
+  // voci del Workspace (si aprono nella piattaforma)
+  'ws:taskmanager':    ['Le mie task', 'Le attività che ti hanno assegnato: aggiornale qui', 'mine'],
+  'ws:oggi':           ['Il mio lavoro di oggi', 'Task in scadenza, ore e scadenze', 'home'],
+  'ws:bio':            ['Organico', 'Ruoli, contratti e dati del personale', 'persone'],
+  'ws:projectmanager': ['Nuovo progetto e squadra', 'Crea la commessa e scegli chi ci lavora', 'planimetrie'],
+  'ws:progetti':       ['Progetti', 'Avanzamento delle commesse', 'home'],
+  'ws:ore':            ['Ore', 'Ore registrate da te e dal team', 'calendar']
 };
+START_ACTIONS['hr-new'] = ['Ingresso, uscita o spostamento', 'Nuovo arrivo, chi lascia lo studio, cambio sede', 'hr-new'];
 
-function startActionsForRole() {
-  const extra = typeof hasPerm === 'function' && hasPerm('gestione_utenti') ? ['utenti'] : [];
-  return [...startActionsBase(), ...extra];
+// Inizio: le funzioni raggruppate per argomento. Ogni ruolo vede i suoi gruppi, tutto visibile.
+function startGroups() {
+  const it = isITRole(), hr = isHR() || it, pm = typeof hasPerm === 'function' && hasPerm('gestione_progetti');
+  const admin = typeof hasPerm === 'function' && hasPerm('gestione_utenti');
+  const g = [];
+  g.push(['Il mio lavoro', ['ws:taskmanager', 'new', 'mine', 'ws:oggi']]);
+  if (pm) g.push(['Progetti (PM)', ['ws:projectmanager', 'ws:progetti', 'ws:ore']]);
+  if (it) g.push(['Reparto IT', ['it', 'home', 'scan', 'censimento', 'calendar', 'prenotazioni', 'eliminazioni']]);
+  if (isHR() && !it) g.push(['HR · Persone', ['hr-new', 'persone', 'hr-history', 'hr-stats', 'ws:bio']]);
+  if (it) g.push(['Persone', ['persone', 'movimenti', 'ws:bio']]);
+  if (hr) g.push(['Spazi e postazioni', ['planimetrie', 'mappa']]);
+  g.push(['Calendario e prenotazioni', ['appt', 'room', 'car', 'agenda', ...(it ? [] : ['booking'])]]);
+  g.push(['Comunicazione', ['chat', 'cantiere', 'offtopic']]);
+  if (admin) g.push(['Amministrazione', ['utenti']]);
+  return g;
 }
-function startActionsBase() {
-  if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'cantiere', 'planimetrie', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'cantiere', 'hr-history', 'planimetrie', 'hr-stats', 'offtopic', 'new', 'mine'];
-  return ['new', 'mine', 'cantiere', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
-}
+function startActionsForRole() { return startGroups().flatMap(([, keys]) => keys); }
+function startActionsBase() { return startActionsForRole(); }
 
 function greetingWord() {
   const h = new Date().getHours();
@@ -82,16 +100,20 @@ async function start() {
       <h3>${greetingWord()}, ${esc(first)}!</h3>
       <p>Cosa facciamo?</p>
     </section>
-    <div class="start-grid">
-      ${actions.map((key, i) => {
-        const [title, sub, icon] = START_ACTIONS[key];
-        return `<button class="start-action${i === 0 ? ' primary-action' : ''}" data-start="${key}">
-          <span class="start-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${NAV_ICON_PATHS[icon] || NAV_ICON_PATHS.mine}</svg></span>
-          <span class="start-text"><b>${esc(title)}</b><small>${esc(sub)}</small></span>
-        </button>`;
-      }).join('')}
-    </div>
-    ${summary}`;
+    ${summary}
+    ${startGroups().map(([label, keys], gi) => `
+      <section class="start-group">
+        <h4 class="start-group-title">${esc(label)}</h4>
+        <div class="start-grid">
+          ${keys.filter(k => START_ACTIONS[k]).map((key, i) => {
+            const [title, sub, icon] = START_ACTIONS[key];
+            return `<button class="start-action${gi === 0 && i === 0 ? ' primary-action' : ''}" data-start="${key}">
+              <span class="start-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${NAV_ICON_PATHS[icon] || NAV_ICON_PATHS.mine}</svg></span>
+              <span class="start-text"><b>${esc(title)}</b><small>${esc(sub)}</small></span>
+            </button>`;
+          }).join('')}
+        </div>
+      </section>`).join('')}`;
 
   document.querySelectorAll('[data-start]').forEach(b => b.onclick = () => startAction(b.dataset.start));
   if (typeof fotoFlushQueue === 'function') fotoFlushQueue();
@@ -99,6 +121,15 @@ async function start() {
 }
 
 function startAction(key) {
+  // voci del Workspace: si apre la sezione nella piattaforma
+  if (key.startsWith('ws:')) {
+    let tab = key.slice(3);
+    // sul telefono alcune sezioni hanno un'altra forma
+    if (window.matchMedia('(max-width: 900px)').matches) tab = { taskmanager: 'oggi', projectmanager: 'progetti' }[tab] || tab;
+    try { if (window.top !== window) { window.top.location.hash = '#/' + tab; return; } } catch (e) {}
+    location.href = '../#/' + tab;
+    return;
+  }
   if (key === 'scan') {
     nav('censimento');
     setTimeout(() => { try { openAssetScanner(); } catch (e) { toast('Scanner non disponibile'); } }, 250);

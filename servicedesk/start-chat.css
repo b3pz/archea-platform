@@ -125,3 +125,8 @@
   .chat-shell:not(.has-active) .chat-thread { display: none; }
   .chat-back { display: block; }
 }
+/* Inizio a gruppi */
+.start-group { margin-top: 22px; }
+.start-group:first-of-type { margin-top: 8px; }
+.start-group-title { margin: 0 0 10px; font-size: 13px; font-weight: 800; letter-spacing: .07em; text-transform: uppercase; color: var(--muted, #5d6661); }
+html.sd-embed .start-group-title { color: var(--ws-ink2, #5d6661); }

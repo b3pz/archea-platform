@@ -10575,7 +10575,7 @@ const Ld = {
       accounting: "Contabilità",
       progress: "Progetti",
       employeeBio: "Organico",
-      servicedesk: "IT",
+      servicedesk: "Inizio",
       insights: "Insight",
       bimPortal: "BIM Portal",
       visualDepartment: "Visual",
@@ -10603,7 +10603,7 @@ const Ld = {
       accounting: "Accounting",
       progress: "Projects",
       employeeBio: "Staff",
-      servicedesk: "IT",
+      servicedesk: "Home",
       insights: "Insights",
       bimPortal: "BIM Portal",
       visualDepartment: "Visual",
@@ -10640,7 +10640,9 @@ function sj({ children: t }) {
     [m, x] = C.useState(() => {
       // link da Telegram (?ticket=) o dal QR del computer (?scan=): si apre sempre il Service Desk
       try { const q = new URLSearchParams(location.search); if (q.get("scan") || q.get("ticket")) return "servicedesk"; } catch {}
-      return location.hash.slice(2) || "oggi";
+      // all'apertura si parte sempre da "Inizio" (saluto e pulsanti): "Oggi" resta nel menu
+      const h = location.hash.slice(2);
+      return h && h !== "oggi" ? h : "servicedesk";
     }),
     [j, f] = C.useState(null),
     [g, b] = C.useState(null),
@@ -10706,7 +10708,12 @@ function sj({ children: t }) {
       );
     }, []),
     C.useEffect(() => {
-      const $ = () => f(null);
+      // cambio di sezione dall'esterno (es. pulsanti dell'Inizio del Service Desk): #/taskmanager
+      const $ = () => {
+        f(null);
+        const h = location.hash.slice(2);
+        h && (x(h), window.scrollTo(0, 0));
+      };
       return (
         window.addEventListener("hashchange", $),
         () => window.removeEventListener("hashchange", $)
@@ -26373,6 +26380,11 @@ function Iv({ staffProfiles: t = {}, projects: n }) {
 function zv({ staffProfiles: t = {}, projects: n }) {
   const { data: s, selectedEmployeeId: r, setSelectedEmployeeId: i, viewer: zvViewer } = Y(),
     [a, l] = C.useState("all"),
+    // dati HR dell'organico (contratto, compenso, scadenza…) condivisi su Supabase: li vede e li modifica solo l'HR
+    [zvRows, setZvRows] = useWs("staff", "archea-staff-hr-local", [], zvViewer),
+    [zvEdit, setZvEdit] = C.useState(null),
+    zvCanEdit = !!(zvViewer && zvViewer.live && ["HR", "SUPER_IT"].includes(zvViewer.sdRole)),
+    zvOver = Object.fromEntries((zvRows || []).map((x) => [x.id, x])),
     // account reale: le persone vere dell'anagrafica (non quelle di esempio)
     zvLive = zvViewer && zvViewer.live && window.ArcheaWsCloud,
     zvStaff = zvLive
@@ -26384,9 +26396,12 @@ function zv({ staffProfiles: t = {}, projects: n }) {
     o = zvStaff
       .map((d) => {
         var u;
+        const ov2 = zvOver[d.id] || {};
         return {
           ...d,
           ...(t[d.id] || {}),
+          ...ov2,
+          id: d.id,
           name: ((u = t[d.id]) == null ? void 0 : u.name) || d.name,
         };
       })
@@ -26432,10 +26447,41 @@ function zv({ staffProfiles: t = {}, projects: n }) {
               searchable: !0,
               onChange: i,
             }),
+            zvCanEdit && c && e.jsx("button", {
+              className: "desk-primary",
+              type: "button",
+              onClick: () => setZvEdit({ id: c.id, name: c.name, role: c.role || "", studio: c.studio || "", years: c.years ?? "", annualCompensation: c.annualCompensation ?? "", expiresAt: c.expiresAt || "", contractNote: c.contractNote || "" }),
+              children: "Modifica dati",
+            }),
           ],
         }),
         c &&
           e.jsx(Qp, { person: c, data: { ...s, progetti: n || s.progetti } }),
+        c && c.contractNote && e.jsx("p", { className: "desk-organico-note", children: `Note contratto: ${c.contractNote}` }),
+        zvEdit && e.jsx(De, {
+          title: `Dati HR · ${zvEdit.name}`,
+          subtitle: "Li vedono e li modificano solo l'HR e il super admin.",
+          onClose: () => setZvEdit(null),
+          children: e.jsxs("form", {
+            className: "studio-edit-grid",
+            onSubmit: (ev) => {
+              ev.preventDefault();
+              const row = { ...zvEdit, years: zvEdit.years === "" ? null : Number(zvEdit.years), annualCompensation: zvEdit.annualCompensation === "" ? null : Number(zvEdit.annualCompensation), expiresAt: zvEdit.expiresAt || null };
+              delete row.name;
+              setZvRows((prev) => [...(prev || []).filter((x) => x.id !== row.id), row]);
+              setZvEdit(null);
+            },
+            children: [
+              e.jsxs("label", { children: ["Ruolo", e.jsx("input", { value: zvEdit.role, onChange: (ev) => setZvEdit({ ...zvEdit, role: ev.target.value }), placeholder: "Es. Senior Architect" })] }),
+              e.jsxs("label", { children: ["Studio", e.jsxs("select", { value: zvEdit.studio, onChange: (ev) => setZvEdit({ ...zvEdit, studio: ev.target.value }), children: [e.jsx("option", { value: "", children: "—" }), ...je.map((x) => e.jsx("option", { value: x.id, children: x.name }, x.id))] })] }),
+              e.jsxs("label", { children: ["Anni in Archea", e.jsx("input", { type: "number", min: 0, max: 60, value: zvEdit.years, onChange: (ev) => setZvEdit({ ...zvEdit, years: ev.target.value }) })] }),
+              e.jsxs("label", { children: ["Compenso annuo (€)", e.jsx("input", { type: "number", min: 0, step: 100, value: zvEdit.annualCompensation, onChange: (ev) => setZvEdit({ ...zvEdit, annualCompensation: ev.target.value }) })] }),
+              e.jsxs("label", { children: ["Scadenza contratto", e.jsx("input", { type: "date", value: zvEdit.expiresAt, onChange: (ev) => setZvEdit({ ...zvEdit, expiresAt: ev.target.value }) })] }),
+              e.jsxs("label", { className: "wide", children: ["Note sul contratto", e.jsx("textarea", { value: zvEdit.contractNote, onChange: (ev) => setZvEdit({ ...zvEdit, contractNote: ev.target.value }), placeholder: "Tipo di contratto, livello, part-time…" })] }),
+              e.jsx("button", { className: "desk-primary", type: "submit", children: "Salva dati" }),
+            ],
+          }),
+        }),
       ],
     })
   );
@@ -28533,7 +28579,7 @@ function _v() {
     RoleCatalog = ITManager ? ITCatalog : Reception ? ReceptionCatalog : HRManager ? HRCatalog : DepartmentHead ? DepartmentCatalog : w ? X : D,
     // Account registrato: le funzioni con dati veri (Service Desk, calendario, chat, foto, Off topic) più tutti i moduli del Workspace.
     LiveCore = [
-      ["servicedesk", "Service Desk", ServiceDeskIcon, "Inizio, ticket, asset e persone"],
+      ["servicedesk", "Inizio", ServiceDeskIcon, "Saluto, pulsanti per ogni cosa, ticket"],
       ["calendario", "Calendario", Wt, "Appuntamenti, sale meeting e auto"],
       ["chat", "Chat", Td, "Messaggi tra colleghi"],
       FotoCantiereEntry,
@@ -28569,9 +28615,9 @@ function _v() {
           "calendario",
         ],
     q = n.live
-      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["projectmanager", "progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
+      ? liveFilter(n, [...new Set(["servicedesk", ...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["projectmanager", "progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
       : roleMain,
-    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live4-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
+    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live5-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
   C.useEffect(() => {
     Qe((V) => V.filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
   }, [n.id]);
@@ -29069,8 +29115,8 @@ const $v = [
     ["altro", "more", dc],
   ],
   LiveUserMobile = [
-    ["oggi", "today", Wt],
     ["servicedesk", "servicedesk", ServiceDeskIcon],
+    ["oggi", "today", Wt],
     ["chat", "chat", Td],
     ["altro", "more", dc],
   ],
@@ -29120,7 +29166,7 @@ function Vv() {
       : n && n.live && liveAllowed(n)
       ? liveAllowed(n).includes(s)
         ? s
-        : n.sdRole === "IT" ? "servicedesk" : "oggi"
+        : "servicedesk"
       : n && n.live
       ? ["calendario", "chat", "prenota"].includes(s) || s === "altro"
         ? s

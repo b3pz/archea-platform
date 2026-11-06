@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.7.0 — Si parte da "Inizio", funzioni raggruppate, Organico compilabile dall'HR
+
+- **La prima pagina è sempre "Inizio"**: saluto, "Cosa facciamo?" e pulsanti grandi. È la prima voce del menu e il primo tasto in basso sul telefono. "Oggi" di Francesco resta nel menu. Tolto il titolo doppio "Service Desk IT".
+- **Inizio a gruppi**, ognuno con il suo titolo. Ogni ruolo vede i gruppi suoi, tutto visibile:
+  - *Il mio lavoro* (per tutti): Le mie task, Apri un ticket, I miei ticket, Il mio lavoro di oggi;
+  - *Progetti (PM)*: Nuovo progetto e squadra, Progetti, Ore;
+  - *HR · Persone*: Ingresso, uscita o spostamento, Persone, Storico movimenti, Statistiche HR, Organico;
+  - *Reparto IT*: Coda ticket, Dashboard, Scansiona asset, Censimento, Appuntamenti IT, Prestiti materiale, Eliminazioni;
+  - *Persone* (IT), *Spazi e postazioni* (HR e IT);
+  - *Calendario e prenotazioni* e *Comunicazione* (per tutti);
+  - *Amministrazione*: Utenti e gruppi.
+  
+  I pulsanti del Workspace (Le mie task, Organico, Progetti…) aprono direttamente la sezione nella piattaforma.
+- **Organico compilabile dall'HR**: con "Modifica dati" si inseriscono ruolo, studio, anni in Archea, compenso, scadenza del contratto e note. I dati si salvano su Supabase e li vedono **solo HR e super admin**: lo blocca il database, nemmeno un PM o un IT li legge.
+
 ## 2.6.0 — Più grande, popup delle notifiche, menu ordinati per ruolo
 
 - **Testi più grandi sul computer**: i testi del Workspace sotto i 12 px ora sono 11–13 px (`assets/sizes.css`, generato da `tools/genera_sizes.py`).
