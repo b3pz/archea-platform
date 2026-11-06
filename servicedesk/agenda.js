@@ -45,6 +45,12 @@ function agDayLabel(d, long) {
   return new Date(d).toLocaleDateString('it-IT', long ? { weekday: 'long', day: 'numeric', month: 'long' } : { weekday: 'short', day: 'numeric' });
 }
 function agSameDay(a, b) { return agYmd(a) === agYmd(b); }
+function agCanBook(r) {
+  if (!r || r.gruppo_id == null) return true;
+  if (typeof hasPerm === 'function' && hasPerm('gestione_calendario')) return true;
+  return typeof MY_GROUPS !== 'undefined' && MY_GROUPS.some(g => String(g) === String(r.gruppo_id));
+}
+function agGroupName(id) { const g = (agState.groups || []).find(x => String(x.id) === String(id)); return g ? g.nome : 'gruppo riservato'; }
 function agResource(id) { return agState.resources.find(r => String(r.id) === String(id)); }
 function agAttendeesOf(ev) { return agState.attendees.filter(a => String(a.event_id) === String(ev.id)); }
 function agContactName(id) {
@@ -69,6 +75,7 @@ async function agLoad() {
     agState.contacts.length ? agState.contacts : rpc('chat_contacts').catch(() => [])
   ]);
   agState.events = events || [];
+  try { agState.groups = agState.groups || await select('access_groups', 'select=id,nome&order=nome.asc'); } catch (e) { agState.groups = []; }
   agState.resources = resources || [];
   agState.contacts = (contacts || []).filter(c => c.id !== user.id);
   agState.attendees = agState.events.length
@@ -222,6 +229,7 @@ function agRender() {
       </div>
       <div class="ag-views" role="tablist">${views.map(([k, l]) => `<button role="tab" class="ag-view${agState.view === k ? ' on' : ''}" aria-selected="${agState.view === k}" data-agv="${k}">${l}</button>`).join('')}</div>
       <div class="ag-actions">
+        ${typeof hasPerm === 'function' && hasPerm('gestione_calendario') ? '<button class="secondary" id="agManage">Sale e auto</button>' : ''}
         <button class="secondary" data-agnew="SALA">Prenota sala</button>
         <button class="secondary" data-agnew="AUTO">Prenota auto</button>
         <button class="primary" data-agnew="APPUNTAMENTO">+ Appuntamento</button>
@@ -234,6 +242,7 @@ function agRender() {
     <div class="ag-desktop">${desktop}</div>
     <div class="ag-mobile">${mobile}</div>`;
 
+  if ($('agManage')) $('agManage').onclick = agResourcesAdmin;
   $('agPrev').onclick = () => { agShift(-1); agRefresh(); };
   $('agNext').onclick = () => { agShift(1); agRefresh(); };
   $('agToday').onclick = () => { agState.anchor = new Date(); agRefresh(); };
@@ -284,6 +293,52 @@ async function agendaView(opts = {}) {
   if (opts.newType) agForm(opts.newType);
 }
 
+// Gestione sale e auto (permesso "gestione_calendario")
+async function agResourcesAdmin() {
+  let all;
+  try { all = await select('calendar_resources', 'select=*&order=tipo.desc,nome.asc'); } catch (err) { toast(err.message); return; }
+  const groups = agState.groups || [];
+  const row = r => `<tr data-rid="${r ? r.id : 'new'}">
+      <td data-label="Tipo"><select class="rTipo">${['SALA', 'AUTO', 'ATTREZZATURA'].map(t => `<option value="${t}" ${r && r.tipo === t ? 'selected' : ''}>${AG_TYPES[t].label}</option>`).join('')}</select></td>
+      <td data-label="Nome"><input class="rNome" value="${esc(r?.nome || '')}" placeholder="Es. Sala meeting grande"></td>
+      <td data-label="Sede"><input class="rSede" value="${esc(r?.sede || '')}" placeholder="FIRENZE"></td>
+      <td data-label="Dettagli"><input class="rDett" value="${esc(r?.dettagli || '')}" placeholder="Posti, targa, note"></td>
+      <td data-label="Chi può prenotare"><select class="rGruppo"><option value="">Tutti</option>${groups.map(g => `<option value="${g.id}" ${r && String(r.gruppo_id) === String(g.id) ? 'selected' : ''}>Solo gruppo ${esc(g.nome)}</option>`).join('')}</select></td>
+      <td data-label="Attiva"><input type="checkbox" class="rAttivo" ${!r || r.attivo ? 'checked' : ''} style="width:auto"></td>
+      <td><button class="secondary compact rSave">${r ? 'Salva' : 'Aggiungi'}</button></td>
+    </tr>`;
+  $('content').innerHTML = `
+    <div class="panel">
+      <div class="ag-form-head"><h3>Sale e auto</h3><button class="secondary compact" id="agResBack">← Calendario</button></div>
+      <p class="muted-line">"Chi può prenotare": <b>Tutti</b>, oppure solo le persone di un gruppo (i gruppi si creano in Utenti e gruppi). Una risorsa non attiva sparisce dalle prenotazioni.</p>
+      <div class="tablewrap"><table class="us-table ag-res-table">
+        <thead><tr><th>Tipo</th><th>Nome</th><th>Sede</th><th>Dettagli</th><th>Chi può prenotare</th><th>Attiva</th><th></th></tr></thead>
+        <tbody>${all.map(row).join('')}${row(null)}</tbody>
+      </table></div>
+    </div>`;
+  $('agResBack').onclick = () => { agState.resources = []; agRefresh(); };
+  document.querySelectorAll('.ag-res-table tr[data-rid]').forEach(tr => {
+    tr.querySelector('.rSave').onclick = async () => {
+      const data = {
+        tipo: tr.querySelector('.rTipo').value,
+        nome: tr.querySelector('.rNome').value.trim(),
+        sede: tr.querySelector('.rSede').value.trim() || null,
+        dettagli: tr.querySelector('.rDett').value.trim() || null,
+        gruppo_id: tr.querySelector('.rGruppo').value ? +tr.querySelector('.rGruppo').value : null,
+        attivo: tr.querySelector('.rAttivo').checked
+      };
+      if (!data.nome) { toast('Scrivi il nome'); return; }
+      try {
+        if (tr.dataset.rid === 'new') await insert('calendar_resources', data);
+        else await update('calendar_resources', `id=eq.${tr.dataset.rid}`, data);
+        toast('Salvato');
+        agState.resources = [];
+        agResourcesAdmin();
+      } catch (err) { toast(err.message); }
+    };
+  });
+}
+
 function agDefaultSlot() {
   const d = new Date(); d.setMinutes(d.getMinutes() < 30 ? 30 : 60, 0, 0);
   if (d.getHours() < AG_HOURS.from) d.setHours(9, 0);
@@ -327,9 +382,11 @@ function agForm(tipo = 'APPUNTAMENTO', preset = {}) {
     const list = agState.resources.filter(r => r.tipo === t);
     $('agResWrap').classList.toggle('hidden', t === 'APPUNTAMENTO');
     $('agRes').required = t !== 'APPUNTAMENTO';
+    const bookable = list.filter(agCanBook);
     $('agRes').innerHTML = list.length
-      ? list.map(r => `<option value="${r.id}">${esc(r.nome)}${r.sede ? ` · ${esc(r.sede)}` : ''}${r.dettagli ? ` · ${esc(r.dettagli)}` : ''}</option>`).join('')
+      ? list.map(r => `<option value="${r.id}" ${agCanBook(r) ? '' : 'disabled'}>${esc(r.nome)}${r.sede ? ` · ${esc(r.sede)}` : ''}${r.dettagli ? ` · ${esc(r.dettagli)}` : ''}${agCanBook(r) ? '' : ` · riservata a ${esc(agGroupName(r.gruppo_id))}`}</option>`).join('')
       : '<option value="">Nessuna risorsa configurata</option>';
+    if (bookable.length) $('agRes').value = bookable[0].id;
     checkAvailability();
   };
   const range = () => {
@@ -427,7 +484,7 @@ function agDetail(id) {
   const r = agResource(e.resource_id);
   const att = agAttendeesOf(e);
   const meAtt = att.find(a => a.user_id === user.id);
-  const canEdit = e.organizer_id === user.id || isITRole();
+  const canEdit = e.organizer_id === user.id || (typeof hasPerm === 'function' ? hasPerm('gestione_calendario') : isITRole());
   const sameDay = agSameDay(e.start_at, e.end_at);
   $('content').innerHTML = `
     <div class="panel ag-detail ${t.cls}">

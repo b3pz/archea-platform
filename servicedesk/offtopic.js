@@ -20,7 +20,7 @@ function otWhen(d) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} h fa`;
   return x.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
 }
-function otCanModerate() { return isITRole(); }
+function otCanModerate() { return typeof hasPerm === 'function' ? hasPerm('moderazione_offtopic') : isITRole(); }
 function otMine(row) { return row.author_id === user.id; }
 function otSetupMessage(err) {
   $('content').innerHTML = `<div class="panel"><h3>Off topic non ancora attivato</h3>
@@ -39,6 +39,7 @@ async function offtopicView() {
   $('content').innerHTML = '<p class="empty">Caricamento…</p>';
   try {
     otState.topics = await select('forum_topics', 'select=*&order=pinned.desc,last_activity_at.desc&limit=300');
+    try { otState.polls = (await select('forum_polls', 'select=topic_id')).map(p => p.topic_id); } catch (e) { otState.polls = []; }
   } catch (err) { if (epoch === navigationEpoch) otSetupMessage(err); return; }
   if (epoch !== navigationEpoch) return;
   otRenderList();
@@ -63,7 +64,7 @@ function otRenderList() {
         return `<button class="ot-topic" data-ot="${t.id}">
           <span class="chat-avatar">${esc(chatInitials(t.author_nome))}</span>
           <span class="ot-topic-main">
-            <span class="ot-topic-title">${t.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${t.locked ? '<em class="ot-lock">Chiuso</em>' : ''}<b>${esc(t.titolo)}</b></span>
+            <span class="ot-topic-title">${(otState.polls || []).includes(t.id) ? '<em class="ot-poll-tag">Sondaggio</em>' : ''}${t.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${t.locked ? '<em class="ot-lock">Chiuso</em>' : ''}<b>${esc(t.titolo)}</b></span>
             <small><span class="ot-cat ${c.cls}">${c.label}</span> · ${esc(t.author_nome || 'Collega')} · ${otWhen(t.created_at)}</small>
           </span>
           <span class="ot-count"><b>${t.replies_count || 0}</b><small>risposte</small><small>${otWhen(t.last_activity_at || t.created_at)}</small></span>
@@ -89,14 +90,41 @@ function otForm() {
         <label>Categoria<select id="otCat">${Object.entries(OT_CATS).map(([k, c]) => `<option value="${k}" ${otState.cat === k ? 'selected' : ''}>${c.label}</option>`).join('')}</select></label>
         <label class="full">Titolo<input id="otTitle" required minlength="3" maxlength="160" placeholder="Es. Calcetto giovedì sera, chi c'è?"></label>
         <label class="full">Messaggio<textarea id="otBodyText" rows="6" required maxlength="8000" placeholder="Scrivi qui…"></textarea></label>
+        <div class="full ot-poll-box">
+          <label class="ot-poll-toggle"><input type="checkbox" id="otPollOn" style="width:auto"> <b>Aggiungi un sondaggio</b> <small>(es. "Che giorno facciamo la festa?")</small></label>
+          <div id="otPollFields" class="hidden formgrid">
+            <label class="full">Domanda del sondaggio<input id="otPollQ" maxlength="200" placeholder="Es. Che giorno preferite per la festa di Natale?"></label>
+            <div class="full" id="otPollOpts"></div>
+            <div class="full"><button type="button" class="secondary compact" id="otAddOpt">+ Aggiungi risposta</button></div>
+            <label class="ot-check"><input type="checkbox" id="otPollMulti" style="width:auto"> Si possono scegliere più risposte</label>
+            <label>Chiusura <span class="optional">(facoltativa)</span><input id="otPollClose" type="date"></label>
+          </div>
+        </div>
         <p class="full muted-line">Lo leggono tutti i colleghi. Niente dati personali o di lavoro riservati: per quelli usa la chat o i ticket.</p>
         <div class="full"><button class="primary" id="otSave">Pubblica</button> <span id="otResult" class="muted-line"></span></div>
       </form>
     </div>`;
   $('otBack').onclick = otRenderList;
   setTimeout(() => $('otTitle')?.focus(), 30);
+  const addOpt = (val = '') => {
+    const n = document.querySelectorAll('#otPollOpts .ot-opt').length + 1;
+    const row = document.createElement('div');
+    row.className = 'ot-opt';
+    row.innerHTML = `<input class="otOptInput" maxlength="120" placeholder="Risposta ${n}" value="${esc(val)}"><button type="button" class="text-btn" aria-label="Togli risposta">×</button>`;
+    row.querySelector('button').onclick = () => { if (document.querySelectorAll('#otPollOpts .ot-opt').length > 2) row.remove(); };
+    $('otPollOpts').appendChild(row);
+  };
+  addOpt(); addOpt();
+  $('otAddOpt').onclick = () => { if (document.querySelectorAll('#otPollOpts .ot-opt').length < 12) addOpt(); };
+  $('otPollOn').onchange = () => $('otPollFields').classList.toggle('hidden', !$('otPollOn').checked);
   $('otForm').onsubmit = async e => {
     e.preventDefault();
+    const pollOn = $('otPollOn').checked;
+    const options = [...document.querySelectorAll('.otOptInput')].map(i => i.value.trim()).filter(Boolean);
+    if (pollOn && ($('otPollQ').value.trim().length < 3 || options.length < 2)) {
+      $('otResult').textContent = 'Per il sondaggio servono la domanda e almeno 2 risposte.';
+      return;
+    }
     $('otSave').disabled = true;
     try {
       const rows = await insert('forum_topics', {
@@ -106,6 +134,12 @@ function otForm() {
         author_id: user.id,
         author_nome: profile?.nome || user.email
       });
+      if (pollOn && rows && rows[0]) {
+        const tid = rows[0].id;
+        const close = $('otPollClose').value ? new Date(`${$('otPollClose').value}T23:59:00`).toISOString() : null;
+        await insert('forum_polls', { topic_id: tid, domanda: $('otPollQ').value.trim(), multipla: $('otPollMulti').checked, chiude_at: close }, false);
+        await insert('forum_poll_options', options.map((t, i) => ({ topic_id: tid, testo: t, ord: i })), false);
+      }
       toast('Argomento pubblicato');
       await offtopicView();
       if (rows && rows[0]) otOpen(rows[0].id);
@@ -127,6 +161,17 @@ async function otOpen(id) {
   } catch (err) { toast(err.message); return; }
   if (epoch !== navigationEpoch) return;
   if (!topic) { toast('Argomento non trovato'); return offtopicView(); }
+  let poll = null, pollOpts = [], pollVotes = [];
+  try {
+    poll = (await select('forum_polls', `select=*&topic_id=eq.${topic.id}`))[0] || null;
+    if (poll) {
+      [pollOpts, pollVotes] = await Promise.all([
+        select('forum_poll_options', `select=*&topic_id=eq.${topic.id}&order=ord.asc`),
+        select('forum_poll_votes', `select=*&topic_id=eq.${topic.id}`)
+      ]);
+    }
+  } catch (e) { poll = null; }
+  if (epoch !== navigationEpoch) return;
   const c = OT_CATS[topic.categoria] || OT_CATS.GENERALE;
   const canMod = otCanModerate();
   const canReply = !topic.locked || canMod;
@@ -141,6 +186,7 @@ async function otOpen(id) {
         </div>
         <h3>${topic.pinned ? '<em class="ot-pin">In evidenza</em>' : ''}${topic.locked ? '<em class="ot-lock">Chiuso</em>' : ''}${esc(topic.titolo)}</h3>
         <div class="ot-text">${otBody(topic.corpo)}</div>
+        ${poll ? otPollHtml(poll, pollOpts, pollVotes, topic) : ''}
         <div class="button-row ot-actions">
           ${canMod ? `<button class="secondary compact" id="otPin">${topic.pinned ? 'Togli evidenza' : 'Metti in evidenza'}</button>
                       <button class="secondary compact" id="otLock">${topic.locked ? 'Riapri' : 'Chiudi alle risposte'}</button>` : ''}
@@ -163,6 +209,7 @@ async function otOpen(id) {
     </div>`;
 
   $('otBackList').onclick = offtopicView;
+  if (poll) otWirePoll(poll, pollOpts, pollVotes, topic);
   if ($('otReplyForm')) $('otReplyForm').onsubmit = async e => {
     e.preventDefault();
     const text = $('otReply').value.trim();
@@ -189,4 +236,54 @@ async function otOpen(id) {
       catch (err) { toast(err.message); }
     };
   });
+}
+
+
+// ---------- sondaggi ----------
+function otPollOpen(poll, topic) { return !topic.locked && (!poll.chiude_at || new Date(poll.chiude_at) > new Date()); }
+
+function otPollHtml(poll, opts, votes, topic) {
+  const open = otPollOpen(poll, topic);
+  const voters = new Set(votes.map(v => v.user_id));
+  const mine = votes.filter(v => v.user_id === user.id).map(v => String(v.option_id));
+  const max = Math.max(1, ...opts.map(o => votes.filter(v => String(v.option_id) === String(o.id)).length));
+  return `<section class="ot-poll">
+    <div class="ot-poll-head"><b>${esc(poll.domanda)}</b>
+      <small>${poll.multipla ? 'Più risposte possibili' : 'Una risposta'} · ${voters.size} ${voters.size === 1 ? 'voto' : 'voti'}${poll.chiude_at ? ` · ${open ? 'chiude il' : 'chiuso il'} ${new Date(poll.chiude_at).toLocaleDateString('it-IT', { day: 'numeric', month: 'long' })}` : ''}${open ? '' : ' · <b>sondaggio chiuso</b>'}</small>
+    </div>
+    ${opts.map(o => {
+      const vs = votes.filter(v => String(v.option_id) === String(o.id));
+      const pct = voters.size ? Math.round(vs.length / voters.size * 100) : 0;
+      const names = vs.map(v => v.user_nome || 'Collega');
+      const chosen = mine.includes(String(o.id));
+      return `<button class="ot-poll-opt${chosen ? ' chosen' : ''}" data-vote="${o.id}" ${open ? '' : 'disabled'} aria-pressed="${chosen}">
+        <span class="ot-poll-bar" style="width:${Math.round(vs.length / max * 100)}%"></span>
+        <span class="ot-poll-label"><i class="${poll.multipla ? 'sq' : 'rd'}"></i>${esc(o.testo)}</span>
+        <span class="ot-poll-num"><b>${vs.length}</b> · ${pct}%</span>
+        ${names.length ? `<small class="ot-poll-names">${esc(names.slice(0, 6).join(', '))}${names.length > 6 ? ` e altri ${names.length - 6}` : ''}</small>` : ''}
+      </button>`;
+    }).join('')}
+    ${open ? `<p class="muted-line ot-poll-hint">${mine.length ? 'Tocca di nuovo una risposta per toglierla.' : 'Tocca una risposta per votare.'}</p>` : ''}
+    ${open && topic.author_id === user.id ? '<button class="secondary compact" id="otPollClose">Chiudi il sondaggio adesso</button>' : ''}
+  </section>`;
+}
+
+function otWirePoll(poll, opts, votes, topic) {
+  document.querySelectorAll('[data-vote]').forEach(b => b.onclick = async () => {
+    const oid = +b.dataset.vote;
+    const already = votes.some(v => v.user_id === user.id && String(v.option_id) === String(oid));
+    b.disabled = true;
+    try {
+      if (already) {
+        await api(`/rest/v1/forum_poll_votes?option_id=eq.${oid}&user_id=eq.${user.id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+      } else {
+        await insert('forum_poll_votes', { option_id: oid, topic_id: topic.id, user_id: user.id, user_nome: profile?.nome || user.email }, false);
+      }
+      otOpen(topic.id);
+    } catch (err) { toast(err.message); b.disabled = false; }
+  });
+  if ($('otPollClose')) $('otPollClose').onclick = async () => {
+    try { await update('forum_polls', `topic_id=eq.${topic.id}`, { chiude_at: new Date().toISOString() }); otOpen(topic.id); }
+    catch (err) { toast(err.message); }
+  };
 }

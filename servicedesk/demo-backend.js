@@ -252,6 +252,26 @@
         { id: 2, topic_id: 1, corpo: 'Porto anche un amico, così siamo in 10.', author_id: HR1.id, author_nome: 'Sara Galli', created_at: iso(0, 10) },
         { id: 3, topic_id: 2, corpo: 'Prova Ideate Software, la demo è gratuita.', author_id: IT2.id, author_nome: IT2.nome, created_at: iso(1, 16) }
       ],
+      access_groups: [
+        { id: 1, nome: 'IT', descrizione: 'Reparto IT: gestisce utenti, calendario e moderazione', permessi: ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario'] },
+        { id: 2, nome: 'Moderatori Off topic', descrizione: 'Moderano la bacheca Off topic', permessi: ['moderazione_offtopic'] },
+        { id: 3, nome: 'Gestione calendario', descrizione: 'Gestiscono sale, auto e prenotazioni di tutti', permessi: ['gestione_calendario'] }
+      ],
+      access_group_members: [
+        { group_id: 1, user_id: 'demo-itdesk' }, { group_id: 1, user_id: IT1.id }, { group_id: 1, user_id: IT2.id },
+        { group_id: 2, user_id: HR1.id }
+      ],
+      forum_polls: [
+        { topic_id: 1, domanda: 'Che giorno preferite per la partita?', multipla: false, chiude_at: null, created_at: iso(1, 18) }
+      ],
+      forum_poll_options: [
+        { id: 1, topic_id: 1, testo: 'Giovedì', ord: 0 }, { id: 2, topic_id: 1, testo: 'Venerdì', ord: 1 }, { id: 3, topic_id: 1, testo: 'Lunedì', ord: 2 }
+      ],
+      forum_poll_votes: [
+        { option_id: 1, topic_id: 1, user_id: IT1.id, user_nome: IT1.nome, created_at: iso(1, 19) },
+        { option_id: 1, topic_id: 1, user_id: HR1.id, user_nome: 'Sara Galli', created_at: iso(0, 10) },
+        { option_id: 2, topic_id: 1, user_id: IT2.id, user_nome: IT2.nome, created_at: iso(0, 11) }
+      ],
       chat_messages: [
         { id: 1, sender_id: IT1.id, recipient_id: IT2.id, body: 'Oggi pomeriggio sostituisco il plotter al 2° piano.', created_at: iso(0, 9), read_at: iso(0, 9) },
         { id: 2, sender_id: IT2.id, recipient_id: IT1.id, body: 'Perfetto, io seguo i nuovi ingressi.', created_at: iso(0, 10), read_at: null }
@@ -277,7 +297,7 @@
       var stored = raw ? JSON.parse(raw) : null;
       if (stored && stored._meta && stored.tickets) {
         var fresh = seed(me);
-        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages', 'forum_topics', 'forum_replies'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
+        ['calendar_resources', 'calendar_events', 'calendar_attendees', 'chat_messages', 'forum_topics', 'forum_replies', 'access_groups', 'access_group_members', 'forum_polls', 'forum_poll_options', 'forum_poll_votes'].forEach(function (k) { if (!stored[k]) stored[k] = fresh[k]; });
         return stored;
       }
     } catch (e) {}
@@ -417,7 +437,19 @@
         if (r.id == null) r.id = nextId(table);
         if (table === 'tickets') { r.updated_at = now; r.created_by = r.created_by || me.id; }
         if (table === 'map_positions' && r.is_active == null) r.is_active = true;
-        if (table === 'calendar_events') checkOverlap(r);
+        if (table === 'calendar_events') {
+          checkOverlap(r);
+          var res0 = rows('calendar_resources').find(function (x) { return String(x.id) === String(r.resource_id); });
+          if (res0 && res0.gruppo_id != null && myPerms().indexOf('gestione_calendario') < 0 &&
+              !rows('access_group_members').some(function (mm) { return mm.user_id === me.id && String(mm.group_id) === String(res0.gruppo_id); })) {
+            throw new Error('new row violates row-level security policy for table "calendar_events"');
+          }
+        }
+        if (table === 'forum_poll_votes') {
+          var pl = rows('forum_polls').find(function (x) { return x.topic_id === r.topic_id; });
+          if (pl && pl.chiude_at && new Date(pl.chiude_at) <= new Date()) throw new Error('Sondaggio chiuso');
+          if (pl && !pl.multipla) db.forum_poll_votes = rows('forum_poll_votes').filter(function (v) { return !(v.topic_id === r.topic_id && v.user_id === r.user_id); });
+        }
         if (table === 'people') { r.normalized_name_key = r.normalized_name_key || norm((r.first_name || '') + (r.surname || '')); }
         rows(table).push(r);
         touchTicket(r.ticket_id, table);
@@ -471,6 +503,65 @@
     if (clash) throw new Error('conflicting key value violates exclusion constraint "calendar_events_no_overlap"');
   }
   function fmtShort(d) { var x = new Date(d); return String(x.getDate()).padStart(2, '0') + '/' + String(x.getMonth() + 1).padStart(2, '0') + ' ' + x.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); }
+
+  // ---------- permessi (in produzione: has_perm / my_permissions) ----------
+  var ALL_PERMS = ['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario'];
+  function myPerms() {
+    var p = rows('profiles').find(function (x) { return x.id === me.id; });
+    if (p && p.ruolo === 'SUPER_IT') return ALL_PERMS.slice();
+    var out = [];
+    rows('access_group_members').filter(function (m) { return m.user_id === me.id; }).forEach(function (m) {
+      var g = rows('access_groups').find(function (x) { return x.id === m.group_id; });
+      (g && g.permessi || []).forEach(function (k) { if (out.indexOf(k) < 0) out.push(k); });
+    });
+    return out;
+  }
+  function adminUsers(body) {
+    if (myPerms().indexOf('gestione_utenti') < 0) throw new Error('Non hai il permesso di gestire gli utenti');
+    var meSuper = (rows('profiles').find(function (x) { return x.id === me.id; }) || {}).ruolo === 'SUPER_IT';
+    var groupsOf = function (id) { return rows('access_group_members').filter(function (m) { return m.user_id === id; }).map(function (m) { return m.group_id; }); };
+    var setGroups = function (id, list) {
+      if (!Array.isArray(list)) return;
+      db.access_group_members = rows('access_group_members').filter(function (m) { return m.user_id !== id; });
+      list.forEach(function (g) { db.access_group_members.push({ group_id: +g, user_id: id }); });
+    };
+    db._auth = db._auth || {};
+    var a = body.action;
+    if (a === 'list') {
+      return { users: rows('profiles').map(function (p) {
+        var au = db._auth[p.id] || {};
+        return { id: p.id, email: p.email, nome: p.nome, ruolo: p.ruolo, has_profile: true, confirmed: true, invited: !!au.invited,
+          disabled: !!au.disabled, created_at: au.created_at || iso(60), last_sign_in_at: p.id === me.id ? new Date().toISOString() : (au.invited ? null : iso(2)), gruppi: groupsOf(p.id) };
+      }) };
+    }
+    if ((body.ruolo === 'SUPER_IT') && !meSuper) throw new Error('Solo un SUPER_IT può nominare un altro SUPER_IT');
+    if (a === 'create') {
+      var email = String(body.email || '').trim().toLowerCase();
+      if (rows('profiles').some(function (p) { return p.email === email; })) throw new Error('Esiste già un utente con questa email');
+      var id = 'demo-u' + Date.now();
+      rows('profiles').push({ id: id, email: email, nome: body.nome, ruolo: body.ruolo || 'USER' });
+      db._auth[id] = { invited: !!body.invite, created_at: new Date().toISOString() };
+      setGroups(id, body.gruppi);
+      return { ok: true, id: id };
+    }
+    var target = rows('profiles').find(function (p) { return p.id === body.id; });
+    if (!target) throw new Error('Utente non trovato');
+    if (target.ruolo === 'SUPER_IT' && !meSuper) throw new Error('Solo un SUPER_IT può modificare un SUPER_IT');
+    if (a === 'update') {
+      if (body.nome) target.nome = body.nome;
+      if (body.ruolo && target.id !== me.id) target.ruolo = body.ruolo;
+      setGroups(target.id, body.gruppi);
+      return { ok: true };
+    }
+    if (target.id === me.id) throw new Error('Non puoi farlo su te stesso');
+    if (a === 'disable' || a === 'enable') { db._auth[target.id] = Object.assign(db._auth[target.id] || {}, { disabled: a === 'disable' }); return { ok: true }; }
+    if (a === 'delete') {
+      db.profiles = rows('profiles').filter(function (p) { return p.id !== target.id; });
+      db.access_group_members = rows('access_group_members').filter(function (m) { return m.user_id !== target.id; });
+      return { ok: true };
+    }
+    throw new Error('Azione sconosciuta');
+  }
 
   // ---------- notifiche (in produzione le crea il database) ----------
   function ticketById(id) { return rows('tickets').find(function (t) { return String(t.id) === String(id); }); }
@@ -582,11 +673,14 @@
     if (path.indexOf('/functions/v1/') === 0) {
       var fn = path.slice('/functions/v1/'.length);
       if (fn.indexOf('telegram') === 0) return { ok: true, demo: true };
+      if (fn === 'admin-users') { var res = adminUsers(body || {}); persist(); return clone(res); }
       throw new Error('Import non disponibile in modalità demo: nessun file viene caricato.');
     }
 
     var m = path.match(/^\/rest\/v1\/([^?]+)\??(.*)$/);
     if (!m) throw new Error('Percorso non gestito in demo: ' + path);
+    if (m[1] === 'rpc/my_permissions') return myPerms();
+    if (m[1] === 'rpc/has_perm') return myPerms().indexOf(body && body.p) >= 0;
     if (m[1] === 'rpc/chat_contacts') {
       return rows('profiles').filter(function (p) { return p.id !== me.id; })
         .map(function (p) { return { id: p.id, nome: p.nome || p.email, ruolo: p.ruolo }; })

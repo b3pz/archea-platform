@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.4.0 — Sondaggi, gestione utenti dal sito, gruppi e permessi
+
+- **Sondaggi** negli argomenti Off topic: domanda, da 2 a 12 risposte, scelta singola o multipla, chiusura facoltativa. Si vede chi ha votato cosa, e un voto si toglie toccandolo di nuovo.
+- **Utenti e gruppi** (Service Desk, per chi ha il permesso): elenco utenti con stato e ultimo accesso. Si possono aggiungere utenti con password temporanea o invito per email, cambiare ruolo e gruppi, reimpostare la password, disattivare o eliminare.
+- **Gruppi e permessi**: le persone si mettono nei gruppi e il gruppo dà i permessi (gestire utenti, moderare Off topic, gestire il calendario). I gruppi iniziali sono IT, Moderatori Off topic e Gestione calendario; SUPER_IT ha sempre tutto.
+- **Sale e auto**: chi gestisce il calendario sceglie se una risorsa la prenotano tutti o solo un gruppo, e può aggiungere o disattivare risorse.
+- **Sicurezza**: nessuno può cambiarsi il ruolo da solo, e solo un SUPER_IT può nominarne un altro.
+- La **Mappa** è visibile anche all'HR.
+- Nuovo `supabase/SETUP_COMPLETO.sql`, un unico script, provato su PostgreSQL 16. Nuova Edge Function `supabase/functions/admin-users`.
+
 ## 1.3.0 — Off topic
 
 - Nuova sezione **Off topic**: ogni utente apre argomenti in 5 categorie (Generale, Eventi, Consigli, Mercatino, Svago) e risponde. Ci sono ricerca e filtri, e i link sono cliccabili.

@@ -12,6 +12,7 @@ const START_ACTIONS = {
   mine:           ['I miei ticket', 'Segui lo stato delle tue richieste', 'mine'],
   booking:        ['Prenota materiale', 'Matterport, iPad, laptop…', 'prenotazioni'],
   chat:           ['Chat', 'Scrivi a un collega o al reparto IT', 'chat'],
+  utenti:         ['Utenti e gruppi', 'Aggiungi colleghi, ruoli e permessi', 'utenti'],
   offtopic:       ['Off topic', 'Eventi, consigli, mercatino: due chiacchiere', 'offtopic'],
   agenda:         ['Calendario comune', 'Appuntamenti, sale e auto di tutti', 'agenda'],
   appt:           ['Fissa un appuntamento', 'Invita i colleghi: ricevono la notifica', 'agenda'],
@@ -32,8 +33,12 @@ const START_ACTIONS = {
 };
 
 function startActionsForRole() {
+  const extra = typeof hasPerm === 'function' && hasPerm('gestione_utenti') ? ['utenti'] : [];
+  return [...startActionsBase(), ...extra];
+}
+function startActionsBase() {
   if (isITRole()) return ['it', 'new', 'scan', 'chat', 'appt', 'room', 'car', 'agenda', 'censimento', 'persone', 'movimenti', 'mappa', 'calendar', 'prenotazioni', 'offtopic', 'home'];
-  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'hr-stats', 'offtopic', 'new', 'mine'];
+  if (isHR()) return ['persone', 'hr-new', 'appt', 'chat', 'room', 'car', 'agenda', 'hr-history', 'mappa', 'hr-stats', 'offtopic', 'new', 'mine'];
   return ['new', 'mine', 'appt', 'room', 'car', 'agenda', 'chat', 'offtopic', 'booking'];
 }
 

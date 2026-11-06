@@ -3176,7 +3176,7 @@ async function openSerialScanner(targetInput){
 // ============================================================
 async function mapView(){
   const epoch=navigationEpoch;
-  if(!isITRole())return userHome();
+  if(!isITRole()&&!isHR())return userHome();
   page('Mappa','Persone, postazioni e magazzino per sede');
   let positions=[];
   try{positions=await select('map_positions','select=*&is_active=eq.true&order=site.asc,zone_code.asc,position_code.asc')}catch(err){
@@ -3251,6 +3251,7 @@ const NAV_ICON_PATHS={
   start:'<path d="M3 11.5 12 4l9 7.5"/><path d="M5.5 10v10h13V10M10 20v-5h4v5"/>',
   chat:'<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/><path d="M8.5 11h7M8.5 14h4.5"/>',
   agenda:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M16 3v4M8 3v4M3 10h18M8 14h3v3H8z"/>',
+  utenti:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M17 11l1.5 1.5L22 9"/>',
   offtopic:'<path d="M4 5h16v10H9l-5 4V5Z"/><path d="M8 9h8M8 12h5"/><circle cx="18.5" cy="5.5" r="2.5"/>',
   room:'<path d="M3 21h18M5 21V6l7-3 7 3v15M9 21v-5h6v5M9 10h.01M15 10h.01"/>',
   car:'<path d="M5 17h14v-5l-2-5H7l-2 5v5Z"/><circle cx="8" cy="17" r="2"/><circle cx="16" cy="17" r="2"/><path d="M5 12h14"/>'
@@ -3276,7 +3277,7 @@ function setActiveNavigation(view){
 function nav(v){
   navigationEpoch++;
   const normalUserViews=['new','mine'];
-  const hrViews=['persone','hr-new','hr-history','hr-stats'];
+  const hrViews=['persone','hr-new','hr-history','hr-stats','mappa'];
 
   if(currentView!==v){
     if(currentView && !String(currentView).includes('detail') && currentView!=='asset-edit'){
@@ -3291,6 +3292,7 @@ function nav(v){
   if(v==='chat')return chatView();
   if(v==='agenda')return agendaView();
   if(v==='offtopic')return offtopicView();
+  if(v==='utenti')return usersView();
 
   if(isHR()){
     if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
@@ -3316,7 +3318,7 @@ function nav(v){
 
   updateBackButton();
 }
-async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
+async function boot(){if(DEMO){const acc=window.ArcheaAuth&&window.ArcheaAuth.getDemo();if(acc){session=window.SDDemo.start(acc)}}const raw=DEMO?null:localStorage.getItem('archea_sd_session');if(DEMO&&session){try{user=await api('/auth/v1/user')}catch{user=null}}else if(raw){try{session=JSON.parse(raw);user=await api('/auth/v1/user')}catch{clear()}}if(!user){$('login').classList.remove('hidden');$('app').classList.add('hidden');if(EMBED)showEmbedSignedOut();return}const p=await select('profiles',`select=*&id=eq.${user.id}`);if(!p.length){clear();$('loginErr').textContent='Profilo non trovato';return}profile=p[0];try{if(typeof loadPerms==='function')await loadPerms()}catch{}$('who').textContent=profile.nome||user.email;$('role').textContent=profile.ruolo;$('userNav').classList.toggle('hidden',isITRole()||isHR());
 $('hrNav').classList.toggle('hidden',!isHR());
 $('itNav').classList.toggle('hidden',!isITRole());$('login').classList.add('hidden');$('app').classList.remove('hidden');currentView=['chat','agenda','offtopic'].includes(SD_PARAMS.get('view'))?SD_PARAMS.get('view'):'start';previousView=null;nav(currentView);previousView=null;updateBackButton();
 const deepTicket=String(SD_PARAMS.get('ticket')||new URLSearchParams(location.hash.slice(1)).get('ticket')||'').replace(/\D/g,'').replace(/^20\d\d(?=\d{5}$)/,'');

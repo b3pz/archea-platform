@@ -1,0 +1,669 @@
+-- ARCHEA Platform · SETUP COMPLETO (chat, calendario, off topic, sondaggi, utenti e gruppi)
+-- Supabase → SQL Editor → New query → incolla TUTTO questo file → Run.
+-- Si può rieseguire senza danni: crea solo ciò che manca.
+-- Generato unendo, in ordine, i file in supabase/migrations/2026*.sql
+
+-- ================================================================
+-- 20261106_chat.sql
+-- ================================================================
+-- ARCHEA Platform · Chat tra utenti (Service Desk V9.1)
+-- Da eseguire UNA volta: Supabase → SQL Editor → New query → incolla tutto → Run.
+-- Si può rieseguire senza danni.
+
+-- 1) Messaggi
+create table if not exists public.chat_messages (
+  id           bigserial primary key,
+  sender_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  recipient_id uuid not null references auth.users(id) on delete cascade,
+  body         text not null check (char_length(btrim(body)) between 1 and 4000),
+  created_at   timestamptz not null default now(),
+  read_at      timestamptz
+);
+create index if not exists chat_messages_recipient_idx on public.chat_messages (recipient_id, read_at);
+create index if not exists chat_messages_pair_idx on public.chat_messages (sender_id, recipient_id, created_at);
+
+-- 2) Sicurezza: ognuno vede solo i messaggi che ha inviato o ricevuto
+alter table public.chat_messages enable row level security;
+
+drop policy if exists chat_select_own on public.chat_messages;
+create policy chat_select_own on public.chat_messages
+  for select to authenticated
+  using (auth.uid() = sender_id or auth.uid() = recipient_id);
+
+drop policy if exists chat_insert_as_me on public.chat_messages;
+create policy chat_insert_as_me on public.chat_messages
+  for insert to authenticated
+  with check (sender_id = auth.uid() and recipient_id <> auth.uid());
+
+drop policy if exists chat_mark_read on public.chat_messages;
+create policy chat_mark_read on public.chat_messages
+  for update to authenticated
+  using (recipient_id = auth.uid())
+  with check (recipient_id = auth.uid());
+
+-- Il destinatario può solo segnare come letto: il testo non si modifica.
+revoke update on public.chat_messages from authenticated;
+grant select, insert on public.chat_messages to authenticated;
+grant update (read_at) on public.chat_messages to authenticated;
+grant usage, select on sequence public.chat_messages_id_seq to authenticated;
+
+-- 3) Rubrica: solo id, nome e ruolo dei colleghi (non espone gli altri campi di profiles)
+create or replace function public.chat_contacts()
+returns table (id uuid, nome text, ruolo text)
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select p.id, coalesce(p.nome, p.email)::text, p.ruolo::text
+  from public.profiles p
+  where auth.uid() is not null and p.id <> auth.uid()
+  order by 2;
+$$;
+revoke all on function public.chat_contacts() from public, anon;
+grant execute on function public.chat_contacts() to authenticated;
+
+-- 4) Notifica al destinatario (campanella del Service Desk)
+create or replace function public.chat_notify()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  sender_name text;
+begin
+  select coalesce(nome, email) into sender_name from public.profiles where id = new.sender_id;
+  begin
+    insert into public.notifications (user_id, title, message, is_read)
+    values (new.recipient_id, 'Nuovo messaggio', coalesce(sender_name, 'Collega') || ': ' || left(new.body, 120), false);
+  exception when others then
+    -- una notifica non riuscita non deve mai bloccare il messaggio
+    null;
+  end;
+  return new;
+end;
+$$;
+
+drop trigger if exists chat_messages_notify on public.chat_messages;
+create trigger chat_messages_notify
+  after insert on public.chat_messages
+  for each row execute function public.chat_notify();
+
+-- ================================================================
+-- 20261106_calendario.sql
+-- ================================================================
+-- ARCHEA Platform · Calendario comune: appuntamenti, sale meeting e auto
+-- Da eseguire UNA volta: Supabase → SQL Editor → New query → incolla tutto → Run.
+-- Si può rieseguire senza danni. Richiede la chat (20261106_chat.sql) per la rubrica.
+
+create extension if not exists btree_gist;
+
+-- 1) Risorse prenotabili (sale, auto, attrezzature)
+create table if not exists public.calendar_resources (
+  id         bigserial primary key,
+  tipo       text not null check (tipo in ('SALA', 'AUTO', 'ATTREZZATURA')),
+  nome       text not null,
+  sede       text,
+  dettagli   text,            -- es. "10 posti, schermo 75''" oppure targa
+  attivo     boolean not null default true,
+  created_at timestamptz not null default now()
+);
+
+-- 2) Eventi del calendario comune
+create table if not exists public.calendar_events (
+  id           bigserial primary key,
+  tipo         text not null default 'APPUNTAMENTO' check (tipo in ('APPUNTAMENTO', 'SALA', 'AUTO', 'ATTREZZATURA')),
+  titolo       text not null check (char_length(btrim(titolo)) between 1 and 200),
+  descrizione  text,
+  luogo        text,
+  resource_id  bigint references public.calendar_resources(id) on delete set null,
+  start_at     timestamptz not null,
+  end_at       timestamptz not null,
+  stato        text not null default 'CONFERMATO' check (stato in ('CONFERMATO', 'ANNULLATO')),
+  organizer_id uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  organizer_nome text,
+  created_at   timestamptz not null default now(),
+  updated_at   timestamptz not null default now(),
+  check (end_at > start_at)
+);
+-- Riunioni online (Zoom, Google Meet, Teams, Webex, altro)
+alter table public.calendar_events add column if not exists meeting_provider text;
+alter table public.calendar_events add column if not exists meeting_url text
+  check (meeting_url is null or meeting_url ~* '^https://');
+create index if not exists calendar_events_range_idx on public.calendar_events (start_at, end_at);
+
+-- Nessuna doppia prenotazione della stessa sala/auto nello stesso orario
+alter table public.calendar_events drop constraint if exists calendar_events_no_overlap;
+alter table public.calendar_events add constraint calendar_events_no_overlap
+  exclude using gist (resource_id with =, tstzrange(start_at, end_at, '[)') with &&)
+  where (resource_id is not null and stato <> 'ANNULLATO');
+
+-- 3) Partecipanti
+create table if not exists public.calendar_attendees (
+  event_id   bigint not null references public.calendar_events(id) on delete cascade,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  risposta   text not null default 'IN ATTESA' check (risposta in ('IN ATTESA', 'ACCETTATO', 'RIFIUTATO')),
+  created_at timestamptz not null default now(),
+  primary key (event_id, user_id)
+);
+
+-- 4) Sicurezza
+alter table public.calendar_resources enable row level security;
+alter table public.calendar_events    enable row level security;
+alter table public.calendar_attendees enable row level security;
+
+create or replace function public.is_it_staff()
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.profiles where id = auth.uid() and ruolo in ('IT', 'SUPER_IT'));
+$$;
+revoke all on function public.is_it_staff() from public, anon;
+grant execute on function public.is_it_staff() to authenticated;
+
+-- Risorse: tutti le vedono, solo IT le gestisce
+drop policy if exists cal_res_read on public.calendar_resources;
+create policy cal_res_read on public.calendar_resources for select to authenticated using (true);
+drop policy if exists cal_res_manage on public.calendar_resources;
+create policy cal_res_manage on public.calendar_resources for all to authenticated
+  using (public.is_it_staff()) with check (public.is_it_staff());
+
+-- Eventi: calendario comune visibile a tutti gli utenti autenticati
+drop policy if exists cal_ev_read on public.calendar_events;
+create policy cal_ev_read on public.calendar_events for select to authenticated using (true);
+drop policy if exists cal_ev_insert on public.calendar_events;
+create policy cal_ev_insert on public.calendar_events for insert to authenticated
+  with check (organizer_id = auth.uid());
+drop policy if exists cal_ev_update on public.calendar_events;
+create policy cal_ev_update on public.calendar_events for update to authenticated
+  using (organizer_id = auth.uid() or public.is_it_staff())
+  with check (organizer_id = auth.uid() or public.is_it_staff());
+drop policy if exists cal_ev_delete on public.calendar_events;
+create policy cal_ev_delete on public.calendar_events for delete to authenticated
+  using (organizer_id = auth.uid() or public.is_it_staff());
+
+-- Partecipanti: visibili a tutti; li aggiunge l'organizzatore; ognuno risponde per sé
+drop policy if exists cal_att_read on public.calendar_attendees;
+create policy cal_att_read on public.calendar_attendees for select to authenticated using (true);
+drop policy if exists cal_att_insert on public.calendar_attendees;
+create policy cal_att_insert on public.calendar_attendees for insert to authenticated
+  with check (exists (select 1 from public.calendar_events e where e.id = event_id and e.organizer_id = auth.uid()));
+drop policy if exists cal_att_answer on public.calendar_attendees;
+create policy cal_att_answer on public.calendar_attendees for update to authenticated
+  using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists cal_att_delete on public.calendar_attendees;
+create policy cal_att_delete on public.calendar_attendees for delete to authenticated
+  using (exists (select 1 from public.calendar_events e where e.id = event_id and e.organizer_id = auth.uid()));
+
+grant select on public.calendar_resources to authenticated;
+grant insert, update, delete on public.calendar_resources to authenticated;
+grant select, insert, update, delete on public.calendar_events to authenticated;
+grant select, insert, update, delete on public.calendar_attendees to authenticated;
+grant usage, select on sequence public.calendar_resources_id_seq to authenticated;
+grant usage, select on sequence public.calendar_events_id_seq to authenticated;
+
+-- 5) Notifiche (campanella): invito, risposta, annullamento
+create or replace function public.calendar_notify_invite()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare ev record;
+begin
+  select * into ev from public.calendar_events where id = new.event_id;
+  begin
+    insert into public.notifications (user_id, title, message, is_read)
+    values (new.user_id, 'Nuovo appuntamento',
+            coalesce(ev.organizer_nome, 'Un collega') || ' ti ha invitato: ' || ev.titolo || ' · ' ||
+            to_char(ev.start_at at time zone 'Europe/Rome', 'DD/MM HH24:MI'), false);
+  exception when others then null;
+  end;
+  return new;
+end $$;
+drop trigger if exists calendar_attendees_invite on public.calendar_attendees;
+create trigger calendar_attendees_invite after insert on public.calendar_attendees
+  for each row execute function public.calendar_notify_invite();
+
+create or replace function public.calendar_notify_answer()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare ev record; who text;
+begin
+  if new.risposta = old.risposta then return new; end if;
+  select * into ev from public.calendar_events where id = new.event_id;
+  select coalesce(nome, email) into who from public.profiles where id = new.user_id;
+  begin
+    insert into public.notifications (user_id, title, message, is_read)
+    values (ev.organizer_id, 'Risposta appuntamento',
+            coalesce(who, 'Un collega') || ' ha ' || lower(new.risposta) || ': ' || ev.titolo, false);
+  exception when others then null;
+  end;
+  return new;
+end $$;
+drop trigger if exists calendar_attendees_answer on public.calendar_attendees;
+create trigger calendar_attendees_answer after update on public.calendar_attendees
+  for each row execute function public.calendar_notify_answer();
+
+create or replace function public.calendar_notify_cancel()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.stato = 'ANNULLATO' and old.stato <> 'ANNULLATO' then
+    begin
+      insert into public.notifications (user_id, title, message, is_read)
+      select a.user_id, 'Appuntamento annullato',
+             new.titolo || ' · ' || to_char(new.start_at at time zone 'Europe/Rome', 'DD/MM HH24:MI'), false
+      from public.calendar_attendees a where a.event_id = new.id and a.user_id <> auth.uid();
+    exception when others then null;
+    end;
+  end if;
+  new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists calendar_events_cancel on public.calendar_events;
+create trigger calendar_events_cancel before update on public.calendar_events
+  for each row execute function public.calendar_notify_cancel();
+
+-- 6) Risorse iniziali (modificabili da Table Editor → calendar_resources)
+insert into public.calendar_resources (tipo, nome, sede, dettagli)
+select * from (values
+  ('SALA', 'Sala meeting grande', 'FIRENZE', '12 posti · schermo e videoconferenza'),
+  ('SALA', 'Sala meeting piccola', 'FIRENZE', '6 posti · schermo'),
+  ('AUTO', 'Auto aziendale 1', 'FIRENZE', 'Targa da inserire'),
+  ('AUTO', 'Auto aziendale 2', 'FIRENZE', 'Targa da inserire')
+) as v(tipo, nome, sede, dettagli)
+where not exists (select 1 from public.calendar_resources);
+
+-- ================================================================
+-- 20261106_offtopic.sql
+-- ================================================================
+-- ARCHEA Platform · Off topic (bacheca libera tra colleghi)
+-- Da eseguire UNA volta: Supabase → SQL Editor → New query → incolla tutto → Run.
+-- Richiede 20261106_calendario.sql (usa la funzione is_it_staff). Si può rieseguire.
+
+create table if not exists public.forum_topics (
+  id               bigserial primary key,
+  categoria        text not null default 'GENERALE'
+                   check (categoria in ('GENERALE', 'EVENTI', 'CONSIGLI', 'MERCATINO', 'SVAGO')),
+  titolo           text not null check (char_length(btrim(titolo)) between 3 and 160),
+  corpo            text not null check (char_length(btrim(corpo)) between 1 and 8000),
+  author_id        uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  author_nome      text,
+  pinned           boolean not null default false,
+  locked           boolean not null default false,
+  replies_count    integer not null default 0,
+  last_activity_at timestamptz not null default now(),
+  created_at       timestamptz not null default now()
+);
+create index if not exists forum_topics_activity_idx on public.forum_topics (pinned desc, last_activity_at desc);
+
+create table if not exists public.forum_replies (
+  id          bigserial primary key,
+  topic_id    bigint not null references public.forum_topics(id) on delete cascade,
+  corpo       text not null check (char_length(btrim(corpo)) between 1 and 8000),
+  author_id   uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  author_nome text,
+  created_at  timestamptz not null default now()
+);
+create index if not exists forum_replies_topic_idx on public.forum_replies (topic_id, created_at);
+
+alter table public.forum_topics  enable row level security;
+alter table public.forum_replies enable row level security;
+
+-- Tutti gli utenti autenticati leggono e scrivono; ognuno modifica/cancella solo i propri
+-- contenuti; IT (moderazione) può fissare, chiudere e cancellare qualsiasi argomento.
+drop policy if exists forum_t_read on public.forum_topics;
+create policy forum_t_read on public.forum_topics for select to authenticated using (true);
+drop policy if exists forum_t_insert on public.forum_topics;
+create policy forum_t_insert on public.forum_topics for insert to authenticated
+  with check (author_id = auth.uid() and pinned = false and locked = false);
+drop policy if exists forum_t_update on public.forum_topics;
+create policy forum_t_update on public.forum_topics for update to authenticated
+  using (author_id = auth.uid() or public.is_it_staff())
+  with check (author_id = auth.uid() or public.is_it_staff());
+drop policy if exists forum_t_delete on public.forum_topics;
+create policy forum_t_delete on public.forum_topics for delete to authenticated
+  using (author_id = auth.uid() or public.is_it_staff());
+
+drop policy if exists forum_r_read on public.forum_replies;
+create policy forum_r_read on public.forum_replies for select to authenticated using (true);
+drop policy if exists forum_r_insert on public.forum_replies;
+create policy forum_r_insert on public.forum_replies for insert to authenticated
+  with check (
+    author_id = auth.uid()
+    and exists (select 1 from public.forum_topics t where t.id = topic_id and (not t.locked or public.is_it_staff()))
+  );
+drop policy if exists forum_r_delete on public.forum_replies;
+create policy forum_r_delete on public.forum_replies for delete to authenticated
+  using (author_id = auth.uid() or public.is_it_staff());
+
+grant select, insert, update, delete on public.forum_topics to authenticated;
+grant select, insert, delete on public.forum_replies to authenticated;
+grant usage, select on sequence public.forum_topics_id_seq to authenticated;
+grant usage, select on sequence public.forum_replies_id_seq to authenticated;
+
+-- Solo IT può fissare o chiudere: l'autore può cambiare titolo e testo, non questi campi.
+create or replace function public.forum_guard_topic()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  -- aggiornamenti fatti dai trigger interni (contatore risposte) passano
+  if pg_trigger_depth() > 1 then return new; end if;
+  if not public.is_it_staff() then
+    new.pinned := old.pinned;
+    new.locked := old.locked;
+  end if;
+  new.author_id := old.author_id;
+  new.replies_count := old.replies_count;
+  return new;
+end $$;
+drop trigger if exists forum_topics_guard on public.forum_topics;
+create trigger forum_topics_guard before update on public.forum_topics
+  for each row execute function public.forum_guard_topic();
+
+-- Contatore risposte, ultima attività e notifiche a chi partecipa
+create or replace function public.forum_on_reply()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare t record;
+begin
+  update public.forum_topics
+     set replies_count = replies_count + 1, last_activity_at = now()
+   where id = new.topic_id
+  returning * into t;
+  begin
+    insert into public.notifications (user_id, title, message, is_read)
+    select distinct u.uid, 'Off topic · nuova risposta',
+           coalesce(new.author_nome, 'Un collega') || ' ha risposto a "' || left(t.titolo, 80) || '"', false
+    from (
+      select t.author_id as uid
+      union select r.author_id from public.forum_replies r where r.topic_id = new.topic_id
+    ) u
+    where u.uid <> new.author_id;
+  exception when others then null;
+  end;
+  return new;
+end $$;
+drop trigger if exists forum_replies_after_insert on public.forum_replies;
+create trigger forum_replies_after_insert after insert on public.forum_replies
+  for each row execute function public.forum_on_reply();
+
+create or replace function public.forum_on_reply_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  update public.forum_topics set replies_count = greatest(replies_count - 1, 0) where id = old.topic_id;
+  return old;
+end $$;
+drop trigger if exists forum_replies_after_delete on public.forum_replies;
+create trigger forum_replies_after_delete after delete on public.forum_replies
+  for each row execute function public.forum_on_reply_delete();
+
+-- ================================================================
+-- 20261106_sondaggi.sql
+-- ================================================================
+-- ARCHEA Platform · Sondaggi negli argomenti Off topic
+-- Da eseguire dopo 20261106_offtopic.sql. Si può rieseguire.
+
+create table if not exists public.forum_polls (
+  topic_id   bigint primary key references public.forum_topics(id) on delete cascade,
+  domanda    text not null check (char_length(btrim(domanda)) between 3 and 200),
+  multipla   boolean not null default false,   -- true = si possono scegliere più risposte
+  chiude_at  timestamptz,                      -- vuoto = sempre aperto
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.forum_poll_options (
+  id       bigserial primary key,
+  topic_id bigint not null references public.forum_polls(topic_id) on delete cascade,
+  testo    text not null check (char_length(btrim(testo)) between 1 and 120),
+  ord      integer not null default 0
+);
+create index if not exists forum_poll_options_topic_idx on public.forum_poll_options (topic_id, ord);
+
+create table if not exists public.forum_poll_votes (
+  option_id  bigint not null references public.forum_poll_options(id) on delete cascade,
+  topic_id   bigint not null references public.forum_polls(topic_id) on delete cascade,
+  user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
+  user_nome  text,
+  created_at timestamptz not null default now(),
+  primary key (option_id, user_id)
+);
+create index if not exists forum_poll_votes_topic_idx on public.forum_poll_votes (topic_id, user_id);
+
+alter table public.forum_polls enable row level security;
+alter table public.forum_poll_options enable row level security;
+alter table public.forum_poll_votes enable row level security;
+
+create or replace function public.forum_poll_open(tid bigint)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.forum_polls p join public.forum_topics t on t.id = p.topic_id
+                 where p.topic_id = tid and not t.locked and (p.chiude_at is null or p.chiude_at > now()));
+$$;
+grant execute on function public.forum_poll_open(bigint) to authenticated;
+
+-- Lettura per tutti; il sondaggio lo crea solo l'autore dell'argomento
+drop policy if exists polls_read on public.forum_polls;
+create policy polls_read on public.forum_polls for select to authenticated using (true);
+drop policy if exists polls_insert on public.forum_polls;
+create policy polls_insert on public.forum_polls for insert to authenticated
+  with check (exists (select 1 from public.forum_topics t where t.id = topic_id and t.author_id = auth.uid()));
+drop policy if exists polls_update on public.forum_polls;
+create policy polls_update on public.forum_polls for update to authenticated
+  using (exists (select 1 from public.forum_topics t where t.id = topic_id and t.author_id = auth.uid()));
+
+drop policy if exists poll_opts_read on public.forum_poll_options;
+create policy poll_opts_read on public.forum_poll_options for select to authenticated using (true);
+drop policy if exists poll_opts_insert on public.forum_poll_options;
+create policy poll_opts_insert on public.forum_poll_options for insert to authenticated
+  with check (exists (select 1 from public.forum_topics t where t.id = topic_id and t.author_id = auth.uid()));
+
+-- Voti: ognuno vota per sé finché il sondaggio è aperto; i voti sono visibili (chi viene alla festa)
+drop policy if exists poll_votes_read on public.forum_poll_votes;
+create policy poll_votes_read on public.forum_poll_votes for select to authenticated using (true);
+drop policy if exists poll_votes_insert on public.forum_poll_votes;
+create policy poll_votes_insert on public.forum_poll_votes for insert to authenticated
+  with check (
+    user_id = auth.uid()
+    and public.forum_poll_open(topic_id)
+    and exists (select 1 from public.forum_poll_options o where o.id = option_id and o.topic_id = forum_poll_votes.topic_id)
+  );
+drop policy if exists poll_votes_delete on public.forum_poll_votes;
+create policy poll_votes_delete on public.forum_poll_votes for delete to authenticated
+  using (user_id = auth.uid() and public.forum_poll_open(topic_id));
+
+grant select, insert, update on public.forum_polls to authenticated;
+grant select, insert on public.forum_poll_options to authenticated;
+grant select, insert, delete on public.forum_poll_votes to authenticated;
+grant usage, select on sequence public.forum_poll_options_id_seq to authenticated;
+
+-- Scelta singola: un nuovo voto sostituisce il precedente
+create or replace function public.forum_poll_single_choice()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if not (select multipla from public.forum_polls where topic_id = new.topic_id) then
+    delete from public.forum_poll_votes where topic_id = new.topic_id and user_id = new.user_id and option_id <> new.option_id;
+  end if;
+  return new;
+end $$;
+drop trigger if exists forum_poll_votes_single on public.forum_poll_votes;
+create trigger forum_poll_votes_single before insert on public.forum_poll_votes
+  for each row execute function public.forum_poll_single_choice();
+
+-- ================================================================
+-- 20261106_utenti_gruppi.sql
+-- ================================================================
+-- ARCHEA Platform · Gruppi e permessi
+-- Da eseguire dopo chat, calendario, off topic e sondaggi (oppure usa supabase/SETUP_COMPLETO.sql).
+-- Si può rieseguire senza danni.
+--
+-- Idea: le persone stanno in GRUPPI (es. "IT", "Moderatori Off topic", "Segreteria").
+-- Ogni gruppo ha dei PERMESSI. Chi è nel gruppo ha quei permessi.
+-- SUPER_IT ha sempre tutti i permessi.
+--
+-- Permessi disponibili:
+--   gestione_utenti        vedere, aggiungere, modificare ed eliminare utenti e gruppi
+--   moderazione_offtopic   mettere in evidenza, chiudere ed eliminare argomenti e risposte
+--   gestione_calendario    modificare/annullare prenotazioni di tutti, gestire sale e auto
+
+-- 1) Tabelle
+create table if not exists public.access_groups (
+  id          bigserial primary key,
+  nome        text not null unique check (char_length(btrim(nome)) between 2 and 60),
+  descrizione text,
+  permessi    text[] not null default '{}',
+  created_at  timestamptz not null default now()
+);
+alter table public.access_groups drop constraint if exists access_groups_permessi_validi;
+alter table public.access_groups add constraint access_groups_permessi_validi
+  check (permessi <@ array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario']::text[]);
+
+create table if not exists public.access_group_members (
+  group_id   bigint not null references public.access_groups(id) on delete cascade,
+  user_id    uuid not null references auth.users(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  primary key (group_id, user_id)
+);
+
+-- Sale/auto riservate a un gruppo (vuoto = le prenotano tutti)
+alter table public.calendar_resources add column if not exists gruppo_id bigint references public.access_groups(id) on delete set null;
+
+-- 2) Funzioni di controllo
+create or replace function public.has_perm(p text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and (
+    exists (select 1 from public.profiles where id = auth.uid() and ruolo = 'SUPER_IT')
+    or exists (
+      select 1 from public.access_group_members m
+      join public.access_groups g on g.id = m.group_id
+      where m.user_id = auth.uid() and p = any (g.permessi)
+    )
+  );
+$$;
+revoke all on function public.has_perm(text) from public, anon;
+grant execute on function public.has_perm(text) to authenticated;
+
+create or replace function public.my_permissions()
+returns text[] language sql stable security definer set search_path = public as $$
+  select case
+    when exists (select 1 from public.profiles where id = auth.uid() and ruolo = 'SUPER_IT')
+      then array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario']
+    else coalesce((
+      select array_agg(distinct perm) from public.access_group_members m
+      join public.access_groups g on g.id = m.group_id, unnest(g.permessi) as perm
+      where m.user_id = auth.uid()
+    ), '{}')
+  end;
+$$;
+revoke all on function public.my_permissions() from public, anon;
+grant execute on function public.my_permissions() to authenticated;
+
+create or replace function public.can_book_resource(rid bigint)
+returns boolean language sql stable security definer set search_path = public as $$
+  select rid is null or exists (
+    select 1 from public.calendar_resources r
+    where r.id = rid and r.attivo and (
+      r.gruppo_id is null
+      or public.has_perm('gestione_calendario')
+      or exists (select 1 from public.access_group_members m where m.group_id = r.gruppo_id and m.user_id = auth.uid())
+    )
+  );
+$$;
+revoke all on function public.can_book_resource(bigint) from public, anon;
+grant execute on function public.can_book_resource(bigint) to authenticated;
+
+-- 3) Sicurezza tabelle gruppi: tutti leggono, gestisce solo chi ha gestione_utenti
+alter table public.access_groups enable row level security;
+alter table public.access_group_members enable row level security;
+drop policy if exists groups_read on public.access_groups;
+create policy groups_read on public.access_groups for select to authenticated using (true);
+drop policy if exists groups_manage on public.access_groups;
+create policy groups_manage on public.access_groups for all to authenticated
+  using (public.has_perm('gestione_utenti')) with check (public.has_perm('gestione_utenti'));
+drop policy if exists members_read on public.access_group_members;
+create policy members_read on public.access_group_members for select to authenticated using (true);
+drop policy if exists members_manage on public.access_group_members;
+create policy members_manage on public.access_group_members for all to authenticated
+  using (public.has_perm('gestione_utenti')) with check (public.has_perm('gestione_utenti'));
+grant select, insert, update, delete on public.access_groups, public.access_group_members to authenticated;
+grant usage, select on sequence public.access_groups_id_seq to authenticated;
+
+-- 4) Nessuno può cambiarsi il ruolo da solo (solo chi gestisce gli utenti, o il server)
+create or replace function public.profiles_guard_role()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if new.ruolo is distinct from old.ruolo and auth.uid() is not null and not public.has_perm('gestione_utenti') then
+    raise exception 'Non hai il permesso di cambiare il ruolo';
+  end if;
+  if new.ruolo = 'SUPER_IT' and old.ruolo is distinct from 'SUPER_IT' and auth.uid() is not null
+     and not exists (select 1 from public.profiles where id = auth.uid() and ruolo = 'SUPER_IT') then
+    raise exception 'Solo un SUPER_IT può nominare un altro SUPER_IT';
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_guard_role on public.profiles;
+create trigger profiles_guard_role before update on public.profiles
+  for each row execute function public.profiles_guard_role();
+
+-- Un profilo creato dal browser da chi non gestisce gli utenti nasce sempre USER
+create or replace function public.profiles_guard_insert()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if auth.uid() is not null and coalesce(new.ruolo, 'USER') <> 'USER' and not public.has_perm('gestione_utenti') then
+    new.ruolo := 'USER';
+  end if;
+  return new;
+end $$;
+drop trigger if exists profiles_guard_insert on public.profiles;
+create trigger profiles_guard_insert before insert on public.profiles
+  for each row execute function public.profiles_guard_insert();
+
+-- 5) Calendario: gestione con permesso e sale riservate
+drop policy if exists cal_res_manage on public.calendar_resources;
+create policy cal_res_manage on public.calendar_resources for all to authenticated
+  using (public.has_perm('gestione_calendario')) with check (public.has_perm('gestione_calendario'));
+drop policy if exists cal_ev_insert on public.calendar_events;
+create policy cal_ev_insert on public.calendar_events for insert to authenticated
+  with check (organizer_id = auth.uid() and public.can_book_resource(resource_id));
+drop policy if exists cal_ev_update on public.calendar_events;
+create policy cal_ev_update on public.calendar_events for update to authenticated
+  using (organizer_id = auth.uid() or public.has_perm('gestione_calendario'))
+  with check (organizer_id = auth.uid() or public.has_perm('gestione_calendario'));
+drop policy if exists cal_ev_delete on public.calendar_events;
+create policy cal_ev_delete on public.calendar_events for delete to authenticated
+  using (organizer_id = auth.uid() or public.has_perm('gestione_calendario'));
+
+-- 6) Off topic: moderazione con permesso
+drop policy if exists forum_t_update on public.forum_topics;
+create policy forum_t_update on public.forum_topics for update to authenticated
+  using (author_id = auth.uid() or public.has_perm('moderazione_offtopic'))
+  with check (author_id = auth.uid() or public.has_perm('moderazione_offtopic'));
+drop policy if exists forum_t_delete on public.forum_topics;
+create policy forum_t_delete on public.forum_topics for delete to authenticated
+  using (author_id = auth.uid() or public.has_perm('moderazione_offtopic'));
+drop policy if exists forum_r_insert on public.forum_replies;
+create policy forum_r_insert on public.forum_replies for insert to authenticated
+  with check (
+    author_id = auth.uid()
+    and exists (select 1 from public.forum_topics t where t.id = topic_id and (not t.locked or public.has_perm('moderazione_offtopic')))
+  );
+drop policy if exists forum_r_delete on public.forum_replies;
+create policy forum_r_delete on public.forum_replies for delete to authenticated
+  using (author_id = auth.uid() or public.has_perm('moderazione_offtopic'));
+
+create or replace function public.forum_guard_topic()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if pg_trigger_depth() > 1 then return new; end if;
+  if not public.has_perm('moderazione_offtopic') then
+    new.pinned := old.pinned;
+    new.locked := old.locked;
+  end if;
+  new.author_id := old.author_id;
+  new.replies_count := old.replies_count;
+  return new;
+end $$;
+
+-- 7) Gruppi iniziali (modificabili dal sito: Service Desk → Utenti e gruppi)
+insert into public.access_groups (nome, descrizione, permessi) values
+  ('IT', 'Reparto IT: gestisce utenti, calendario e moderazione', array['gestione_utenti', 'moderazione_offtopic', 'gestione_calendario']),
+  ('Moderatori Off topic', 'Moderano la bacheca Off topic', array['moderazione_offtopic']),
+  ('Gestione calendario', 'Gestiscono sale, auto e prenotazioni di tutti', array['gestione_calendario'])
+on conflict (nome) do nothing;
+
+-- Chi oggi è IT o SUPER_IT entra nel gruppo IT
+insert into public.access_group_members (group_id, user_id)
+select g.id, p.id from public.access_groups g, public.profiles p
+where g.nome = 'IT' and p.ruolo in ('IT', 'SUPER_IT')
+on conflict do nothing;

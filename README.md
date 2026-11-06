@@ -35,16 +35,14 @@ Il database demo è **condiviso tra gli account di prova** nello stesso browser:
 | `HR` | HR Manager |
 | `USER` | Architect, oppure il profilo dell'account demo con la stessa email |
 
-## Attivare chat e calendario (una volta sola)
+## Attivare le funzioni nuove (una volta sola)
 
-Supabase → **SQL Editor** → New query. Incolla ed esegui (**Run**), in quest'ordine:
-1. `supabase/migrations/20261106_chat.sql`
-2. `supabase/migrations/20261106_calendario.sql`
-3. `supabase/migrations/20261106_offtopic.sql`
+1. Supabase → **SQL Editor** → New query → incolla **tutto** `supabase/SETUP_COMPLETO.sql` → **Run**. Crea chat, calendario, Off topic, sondaggi, gruppi e permessi. Si può rieseguire senza danni.
+2. Supabase → **Edge Functions** → **Deploy a new function** → *Via Editor*. Nome: `admin-users`; incolla `supabase/functions/admin-users/index.ts` → **Deploy**. Serve per gestire gli utenti dal sito.
 
-Sale e auto si modificano da Supabase → Table Editor → `calendar_resources`.
+Da quel momento utenti, ruoli e gruppi si gestiscono da **Service Desk → Utenti e gruppi**. Sale e auto si gestiscono da **Calendario → Sale e auto**.
 
-## Aggiungere un collega reale
+## Aggiungere un collega reale (metodo manuale, se la funzione non è pubblicata)
 
 1. Supabase → **Authentication** → **Users** → **Add user** → *Create new user*: email, password, spunta **Auto Confirm User**.
 2. SQL Editor: incolla `supabase/crea_utente.sql`, cambia email/nome/ruolo, **Run**.
