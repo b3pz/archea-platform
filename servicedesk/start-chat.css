@@ -153,3 +153,17 @@ html.sd-embed .start-folder .start-icon { background: var(--ws-soft); }
 /* sulla prima pagina le cartelle sono già il menu: niente barra delle sezioni né titolo doppio */
 html.sd-embed.sd-on-start .sidebar { display: none !important; }
 html.sd-on-start .page-heading { display: none !important; }
+/* Telefono: le funzioni una sotto l'altra, grandi, con la spiegazione */
+@media (max-width: 760px) {
+  .start-grid { grid-template-columns: 1fr; gap: 12px; }
+  .start-action { flex-direction: row; align-items: center; gap: 16px; min-height: 88px; padding: 16px 18px; border-radius: 18px; }
+  .start-action .start-icon { width: 52px; height: 52px; flex: 0 0 52px; }
+  .start-action .start-icon svg { width: 26px; height: 26px; }
+  .start-action .start-text b { font-size: 19px; }
+  .start-action .start-text small { display: block; font-size: 15px; margin-top: 3px; }
+  .start-action::after { content: "›"; margin-left: auto; font-size: 28px; line-height: 1; opacity: .4; }
+  .start-folder .start-text b { font-size: 20px; }
+  .start-folder .start-text small { font-size: 15px; }
+  .start-folder .start-icon { width: 52px; height: 52px; flex: 0 0 52px; }
+  .start-back { min-height: 44px; font-size: 16px; }
+}
