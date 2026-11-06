@@ -1,11 +1,11 @@
-const CACHE_NAME = 'archea-platform-v3.0.5';
+const CACHE_NAME = 'archea-platform-v3.0.6';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
   './config/help.js?v=2.0.0',
   './assets/workspace.js?v=3.0.4',
   './assets/workspace.css?v=1.2.0',
-  './assets/platform.css?v=3.0.5',
+  './assets/platform.css?v=3.0.6',
   './assets/planning-suite.css?v=1.2.0',
   './assets/archea-update-0142.css?v=1.2.0',
   './assets/archea-update-0143.css?v=1.2.0',

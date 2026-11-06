@@ -3451,7 +3451,8 @@ window.sdCurrentView=()=>currentView;
 if(SHELL){
   document.documentElement.classList.add('sd-shell');
   const _nav=nav;
-  nav=function(v){const r=_nav.apply(this,arguments);previousView=null;updateBackButton();return r};
+  // Chat, Calendario, Off topic e Foto cantiere si aprono dal menu a sinistra: schermo libero, senza la barra delle funzioni
+  nav=function(v){document.documentElement.classList.toggle('sd-free',['chat','agenda','offtopic','cantiere'].includes(v));const r=_nav.apply(this,arguments);previousView=null;updateBackButton();return r};
 }
 // Avvio veloce: se la sessione è ancora valida e conosciamo già profilo e permessi (stessa scheda),
 // si entra subito senza rifare i controlli e senza mostrare il login; la verifica avviene dopo, in silenzio.

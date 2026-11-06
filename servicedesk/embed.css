@@ -232,3 +232,7 @@ html.sd-embed .nav-toggle { display: none; }
   html.sd-embed .nav-toggle em { margin-left: auto; font-style: normal; opacity: .6; }
   html.sd-embed nav.nav-grouped:not(.open) > .nav-group { display: none; }
 }
+
+/* Sezioni aperte dal menu a sinistra (chat, calendario, Off topic, foto): niente barra delle funzioni sopra */
+html.sd-free .sidebar, html.sd-free .mobile-menu-btn, html.sd-free .mobile-nav-backdrop { display: none !important; }
+html.sd-free main { padding-top: 12px !important; }

@@ -6,8 +6,7 @@
 // 2) La barra laterale mostra le funzioni raggruppate (le stesse cartelle dell'Inizio), sempre a portata.
 (function () {
   const live = () => { try { return sessionStorage.getItem('archea-live') === '1'; } catch (e) { return false; } };
-  const NAV_CACHE = 'archea-nav-cache';
-  let frame = null, sdWin = null, ready = false, lastView = null, pending = null, activeKey = null, openGroup = null;
+  let frame = null, sdWin = null, ready = false, lastView = null, pending = null;
 
   // ---------- Service Desk sempre aperto ----------
   function ensureFrame(slot) {
@@ -36,11 +35,6 @@
         if (pmOnly && atStart && !/[?&](ticket|scan)=/.test(location.search)) setTimeout(() => goTab('oggi'), 0);
       } catch (e) {}
     }
-    try {
-      const groups = win.sdNavGroups();
-      localStorage.setItem(NAV_CACHE, JSON.stringify(groups));
-      renderNav(groups);
-    } catch (e) { console.warn('nav', e); }
     flushPending();
   };
   function flushPending() {
@@ -74,117 +68,85 @@
     requestAnimationFrame(tick);
   }
 
-  // ---------- Barra laterale raggruppata ----------
+  // ---------- Menu a sinistra: le sezioni della piattaforma raggruppate per tipo ----------
+  // (le funzioni del Service Desk stanno nella barra in alto; qui tutto il resto, niente "Altro" nascosto)
   const ICONS = {
-    mine: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
-    cantiere: 'M4 8h3l2-3h6l2 3h3v11H4z M12 10a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7',
-    it: 'M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.5 2.5-2.4-.6-.6-2.4z',
-    persone: 'M9 7a4 4 0 1 0 0 .01M2 21v-2a7 7 0 0 1 14 0v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a6 6 0 0 0-4-5.6',
-    agenda: 'M4 5h16v15H4zM4 10h16M9 3v4M15 3v4',
-    chat: 'M4 5h16v10H9l-5 4V5Z',
-    utenti: 'M9 7a4 4 0 1 0 0 .01M2 21v-2a7 7 0 0 1 14 0v2M19 8v6M16 11h6',
     home: 'M3 11l9-7 9 7v9H3z',
+    lavoro: 'M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01',
+    progetti: 'M3 7h6l2 2h10v10H3z',
+    chat: 'M4 5h16v10H9l-5 4V5Z',
+    agenda: 'M4 5h16v15H4zM4 10h16M9 3v4M15 3v4',
+    persone: 'M9 7a4 4 0 1 0 0 .01M2 21v-2a7 7 0 0 1 14 0v2M16 3.1a4 4 0 0 1 0 7.8M22 21v-2a6 6 0 0 0-4-5.6',
+    studio: 'M4 20V8l8-4 8 4v12M9 20v-6h6v6',
     altro: 'M5 12h.01M12 12h.01M19 12h.01',
   };
-  const icon = k => `<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[k] || ICONS.altro}"/></svg>`;
+  const icon = k => `<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="${ICONS[k] || ICONS.altro}"/></svg>`;
   const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[m]));
-  // sezioni della piattaforma già raggiungibili dai gruppi
-  const COVERED = ['servicedesk', 'oggi', 'taskmanager', 'calendario', 'chat', 'offtopic', 'fotocantiere', 'bio', 'projectmanager', 'progetti', 'ore', 'altro', 'developer'];
-
+  const GROUPS = [
+    ['lavoro', 'Il mio lavoro', 'lavoro', ['oggi', 'taskmanager', 'ore', 'note']],
+    ['progetti', 'Progetti e cantieri', 'progetti', ['projectmanager', 'progetti', 'avanzamento', 'cantiere', 'fotocantiere']],
+    ['comunicazione', 'Comunicazione', 'chat', ['chat', 'offtopic', 'calendario']],
+    ['persone', 'Persone', 'persone', ['bio']],
+    ['studio', 'Studio', 'studio', ['contabilita', 'insight', 'inarchea', 'fornitori', 'materioteca', 'abacotecnico', 'bim', 'visual', 'interior', 'concept']],
+  ];
   function goTab(id) {
     if (location.hash === '#/' + id) history.replaceState(null, '', '#/_');
     location.hash = '#/' + id;
   }
-  function run(key, groupId) {
-    activeKey = key; openGroup = groupId || openGroup;
-    if (key === 'tab:servicedesk') { pending = sdHomeKey(); goTab('servicedesk'); flushPending(); paint(); return; }
-    if (key.startsWith('tab:')) { goTab(key.slice(4)); paint(); return; }
-    if (key.startsWith('ws:')) {
-      let tab = key.slice(3);
-      if (window.matchMedia('(max-width: 900px)').matches) tab = { taskmanager: 'oggi', projectmanager: 'progetti' }[tab] || tab;
-      goTab(tab); paint(); return;
-    }
-    pending = key;
-    goTab('servicedesk');
-    flushPending();
-    paint();
-  }
-  const sdHomeKey = () => 'home-start';
-
-  let groupsCache = null;
-  function renderNav(groups) {
-    groupsCache = groups || groupsCache;
-    paint();
+  function run(key) {
+    const tab = key.slice(4);
+    if (tab === 'servicedesk') { pending = 'home-start'; goTab('servicedesk'); flushPending(); return; }
+    goTab(tab);
   }
   function navData() {
-    let groups = groupsCache;
-    if (!groups) { try { groups = JSON.parse(localStorage.getItem(NAV_CACHE) || 'null'); } catch (e) {} }
-    groups = groups || [];
-    const tabs = (window.__archeaTabs || []).filter(([id]) => !COVERED.includes(id));
-    const extra = tabs.length ? [{ id: 'altro', title: 'Altro', icon: 'altro', items: tabs.map(([id, label]) => ({ key: 'tab:' + id, label, tab: id })) }] : [];
-    return [...groups, ...extra];
+    const tabs = (window.__archeaTabs || []).filter(([id]) => id !== 'servicedesk');
+    const used = new Set();
+    const groups = GROUPS.map(([id, title, ic, ids]) => {
+      const items = ids.map(t => tabs.find(x => x[0] === t)).filter(Boolean).map(([t, label]) => { used.add(t); return { key: 'tab:' + t, label }; });
+      return { id, title, icon: ic, items };
+    }).filter(g => g.items.length);
+    const rest = tabs.filter(([t]) => !used.has(t)).map(([t, label]) => ({ key: 'tab:' + t, label }));
+    if (rest.length) groups.push({ id: 'altro', title: 'Altri strumenti', icon: 'altro', items: rest });
+    return groups;
   }
-  function paint() {
+  let lastSig = '';
+  function paint(force) {
     const nav = document.getElementById('archeaNav');
     if (!nav) return;
-    const groups = navData();
-    if (!openGroup) { const g = groups.find(x => x.items.some(i => i.key === activeKey)); openGroup = g ? g.id : null; }
-    nav.innerHTML = `
-      <button type="button" class="archea-nav-home ${activeKey === 'tab:servicedesk' ? 'on' : ''}" data-key="tab:servicedesk">${icon('home')}<span>Inizio</span></button>
-      ${groups.map(g => `<div class="archea-nav-group ${openGroup === g.id ? 'open' : ''}">
-        <button type="button" class="archea-nav-head" data-group="${esc(g.id)}" aria-expanded="${openGroup === g.id}">${icon(g.icon)}<span>${esc(g.title)}</span><i aria-hidden="true">›</i></button>
-        <div class="archea-nav-items">${g.items.map(i => `<button type="button" class="${i.key === activeKey ? 'on' : ''}" data-key="${esc(i.key)}" data-g="${esc(g.id)}">${esc(i.label)}</button>`).join('')}</div>
-      </div>`).join('')}`;
-    nav.querySelectorAll('[data-group]').forEach(b => b.onclick = () => { openGroup = openGroup === b.dataset.group ? null : b.dataset.group; paint(); });
-    nav.querySelectorAll('[data-key]').forEach(b => b.onclick = () => run(b.dataset.key, b.dataset.g));
-  }
-  // evidenzia la voce giusta anche quando si naviga da dentro le pagine
-  let lastSeen = '';
-  function syncActive() {
-    if (!document.getElementById('archeaNav')) return;
+    // sezione mostrata davvero: se è visibile il Service Desk vale lui (l'indirizzo può dire ancora #/oggi)
     const slot = document.querySelector('.sd-slot');
-    let sig;
-    if (slot && slot.offsetParent !== null && ready) {
-      let v = ''; try { v = sdWin.sdCurrentView ? sdWin.sdCurrentView() : ''; } catch (e) {}
-      sig = 'sd:' + v;
-      if (sig !== lastSeen) {
-        lastSeen = sig;
-        const groups = navData();
-        const cur = groups.flatMap(g => g.items.map(i => ({ ...i, g: g.id })));
-        const keep = cur.find(i => i.key === activeKey && i.view === v);
-        if (!keep) {
-          const hit = cur.find(i => i.g === openGroup && i.view === v) || cur.find(i => i.view === v || i.key === v);
-          activeKey = hit ? hit.key : (v === 'start' ? 'tab:servicedesk' : activeKey);
-          if (hit) openGroup = hit.g;
-        }
-        paint();
-      }
-    } else {
-      const h = location.hash.slice(2);
-      sig = 'tab:' + h;
-      if (sig !== lastSeen) {
-        lastSeen = sig;
-        const cur = navData().flatMap(g => g.items.map(i => ({ ...i, g: g.id })));
-        const hit = cur.find(i => i.key === 'ws:' + h || i.key === 'tab:' + h);
-        if (hit) { activeKey = hit.key; openGroup = hit.g; paint(); }
-      }
-    }
+    const SLOT_TAB = { chat: 'chat', agenda: 'calendario', offtopic: 'offtopic', cantiere: 'fotocantiere' };
+    const h = slot && slot.offsetParent !== null ? (SLOT_TAB[slot.dataset.view] || 'servicedesk')
+      : (location.hash.replace(/^#\/?/, '').split(/[?/]/)[0] || 'servicedesk');
+    const groups = navData();
+    const sig = h + '|' + JSON.stringify(groups);
+    if (!force && sig === lastSig) return;
+    lastSig = sig;
+    const aps = nav.querySelectorAll('.aps-desktop-launcher, .aps-desktop-subnav');
+    nav.innerHTML = `<button type="button" class="archea-nav-home ${h === 'servicedesk' ? 'on' : ''}" data-key="tab:servicedesk">${icon('home')}<span>Inizio</span></button>` +
+      groups.map(g => `<div class="archea-nav-sec"><span class="archea-nav-label">${esc(g.title)}</span>${g.items.map(i =>
+        `<button type="button" class="${i.key === 'tab:' + h ? 'on' : ''}" data-key="${esc(i.key)}">${esc(i.label)}</button>`).join('')}</div>`).join('');
+    aps.forEach(el => nav.appendChild(el)); // Pianificazione (Super admin) resta in fondo
+    nav.querySelectorAll('[data-key]').forEach(b => b.onclick = () => run(b.dataset.key));
   }
-  // Menu raggruppato a sinistra disattivato: si usa la barra delle funzioni in alto (preferita)
-  const SIDE_NAV = false;
+  function syncActive() { paint(false); }
+  const SIDE_NAV = true;
   function ensureNavMounted() {
     const side = document.querySelector('.desk-sidebar');
-    const on = SIDE_NAV && live() && side;
+    const on = SIDE_NAV && live() && side && (window.__archeaTabs || []).length;
     document.documentElement.classList.toggle('archea-sidenav', !!on);
     if (!on) return;
-    if (!document.getElementById('archeaNav')) {
-      const nav = document.createElement('div');
-      nav.setAttribute('role', 'navigation');
-      nav.id = 'archeaNav'; nav.className = 'archea-nav'; nav.setAttribute('aria-label', 'Funzioni');
-      const reactNav = side.querySelector(':scope > nav');
+    let nav = document.getElementById('archeaNav');
+    if (!nav) {
+      nav = document.createElement('nav');
+      nav.id = 'archeaNav'; nav.className = 'archea-nav'; nav.setAttribute('aria-label', 'Sezioni');
+      const reactNav = side.querySelector(':scope > nav:not(#archeaNav)');
       if (reactNav) reactNav.after(nav); else side.appendChild(nav);
-      paint();
+      paint(true);
     }
+    // il pulsante Pianificazione (planning-suite) nasce nel menu originale: lo portiamo nel nostro
+    const reactNav = side.querySelector(':scope > nav:not(#archeaNav)');
+    if (reactNav) reactNav.querySelectorAll(':scope > .aps-desktop-launcher, :scope > .aps-desktop-subnav').forEach(el => nav.appendChild(el));
   }
 
   // Inizio: per il reparto IT la prima pagina è la Dashboard, per gli altri l'Inizio a cartelle
