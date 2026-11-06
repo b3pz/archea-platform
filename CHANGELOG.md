@@ -1,5 +1,22 @@
 # Changelog
 
+## 2.5.0 — Progetti e task condivisi, ruolo PM
+
+- **Progetti, task, ore e note del Workspace sono su Supabase** e condivisi tra tutti. Le schermate di Francesco (Oggi, Task Manager, Progetti, Ore, Note, Insight) restano le stesse.
+- **Ruolo PM** (gruppo "Project Manager", permesso "gestione progetti"; il super admin ce l'ha sempre):
+  - crea i progetti e le task e le assegna alle persone;
+  - vede l'avanzamento di tutto il team e quello di ogni persona (filtro "Persona"), e valida le task.
+- **Utente**:
+  - vede solo le task assegnate a lui;
+  - le aggiorna: completata, data di chiusura, commenti, immagini, link e dati della task;
+  - registra le proprie ore;
+  - può crearsi task personali.
+  
+  Titolo, assegnatari, progetto, date, priorità e validazione restano del PM: lo blocca il database.
+- Le persone tra cui scegliere sono i colleghi veri (gli account del portale), non più quelle di esempio.
+- Le modifiche degli altri arrivano da sole ogni 20 secondi e quando torni sulla pagina.
+- Migrazione `20261107_progetti_task.sql` (tabella `ws_records`), inclusa in `SETUP_COMPLETO.sql`.
+
 ## 2.4.0 — Ruoli: chi fa cosa
 
 - **Utente**: apre ticket e segue i suoi, vede le sue task (Oggi, Task Manager), più calendario, chat, foto e Off topic.

@@ -7,7 +7,8 @@ const PERMS = {
   gestione_utenti: ['Gestire utenti e gruppi', 'Vede la lista degli utenti, li aggiunge, li modifica, li disattiva o li elimina, e gestisce i gruppi.'],
   moderazione_offtopic: ['Moderare Off topic', 'Mette in evidenza, chiude ed elimina argomenti e risposte di tutti.'],
   gestione_calendario: ['Gestire il calendario', 'Modifica e annulla le prenotazioni di tutti e gestisce sale e auto (anche chi può prenotarle).'],
-  gestione_mappe: ['Disegnare le planimetrie', 'Crea e modifica le piante: muri, stanze, postazioni, WRKA, TV e accessori.']
+  gestione_mappe: ['Disegnare le planimetrie', 'Crea e modifica le piante: muri, stanze, postazioni, WRKA, TV e accessori.'],
+  gestione_progetti: ['Project Manager', 'Crea i progetti, assegna le task e vede l\'avanzamento del team e di ogni persona.']
 };
 const RUOLI_LABEL = {
   USER: ['Utente', 'Apre ticket e segue le sue task. Calendario, chat, foto e Off topic.'],

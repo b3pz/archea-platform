@@ -1,9 +1,9 @@
-const CACHE_NAME = 'archea-platform-v2.4.0';
+const CACHE_NAME = 'archea-platform-v2.5.0';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
   './config/help.js?v=2.0.0',
-  './assets/workspace.js?v=2.4.0',
+  './assets/workspace.js?v=2.5.0',
   './assets/workspace.css?v=1.2.0',
   './assets/platform.css?v=1.7.2',
   './assets/planning-suite.css?v=1.2.0',

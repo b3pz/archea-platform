@@ -10647,6 +10647,7 @@ function sj({ children: t }) {
     [v, h] = C.useState("fdiamanti"),
     [p, y] = C.useState(() => localStorage.getItem("archea-language") || "it"),
     [LiveUser, setLiveUser] = C.useState(null),
+    [CloudV, setCloudV] = C.useState(0),
     [LiveChecked, setLiveChecked] = C.useState(() => !(window.ArcheaAuth && window.ArcheaAuth.hasSession())),
     O = C.useCallback(async ($) => {
       i(!0), l(null);
@@ -10674,6 +10675,13 @@ function sj({ children: t }) {
       }
     });
   }, [O]),
+    C.useEffect(() => {
+      const cloud = window.ArcheaWsCloud;
+      if (!cloud) return;
+      const off = cloud.subscribe((v) => setCloudV(v));
+      if (LiveUser) cloud.start(LiveUser); else cloud.stop();
+      return off;
+    }, [LiveUser]),
     C.useEffect(() => {
       if (!window.ArcheaAuth || !window.ArcheaAuth.hasSession()) return;
       let alive = !0;
@@ -10728,11 +10736,19 @@ function sj({ children: t }) {
           sessionStorage.setItem("archea-platform-profile",
             LiveUser.sdRole === "SUPER_IT" ? "platform_owner" : LiveUser.sdRole === "HR" ? "hr_manager" : "resource");
         } catch {}
+        const cloud = window.ArcheaWsCloud,
+          isPM = LiveUser.sdRole === "SUPER_IT" || !!(cloud && cloud.isPM());
         return {
           ...base,
+          // con progetti e task condivisi ognuno è sé stesso: id e nome dell'account reale
+          id: cloud ? LiveUser.id : base.id,
+          personaId: baseId,
           nome: LiveUser.nome,
           email: LiveUser.email,
-          appRole,
+          // PM: vede e valida le task di tutti (Task Manager di Francesco)
+          ruolo: isPM ? "responsabile" : "membro",
+          appRole: isPM && !["partner_architect", "senior_architect"].includes(appRole) ? "senior_architect" : !isPM && ["partner_architect", "senior_architect"].includes(appRole) ? "architect" : appRole,
+          isPM,
           isDeveloper: LiveUser.sdRole === "SUPER_IT", // console sviluppatore: solo super admin
           technicalRole: null,
           live: !0,
@@ -10756,9 +10772,25 @@ function sj({ children: t }) {
         live: !1,
         sdRole: "USER",
       };
-    }, [n, o, LiveUser]),
+    }, [n, o, LiveUser, CloudV]),
+    // account reale: progetti, task, ore e note arrivano da Supabase (condivisi), persone = colleghi veri
+    LiveData = C.useMemo(() => {
+      const cloud = window.ArcheaWsCloud;
+      if (!n || !LiveUser || !cloud || !cloud.loaded()) return n;
+      const people = cloud.people(),
+        me = { id: LiveUser.id, nome: LiveUser.nome, ruolo: k && k.isPM ? "responsabile" : "membro", inRiepiloghiOre: !0 };
+      return {
+        ...n,
+        persone: [me, ...people.filter((x) => x.id !== LiveUser.id)],
+        progetti: cloud.get("progetti"),
+        task: cloud.get("task"),
+        ore: cloud.get("ore"),
+        note: cloud.get("note"),
+        meta: { ...n.meta, source: "live", label: "Dati condivisi ARCHEA" },
+      };
+    }, [n, LiveUser, CloudV, k]),
     P = {
-      data: n,
+      data: LiveData,
       loading: r,
       error: a,
       viewer: k,
@@ -27912,12 +27944,23 @@ const FotoCantiereEntry = ["fotocantiere", "Foto cantiere", CameraIcon, "Scatta 
 const LIVE_BASE_TABS = ["oggi", "taskmanager", "servicedesk", "calendario", "chat", "offtopic", "fotocantiere", "altro"];
 function liveAllowed(n) {
   if (!n || !n.live || n.sdRole === "SUPER_IT") return null;
-  if (n.sdRole === "HR" || n.sdRole === "IT") return [...LIVE_BASE_TABS, "bio"];
-  return LIVE_BASE_TABS;
+  const pm = n.isPM ? ["progetti", "avanzamento", "ore", "insight", "note"] : [];
+  if (n.sdRole === "HR" || n.sdRole === "IT") return [...LIVE_BASE_TABS, "bio", ...pm];
+  return [...LIVE_BASE_TABS, ...pm];
 }
 function liveFilter(n, list, key = (V) => V[0]) {
   const a = liveAllowed(n);
   return a ? list.filter((V) => a.includes(key(V))) : list;
+}
+// Account reale: progetti/task/ore/note condivisi su Supabase (assets/ws-cloud.js); altrimenti nel browser
+function useWs(col, key, initial, viewer) {
+  const local = ke(key, initial),
+    cloud = window.ArcheaWsCloud,
+    on = !!(viewer && viewer.live && cloud),
+    [, force] = C.useReducer((x) => x + 1, 0);
+  C.useEffect(() => (on ? cloud.subscribe(force) : void 0), [on]);
+  if (!on) return local;
+  return [cloud.get(col), (v) => cloud.set(col, typeof v == "function" ? v(cloud.get(col)) : v)];
 }
 function withOffTopic(list) {
   let out = list.some((V) => V[0] === "offtopic") ? list : [...list, OffTopicEntry];
@@ -28223,10 +28266,10 @@ function _v() {
       today: a,
       language: l,
     } = Y(),
-    [o, c] = ke("archea-desktop-demo-tasks", t.task),
-    [d, u] = ke("archea-desktop-demo-hours", t.ore),
-    [m, x] = ke("archea-desktop-demo-notes", t.note),
-    [j, f] = ke("archea-desktop-demo-projects", t.progetti),
+    [o, c] = useWs("task", "archea-desktop-demo-tasks", t.task, n),
+    [d, u] = useWs("ore", "archea-desktop-demo-hours", t.ore, n),
+    [m, x] = useWs("note", "archea-desktop-demo-notes", t.note, n),
+    [j, f] = useWs("progetti", "archea-desktop-demo-projects", t.progetti, n),
     [g, b] = ke("archea-desktop-staff-profiles", {}),
     [v, h] = ke(`archea-desktop-preferences-${n.id}`, {
       compactMenu: !1,
@@ -28502,12 +28545,16 @@ function _v() {
           "calendario",
         ],
     q = n.live
-      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager"] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
+      ? liveFilter(n, [...new Set([...(liveAllowed(n) ? ["oggi", "taskmanager", ...(n.isPM ? ["progetti", "ore"] : [])] : []), ...roleMain, "servicedesk", "calendario", "chat"])], (V) => V)
       : roleMain,
-    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live3-" + (n.sdRole || "") + "-" : ""}${n.id}`, q);
+    [Z, Qe] = ke(`archea-desktop-main-menu-${n.live ? "live4-" + (n.sdRole || "") + (n.isPM ? "-pm" : "") + "-" : ""}${n.id}`, q);
   C.useEffect(() => {
     Qe((V) => V.filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
   }, [n.id]);
+  // quando arrivano i permessi (es. PM) le voci nuove compaiono nel menu
+  C.useEffect(() => {
+    n.live && Qe((V) => [...V, ...q.filter((Ee) => !V.includes(Ee))].filter((Ee) => M.some((Ve) => Ve[0] === Ee)));
+  }, [n.isPM, n.sdRole]);
   const Us = Z.map((V) => M.find((Ee) => Ee[0] === V)).filter(Boolean),
     nn = M.filter((V) => !Z.includes(V[0])),
     Tn = [

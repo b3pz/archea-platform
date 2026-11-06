@@ -26,6 +26,8 @@ Dopo l'accesso si vedono tutti i moduli del Workspace (task, progetti, ore, cont
 
 Le regole sono nel database (`20261107_ruoli.sql`), non solo nei pulsanti.
 
+**PM (Project Manager)** non è un ruolo a parte ma un gruppo: si aggiunge a chiunque da *Utenti e gruppi → Modifica → Gruppi → Project Manager*. Il PM crea progetti e task, le assegna e vede l'avanzamento del team e di ogni persona; l'utente vede e aggiorna solo le sue task. Progetti, task, ore e note sono condivisi su Supabase (`ws_records`, `assets/ws-cloud.js`).
+
 ## Attivare le funzioni nuove (una volta sola)
 
 1. Supabase → **SQL Editor** → New query → incolla **tutto** `supabase/SETUP_COMPLETO.sql` → **Run**. Crea chat, calendario, Off topic, sondaggi, gruppi e permessi. Si può rieseguire senza danni.
@@ -76,7 +78,7 @@ Con un piano GitHub gratuito Pages funziona solo se la repository è pubblica.
 ## Limiti noti (onesti)
 
 - Il codice del Workspace è il **bundle compilato** della 0.14.5, modificato direttamente (come già si faceva). I sorgenti React nella repo di Francesco sono fermi alla 0.4/0.5 e non corrispondono più. Ricostruire i sorgenti è il primo lavoro dopo la presentazione.
-- I moduli del Workspace (task, progetti, ore, contabilità, Pianificazione…) salvano ancora **nel browser** di chi li usa, non su Supabase: due colleghi non vedono le stesse task. Il passo successivo è spostarli su tabelle Supabase.
+- Task, progetti, ore e note sono condivisi su Supabase. Gli altri moduli del Workspace (contabilità, Pianificazione, fornitori, materioteca…) salvano ancora **nel browser** di chi li usa.
 
 ## Ripartire da zero con i dati
 
