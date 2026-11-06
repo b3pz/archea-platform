@@ -879,7 +879,7 @@ observer.observe(document.documentElement,{childList:true,subtree:true});
 injectLaunchers();
 document.addEventListener('click', event => {
   const clicked=event.target.closest?.('button');
-  if(clicked?.textContent.includes('Esci dai dati di esempio')){closeSuite(false);history.replaceState(null,'','#/oggi');sessionStorage.removeItem(PROFILE_KEY);sessionStorage.removeItem(PROFILE_NAME_KEY);sessionStorage.removeItem('archea-planning-autopen');}
+  if(/^\s*(Esci|Sign out)\s*$/.test(clicked?.textContent||'')){closeSuite(false);history.replaceState(null,'','#/oggi');sessionStorage.removeItem(PROFILE_KEY);sessionStorage.removeItem(PROFILE_NAME_KEY);sessionStorage.removeItem('archea-planning-autopen');}
   if(clicked&&!clicked.closest('.aps-login-accounts')&&document.querySelector('.aps-login-accounts')&&['Francesco Diamanti','Alessandro Botrini','Lisandro Leyra','ARCHEA Property'].some(name=>clicked.textContent.includes(name))){sessionStorage.removeItem(PROFILE_KEY);sessionStorage.removeItem(PROFILE_NAME_KEY);}
   if (event.target.closest?.('.aps-desktop-launcher,.aps-mobile-launcher,.aps-mobile-more-launcher')) {
     event.preventDefault();

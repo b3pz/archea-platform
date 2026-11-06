@@ -11011,7 +11011,7 @@ function Yn(t, n, s) {
 }
 const Ep = (t, n) => (Jn(t) || Ca.membersSeeAllProjects ? n : []),
   fc = (t, n) => (Jn(t) || Ca.membersSeeAllNotes ? n : []),
-  dj = { locale: "DEMO", excel: "EXCEL STATICO", live: "LIVE" };
+  dj = { demo: "DATI DI ESEMPIO", excel: "EXCEL STATICO", live: "LIVE" };
 function uj() {
   const {
       data: t,
@@ -11032,7 +11032,7 @@ function uj() {
   if (!t || !n) return null;
   const g = t.meta,
     b = {
-      locale: "Dati di esempio fittizi, generati nel layout dei fogli reali. Nessun dato del team.",
+      demo: "Dati di esempio fittizi, generati nel layout dei fogli reali. Nessun dato del team.",
       excel:
         "Dati importati dal tuo Excel e conservati in questo browser. Non vengono inviati online e non si aggiornano automaticamente da Google Fogli. Importa un nuovo Excel per aggiornarli.",
       live: "Connessione a Google Fogli.",
@@ -11126,7 +11126,7 @@ function uj() {
             },
             children: [e.jsx(oc, {}), " Importa Excel (locale)"],
           }),
-          g.source !== "locale" &&
+          g.source !== "demo" &&
             e.jsx("button", {
               className: "btn",
               onClick: () => void o(),
@@ -13417,7 +13417,7 @@ function bj(t) {
       r.readAsDataURL(t);
   });
 }
-const Mp = "archea-locale-site-annotations-v1",
+const Mp = "archea-demo-site-annotations-v1",
   wj = () => {
     try {
       return JSON.parse(localStorage.getItem(Mp) || "[]");
@@ -18346,21 +18346,21 @@ const Bp = [
       id: "drive",
       name: "Google Drive",
       detail: "Connettore non ancora attivo",
-      status: "locale",
+      status: "demo",
       latency: "—",
     },
     {
       id: "calendar",
       name: "Google Calendar",
       detail: "Connettore non ancora attivo",
-      status: "locale",
+      status: "demo",
       latency: "—",
     },
     {
       id: "monitoring",
       name: "Monitoraggio errori",
       detail: "Simulazione locale",
-      status: "locale",
+      status: "demo",
       latency: "—",
     },
   ],
@@ -21364,7 +21364,7 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
           ...P,
           numero: Yd(t, P.progettoCodice),
           assegnatario: o ? P.assegnatario : i.nome,
-          id: en("locale-task"),
+          id: en("demo-task"),
           completed: !1,
           validated: !1,
           notValidated: !1,
@@ -22320,7 +22320,7 @@ function mv({ hours: t, setHours: n }) {
       y.preventDefault(),
         !(!a.progettoCodice || !a.data || Number(a.ore) <= 0) &&
           (n((O) => [
-            { ...a, persona: r.nome, id: en("locale-hours"), ore: Number(a.ore) },
+            { ...a, persona: r.nome, id: en("demo-hours"), ore: Number(a.ore) },
             ...O,
           ]),
           l((O) => ({ ...O, nota: "" })));
@@ -23206,7 +23206,7 @@ function vv({ notes: t, setNotes: n, projects: s }) {
         g.trim() &&
           (n((z) => [
             {
-              id: en("locale-note"),
+              id: en("demo-note"),
               progettoCodice: o,
               autore: i.nome,
               creata: a,
@@ -25489,8 +25489,8 @@ function Pv({ setTasks: onSetTasks = null }) {
   const { data: t, viewer: n } = Y(),
     s = t.progetti.filter((f) => normalizeProjectStatus(f.stato) === "Active"),
     [r, i] = C.useState(((m = s[0]) == null ? void 0 : m.codice) || ""),
-    [a, l] = ke("archea-desktop-locale-site-tasks", zp),
-    [o, c] = ke("archea-desktop-locale-plans", [
+    [a, l] = ke("archea-desktop-demo-site-tasks", zp),
+    [o, c] = ke("archea-desktop-demo-plans", [
       {
         id: "p1",
         project: ((x = s[0]) == null ? void 0 : x.codice) || "P51",
@@ -27991,7 +27991,7 @@ function SupplierDetail({ supplier: t, editable: n, onClose: s, onSave: r }) {
   ] }) });
 }
 function SuppliersDemo() {
-  const { viewer: t } = Y(), n = canEditStudioTools(t), [s, r] = ke("archea-locale-suppliers-v2", SupplierSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState(null), u = [...new Set(s.map(f => f.category))], m = [...new Set(s.flatMap(f => f.projects))], x = s.filter(f => (i === "all" || f.category === i) && (l === "all" || f.projects.includes(l)));
+  const { viewer: t } = Y(), n = canEditStudioTools(t), [s, r] = ke("archea-demo-suppliers-v2", SupplierSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState(null), u = [...new Set(s.map(f => f.category))], m = [...new Set(s.flatMap(f => f.projects))], x = s.filter(f => (i === "all" || f.category === i) && (l === "all" || f.projects.includes(l)));
   const j = () => { const f = { ...SupplierSeed[0], id: en("supplier"), name: "Nuovo fornitore", mark: "NF", projects: [], priceLists: [], sheets: [], contact: "Da compilare", email: "", phone: "", notes: "Scheda locale appena creata." }; r(g => [f, ...g]); d(f.id); };
   return e.jsxs(e.Fragment, { children: [e.jsx(StudioToolHeading, { title: "Fornitori", subtitle: n ? "Archivio contatti, progetti, listini e schede tecniche. Puoi aggiornare le schede locale." : "Archivio consultabile di aziende e referenti dello studio.", action: n ? e.jsxs("button", { className: "desk-primary", onClick: j, children: [e.jsx(tt, {}), "Aggiungi fornitore"] }) : e.jsx("span", { className: "read-only-badge", children: "Sola lettura" }) }), e.jsxs("div", { className: "studio-tool-filters supplier-filters", children: [e.jsx(fe, { label: "Categoria", value: i, onChange: a, options: [{ value: "all", label: "Tutte le categorie", meta: `${s.length} aziende` }, ...u.map(f => ({ value: f, label: f }))] }), e.jsx(fe, { label: "Progetto", value: l, onChange: o, searchable: !0, options: [{ value: "all", label: "Tutti i progetti", meta: `${m.length} commesse` }, ...m.map(f => ({ value: f, label: f }))] })] }), e.jsx("div", { className: "supplier-grid", children: x.map(f => e.jsxs("article", { className: "supplier-card", children: [e.jsx("button", { className: "supplier-logo", onClick: () => d(f.id), "aria-label": `Apri ${f.name}`, children: f.mark }), e.jsxs("div", { children: [e.jsx("small", { children: f.category }), e.jsx("h2", { children: f.name }), e.jsx("p", { children: f.notes }), e.jsxs("span", { children: [f.contact, " · ", f.city] })] }), e.jsx("button", { className: "supplier-open", onClick: () => d(f.id), children: "Apri scheda" })] }, f.id)) }), !x.length && e.jsx("p", { className: "desk-empty", children: "Nessun fornitore corrisponde ai filtri selezionati." }), c && e.jsx(SupplierDetail, { supplier: s.find(f => f.id === c), editable: n, onClose: () => d(null), onSave: f => r(g => g.map(b => b.id === f.id ? f : b)) })] });
 }
@@ -28000,7 +28000,7 @@ function MaterialDetail({ item: t, editable: n, onClose: s, onSave: r }) {
   return e.jsx(De, { title: i.name, subtitle: `${i.brand} · ${i.category}`, onClose: s, wide: !0, children: e.jsxs("div", { className: "material-detail", children: [e.jsx("div", { className: `material-preview large ${i.tone}`, children: e.jsx("span", { children: i.code }) }), e.jsxs("div", { className: "material-detail-copy", children: [e.jsxs("header", { children: [e.jsxs("div", { children: [e.jsx("small", { children: "CAMPIONE MATERIOTECA" }), e.jsx("h3", { children: i.name }), e.jsx("p", { children: i.notes })] }), n && e.jsx("button", { className: "desk-small-button", onClick: () => o(!l), children: l ? "Annulla" : "Modifica" })] }), l ? e.jsxs("div", { className: "studio-edit-grid", children: [e.jsxs("label", { children: ["Posizione", e.jsx("input", { value: i.location, onChange: c => a({ ...i, location: c.target.value }) })] }), e.jsxs("label", { children: ["Finitura", e.jsx("input", { value: i.finish, onChange: c => a({ ...i, finish: c.target.value }) })] }), e.jsxs("label", { className: "wide", children: ["Note", e.jsx("textarea", { value: i.notes, onChange: c => a({ ...i, notes: c.target.value }) })] }), e.jsx("button", { className: "desk-primary", onClick: () => { r(i); o(!1); }, children: "Salva campione" })] }) : e.jsxs("div", { className: "material-spec-grid", children: [["Azienda", i.brand], ["Materiale", i.material], ["Finitura", i.finish], ["Formato", i.format], ["Prestazioni", i.performance], ["Posizione in materioteca", i.location]].map(([c,d]) => e.jsxs("article", { children: [e.jsx("small", { children: c }), e.jsx("b", { children: d })] }, c)) })] })] }) });
 }
 function MaterialsDemo() {
-  const { viewer: t } = Y(), n = canEditStudioTools(t), [s, r] = ke("archea-locale-materials-v1", MaterialSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState("all"), [u, m] = C.useState(null), x = [...new Set(s.map(g => g.category))], j = [...new Set(s.map(g => g.material))], f = [...new Set(s.map(g => g.brand))], b = s.filter(g => (i === "all" || g.category === i) && (l === "all" || g.material === l) && (c === "all" || g.brand === c));
+  const { viewer: t } = Y(), n = canEditStudioTools(t), [s, r] = ke("archea-demo-materials-v1", MaterialSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState("all"), [u, m] = C.useState(null), x = [...new Set(s.map(g => g.category))], j = [...new Set(s.map(g => g.material))], f = [...new Set(s.map(g => g.brand))], b = s.filter(g => (i === "all" || g.category === i) && (l === "all" || g.material === l) && (c === "all" || g.brand === c));
   const v = () => { const g = { ...MaterialSeed[0], id: en("material"), name: "Nuovo campione", code: "DA-COMPILARE", location: "Da assegnare", notes: "Campione aggiunto in questa versione." }; r(h => [g, ...h]); m(g.id); };
   return e.jsxs(e.Fragment, { children: [e.jsx(StudioToolHeading, { title: "Materioteca", subtitle: "Catalogo digitale dei campioni fisici disponibili nello studio.", action: n ? e.jsxs("button", { className: "desk-primary", onClick: v, children: [e.jsx(tt, {}), "Aggiungi campione"] }) : e.jsx("span", { className: "read-only-badge", children: "Sola lettura" }) }), e.jsxs("div", { className: "studio-tool-filters", children: [e.jsx(fe, { label: "Categoria", value: i, onChange: a, options: [{ value: "all", label: "Tutte le categorie" }, ...x.map(g => ({ value: g, label: g }))] }), e.jsx(fe, { label: "Materiale", value: l, onChange: o, options: [{ value: "all", label: "Tutti i materiali" }, ...j.map(g => ({ value: g, label: g }))] }), e.jsx(fe, { label: "Azienda", value: c, onChange: d, options: [{ value: "all", label: "Tutte le aziende" }, ...f.map(g => ({ value: g, label: g }))] })] }), e.jsx("div", { className: "material-grid", children: b.map(g => e.jsxs("button", { className: "material-card", onClick: () => m(g.id), children: [e.jsx("span", { className: `material-preview ${g.tone}`, children: e.jsx("small", { children: g.code }) }), e.jsxs("span", { children: [e.jsx("small", { children: `${g.category} · ${g.material}` }), e.jsx("b", { children: g.name }), e.jsx("em", { children: g.brand }), e.jsx("i", { children: g.location })] })] }, g.id)) }), !b.length && e.jsx("p", { className: "desk-empty", children: "Nessun materiale corrisponde ai filtri." }), u && e.jsx(MaterialDetail, { item: s.find(g => g.id === u), editable: n, onClose: () => m(null), onSave: g => r(h => h.map(p => p.id === g.id ? g : p)) })] });
 }
@@ -28010,7 +28010,7 @@ function MaterialDetailV2({ item: t, editable: n, onClose: s, onSave: r, startEd
   return e.jsx(De, { title: a.name || "Nuovo materiale", subtitle: `${a.brand || "Azienda da indicare"} · ${a.category || "Categoria da indicare"}`, onClose: s, wide: !0, children: e.jsxs("div", { className: "material-detail", children: [e.jsxs("div", { className: `material-preview large ${a.photo ? "has-photo" : a.tone || "blank"}`, style: a.photo ? { backgroundImage: `url(${a.photo})` } : void 0, children: [e.jsx("span", { children: a.code || "NUOVO" }), o && e.jsxs("label", { className: "material-photo-upload", children: [e.jsx(oc, {}), a.photo ? "Sostituisci immagine" : "Carica immagine", e.jsx("input", { type: "file", accept: "image/*", hidden: !0, onChange: u })] })] }), e.jsxs("div", { className: "material-detail-copy", children: [e.jsxs("header", { children: [e.jsxs("div", { children: [e.jsx("small", { children: "CAMPIONE MATERIOTECA" }), e.jsx("h3", { children: a.name || "Nuovo materiale" }), e.jsx("p", { children: a.notes || "Compila tutti i dati del nuovo campione." })] }), n && !i && e.jsx("button", { className: "desk-small-button", onClick: () => c(!o), children: o ? "Annulla" : "Modifica" })] }), o ? e.jsxs("form", { className: "studio-edit-grid material-edit-grid", onSubmit: x => { x.preventDefault(); r(a); c(!1); }, children: [...m.map(([x,j]) => e.jsxs("label", { children: [x, e.jsx("input", { value: a[j] || "", onChange: f => d(j, f.target.value), required: ["name", "category", "material", "brand", "location"].includes(j) })] }, j)), e.jsxs("label", { className: "wide", children: ["Note", e.jsx("textarea", { value: a.notes || "", onChange: x => d("notes", x.target.value) })] }, "notes"), e.jsx("button", { className: "desk-primary", type: "submit", children: i ? "Aggiungi materiale" : "Salva campione" }, "save")] }) : e.jsxs("div", { className: "material-spec-grid", children: [["Azienda", a.brand], ["Categoria", a.category], ["Materiale", a.material], ["Finitura", a.finish], ["Formato", a.format], ["Prestazioni", a.performance], ["Posizione in materioteca", a.location], ["Codice", a.code]].map(([x,j]) => e.jsxs("article", { children: [e.jsx("small", { children: x }), e.jsx("b", { children: j || "—" })] }, x)) })] })] }) });
 }
 function MaterialsDemoV2() {
-  const { viewer: t } = Y(), n = canManageMaterials(t), [s, r] = ke("archea-locale-materials-v2", MaterialSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState("all"), [u, m] = C.useState(null), [x, j] = C.useState(null), f = [...new Set(s.map(h => h.category))], b = [...new Set(s.map(h => h.material))], v = [...new Set(s.map(h => h.brand))], g = s.filter(h => (i === "all" || h.category === i) && (l === "all" || h.material === l) && (c === "all" || h.brand === c));
+  const { viewer: t } = Y(), n = canManageMaterials(t), [s, r] = ke("archea-demo-materials-v2", MaterialSeed), [i, a] = C.useState("all"), [l, o] = C.useState("all"), [c, d] = C.useState("all"), [u, m] = C.useState(null), [x, j] = C.useState(null), f = [...new Set(s.map(h => h.category))], b = [...new Set(s.map(h => h.material))], v = [...new Set(s.map(h => h.brand))], g = s.filter(h => (i === "all" || h.category === i) && (l === "all" || h.material === l) && (c === "all" || h.brand === c));
   const p = () => { const h = { id: en("material"), name: "", category: "", material: "", brand: "", location: "", tone: "blank", finish: "", format: "", code: "", performance: "", notes: "", photo: "" }; j(h); m(h.id); };
   const y = h => { r(O => O.some(k => k.id === h.id) ? O.map(k => k.id === h.id ? h : k) : [h, ...O]); j(null); };
   const O = x && x.id === u ? x : s.find(h => h.id === u);
@@ -28020,8 +28020,8 @@ function TechnicalAtlasDemo() {
   const [t, n] = C.useState(TechnicalSeed[0].id), [s, r] = C.useState(null), i = TechnicalSeed.find(o => o.id === t), a = i == null ? void 0 : i.points.find(o => o.id === s);
   return e.jsxs(e.Fragment, { children: [e.jsx(StudioToolHeading, { title: "Abaco tecnico", subtitle: "Dettagli costruiti, stratigrafie, fornitori e fotografie delle opere realizzate." }), e.jsx("div", { className: "studio-tool-filter", children: e.jsx(fe, { label: "Progetto e dettaglio", value: t, onChange: n, searchable: !0, options: TechnicalSeed.map(o => ({ value: o.id, label: o.title, meta: o.subtitle })) }) }), e.jsxs("section", { className: "technical-atlas", children: [e.jsxs("header", { children: [e.jsxs("div", { children: [e.jsx("small", { children: i.project }), e.jsx("h2", { children: i.title }), e.jsx("p", { children: i.subtitle })] }), e.jsx("span", { children: `${i.points.length} punti tecnici` })] }), e.jsx("div", { className: `technical-image ${i.theme}`, children: [e.jsxs("div", { className: "technical-scene", children: [e.jsx("span", { className: "scene-line one" }), e.jsx("span", { className: "scene-line two" }), e.jsx("span", { className: "scene-line three" })] }), i.points.map((o,c) => e.jsxs("button", { className: "technical-hotspot", style: { left: `${o.x}%`, top: `${o.y}%` }, onClick: () => r(o.id), children: [e.jsx("i", { children: c + 1 }), e.jsx("span", { children: o.label })] }, o.id))] }), e.jsx("footer", { children: "Clicca sui punti numerati per aprire il dettaglio tecnico." })] }), a && e.jsx(De, { title: a.label, subtitle: `${i.title} · ${a.supplier}`, onClose: () => r(null), wide: !0, children: e.jsxs("div", { className: "technical-detail", children: [e.jsxs("section", { children: [e.jsx("small", { children: "DESCRIZIONE" }), e.jsx("p", { children: a.detail }), e.jsx("b", { children: `Fornitore: ${a.supplier}` })] }), e.jsxs("section", { children: [e.jsx("h3", { children: "Stratigrafia" }), e.jsx("ol", { children: a.layers.map(o => e.jsx("li", { children: o }, o)) })] }), e.jsxs("section", { children: [e.jsx("h3", { children: "Immagini di riferimento" }), e.jsx("div", { className: "technical-photo-grid", children: a.photos.map((o,c) => e.jsxs("article", { children: [e.jsx("span", { className: `technical-photo ph-${c + 1}` }), e.jsx("b", { children: o })] }, o)) })] })] }) })] });
 }
-function useDemoParcels() { return ke("archea-locale-reception-parcels-v1", ParcelSeed); }
-function parcelNotifications(t) { let n = ParcelSeed; try { n = JSON.parse(localStorage.getItem("archea-locale-reception-parcels-v1") || JSON.stringify(ParcelSeed)); } catch {} return n.filter(s => s.status === "waiting" && s.recipient === (t == null ? void 0 : t.nome)).map(s => ({ id: `parcel-${s.id}`, kind: "parcel", title: "È arrivato un pacco per te", detail: `${s.courier} · ${s.tracking} · Ritiralo alla reception`, unread: !0 })); }
+function useDemoParcels() { return ke("archea-demo-reception-parcels-v1", ParcelSeed); }
+function parcelNotifications(t) { let n = ParcelSeed; try { n = JSON.parse(localStorage.getItem("archea-demo-reception-parcels-v1") || JSON.stringify(ParcelSeed)); } catch {} return n.filter(s => s.status === "waiting" && s.recipient === (t == null ? void 0 : t.nome)).map(s => ({ id: `parcel-${s.id}`, kind: "parcel", title: "È arrivato un pacco per te", detail: `${s.courier} · ${s.tracking} · Ritiralo alla reception`, unread: !0 })); }
 function ReceptionTodayDemo() {
   const [t] = useDemoParcels(), n = t.filter(s => s.status === "waiting").length;
   return e.jsxs(e.Fragment, { children: [e.jsx(StudioToolHeading, { title: "Reception · Oggi", subtitle: "Attività di segreteria, arrivi, riunioni e spazi da preparare.", eyebrow: "ARCHEA WORKSPACE · RECEPTION" }), e.jsxs("div", { className: "desk-stats reception-stats", children: [e.jsx(Q, { label: "Pacchi da consegnare", value: n, tone: n ? "warn" : "" }), e.jsx(Q, { label: "Riunioni oggi", value: 4 }), e.jsx(Q, { label: "Sale da preparare", value: 2 }), e.jsx(Q, { label: "Visitatori attesi", value: 7 })] }), e.jsxs("div", { className: "reception-grid", children: [e.jsxs("section", { className: "desk-panel", children: [e.jsxs("header", { children: [e.jsxs("div", { children: [e.jsx("small", { children: "AGENDA RECEPTION" }), e.jsx("h2", { children: "Prossime attività" })] }), e.jsx("span", { children: "27 ottobre" })] }), e.jsx("div", { className: "reception-timeline", children: [["09:30", "Allestire Sala Lungarno", "Riunione P51 · 10 persone", "done"], ["11:00", "Accoglienza consulenti impianti", "Studio MEP · appuntamento con Alessandro", "active"], ["14:30", "Preparare Sala Cellini", "Call Milanello · collegamento Teams", ""], ["17:00", "Ritiro corriere espresso", "3 buste documenti da spedire", ""]].map(([s,r,i,a]) => e.jsxs("article", { className: a, children: [e.jsx("time", { children: s }), e.jsxs("span", { children: [e.jsx("b", { children: r }), e.jsx("small", { children: i })] }), e.jsx("i", {})] }, s)) })] }), e.jsxs("section", { className: "desk-panel", children: [e.jsxs("header", { children: [e.jsxs("div", { children: [e.jsx("small", { children: "SALE RIUNIONI" }), e.jsx("h2", { children: "Stato preparazione" })] }), e.jsx("span", { children: "Oggi" })] }), e.jsx("div", { className: "reception-rooms", children: [["Sala Lungarno", "Pronta", "10:00 · Riunione P51"], ["Sala Cellini", "Da preparare", "14:30 · Milanello"], ["Sala Ingresso", "Libera", "Nessun evento"]].map(([s,r,i]) => e.jsxs("article", { children: [e.jsx("span", { className: `room-state ${r === "Pronta" ? "ready" : r === "Da preparare" ? "prepare" : "free"}` }), e.jsxs("div", { children: [e.jsx("b", { children: s }), e.jsx("small", { children: i })] }), e.jsx("em", { children: r })] }, s)) })] })] })] });
@@ -28223,10 +28223,10 @@ function _v() {
       today: a,
       language: l,
     } = Y(),
-    [o, c] = ke("archea-desktop-locale-tasks", t.task),
-    [d, u] = ke("archea-desktop-locale-hours", t.ore),
-    [m, x] = ke("archea-desktop-locale-notes", t.note),
-    [j, f] = ke("archea-desktop-locale-projects", t.progetti),
+    [o, c] = ke("archea-desktop-demo-tasks", t.task),
+    [d, u] = ke("archea-desktop-demo-hours", t.ore),
+    [m, x] = ke("archea-desktop-demo-notes", t.note),
+    [j, f] = ke("archea-desktop-demo-projects", t.progetti),
     [g, b] = ke("archea-desktop-staff-profiles", {}),
     [v, h] = ke(`archea-desktop-preferences-${n.id}`, {
       compactMenu: !1,
@@ -28698,7 +28698,7 @@ function _v() {
                 ],
               }),
               e.jsxs("span", {
-                className: "desk-locale-dot",
+                className: "desk-demo-dot",
                 children: [
                   e.jsx("i", {}),
                   "ACCOUNT ARCHEA",
@@ -28882,7 +28882,7 @@ function _v() {
                     ],
                   }),
                   e.jsx("span", {
-                    className: "desk-locale-label",
+                    className: "desk-demo-label",
                     children:
                       "ACCOUNT ARCHEA",
                   }),
