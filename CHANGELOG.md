@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.4.2 — Sistema grafico condiviso e navigazione mobile
+
+- **Workspace e Service Desk**: linguaggio visivo comune con palette carta, grafite, salvia e terracotta, griglie leggere, gerarchie più leggibili e componenti con bordi più netti.
+- **Telefono**: il Workspace conserva la navigazione a schede inferiori con area sicura; il Service Desk usa un menu laterale a tutta altezza, pannello mobile e intestazione compatta, con controlli touch più grandi.
+- **Accessibilità**: focus visibile, supporto ai temi chiaro/scuro e riduzione delle animazioni quando richiesta dal dispositivo.
+
 ## 3.4.1 — Task Manager con interfaccia desktop e mobile dedicate
 
 - **Task Manager**: nuova gerarchia visiva ispirata alle tavole architettoniche, con griglia leggera, tipografia più leggibile, filtri ordinati e stati più chiari.
