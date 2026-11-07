@@ -1,0 +1,333 @@
+/* ARCHEA Task Manager · linguaggio visivo a griglia, leggibile e coerente con il lavoro di studio. */
+.task-manager-stable {
+  --task-paper: #fffefa;
+  --task-canvas: #f3f2ed;
+  --task-ink: #202622;
+  --task-muted: #69736d;
+  --task-line: #d9ddd6;
+  --task-accent: #bd5737;
+  --task-sage: #61776b;
+  gap: 14px;
+  padding: 4px;
+  color: var(--task-ink);
+  background-color: var(--task-canvas);
+  background-image: linear-gradient(#d8ddd633 1px, transparent 1px), linear-gradient(90deg, #d8ddd633 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.task-manager-stable > .desk-heading {
+  position: relative;
+  align-items: center;
+  min-height: 132px;
+  margin: 0;
+  padding: 24px 28px;
+  overflow: hidden;
+  border: 1px solid var(--task-line);
+  border-left: 4px solid var(--task-accent);
+  background-color: var(--task-paper);
+  background-image: linear-gradient(115deg, #fffefa 0%, #fffefa 60%, #edf0e9 100%), linear-gradient(#c8d0c733 1px, transparent 1px), linear-gradient(90deg, #c8d0c733 1px, transparent 1px);
+  background-size: auto, 18px 18px, 18px 18px;
+  background-position: 0 0, right top, right top;
+}
+
+.task-manager-stable > .desk-heading > div { position: relative; z-index: 1; }
+.task-manager-stable > .desk-heading small {
+  color: var(--task-accent);
+  font-size: 10px;
+  letter-spacing: .16em;
+}
+.task-manager-stable > .desk-heading h1 {
+  margin-top: 8px;
+  color: var(--task-ink);
+  font-size: clamp(30px, 3.2vw, 42px);
+  font-weight: 620;
+  letter-spacing: -.045em;
+}
+.task-manager-stable > .desk-heading p {
+  max-width: 620px;
+  margin-top: 9px;
+  color: var(--task-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.task-manager-stable > .desk-heading > .desk-primary {
+  position: relative;
+  z-index: 1;
+  min-height: 46px;
+  padding: 0 18px;
+  border: 1px solid var(--task-ink);
+  border-radius: 4px;
+  background: var(--task-ink);
+  color: #fffefa;
+  font-size: 13px;
+  transition: background .18s ease, transform .18s ease;
+}
+.task-manager-stable > .desk-heading > .desk-primary:hover { transform: translateY(-1px); background: #344239; }
+
+.task-manager-stable .task-stats {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--task-line);
+  background: var(--task-paper);
+}
+.task-manager-stable .task-stats .desk-stat {
+  display: flex;
+  min-width: 0;
+  min-height: 88px;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 14px 16px;
+  border: 0;
+  border-right: 1px solid var(--task-line);
+  border-radius: 0;
+  background: transparent;
+  color: var(--task-ink);
+}
+.task-manager-stable .task-stats .desk-stat:last-child { border-right: 0; }
+.task-manager-stable .task-stats .desk-stat span {
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.task-manager-stable .task-stats .desk-stat b { margin: 0; font-size: 27px; font-weight: 560; line-height: 1; }
+.task-manager-stable .task-stats .desk-stat.warn b { color: #94601e; }
+.task-manager-stable .task-stats .desk-stat.alert b { color: #a33f35; }
+
+.task-manager-stable .desk-task-controls {
+  gap: 15px;
+  margin: 0;
+  padding: 15px 16px;
+  border: 1px solid var(--task-line);
+  background: var(--task-paper);
+}
+.task-manager-stable .desk-task-controls > .desk-segments {
+  width: 100%;
+  max-width: 100%;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--task-line);
+  border-radius: 5px;
+  background: var(--task-canvas);
+}
+.task-manager-stable .desk-task-controls > .desk-segments button {
+  min-height: 38px;
+  padding: 0 13px;
+  border-radius: 3px;
+  color: var(--task-muted);
+  font-size: 12px;
+  font-weight: 650;
+  white-space: nowrap;
+  transition: background .16s ease, color .16s ease;
+}
+.task-manager-stable .desk-task-controls > .desk-segments button:hover { background: #e4e8e1; color: var(--task-ink); }
+.task-manager-stable .desk-task-controls > .desk-segments button.on { background: var(--task-ink); color: #fffefa; }
+.task-manager-stable .desk-task-filters { grid-template-columns: minmax(180px, 1fr) minmax(180px, 1fr) minmax(240px, 1.25fr); gap: 12px; }
+.task-manager-stable .desk-task-filters .desk-select-field,
+.task-manager-stable .desk-task-filters > label:last-child {
+  width: 100%;
+  gap: 6px;
+  color: var(--task-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+}
+.task-manager-stable .desk-task-filters .desk-select-trigger,
+.task-manager-stable .desk-task-filters .desk-search {
+  min-height: 43px;
+  height: 43px;
+  padding: 0 12px;
+  border: 1px solid var(--task-line);
+  border-radius: 4px;
+  background: #fff;
+  color: var(--task-ink);
+  font-size: 13px;
+  letter-spacing: 0;
+}
+.task-manager-stable .desk-task-filters .desk-search:focus,
+.task-manager-stable .desk-task-filters .desk-select-trigger:focus-visible { outline: 2px solid var(--task-sage); outline-offset: 2px; }
+
+.task-manager-stable .task-results {
+  height: clamp(380px, calc(100dvh - 410px), 720px);
+  min-height: 380px;
+  border: 1px solid var(--task-line);
+  border-radius: 5px;
+  background: var(--task-paper);
+  box-shadow: 0 8px 22px #2533290a;
+}
+.task-manager-stable .task-table { min-width: 940px; }
+.task-manager-stable .task-table thead { background: #e9ece6; }
+.task-manager-stable .task-table th {
+  height: 44px;
+  padding: 0 14px;
+  border-bottom: 1px solid var(--task-line);
+  background: #e9ece6;
+  color: #58645c;
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+}
+.task-manager-stable .task-table tbody tr { height: 66px; max-height: 66px; transition: background .14s ease; }
+.task-manager-stable .task-table tbody tr:hover { background: #f1f3ee; }
+.task-manager-stable .task-table td {
+  height: 66px;
+  padding: 10px 14px;
+  border-bottom: 1px solid #e8eae5;
+  color: var(--task-ink);
+  font-size: 13px;
+}
+.task-manager-stable .task-table tbody tr:last-child td { border-bottom: 0; }
+.task-manager-stable .task-table td:nth-child(2) b { display: block; font-size: 14px; font-weight: 680; line-height: 1.35; }
+.task-manager-stable .task-table td:nth-child(2) small,
+.task-manager-stable .task-table td:nth-child(6) small { display: block; margin-top: 4px; color: var(--task-muted); font-size: 11px; }
+.task-manager-stable .task-table td:nth-child(3) { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; font-weight: 700; letter-spacing: .025em; }
+.task-manager-stable .desk-person { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; }
+.task-manager-stable .desk-person i { width: 28px; height: 28px; border: 1px solid var(--task-line); background: #e9eee8; color: #45584c; font-size: 10px; font-style: normal; }
+.task-manager-stable .desk-badge { border: 1px solid var(--task-line); border-radius: 3px; font-size: 10px; font-weight: 750; letter-spacing: .035em; }
+.task-manager-stable .desk-flow-dot { width: 25px; height: 25px; border: 1px solid var(--task-line); background: #eef0eb; color: var(--task-sage); }
+.task-manager-stable .desk-empty { padding: 40px 16px; color: var(--task-muted); font-size: 14px; }
+
+html[data-theme="dark"] .task-manager-stable {
+  --task-paper: #1b211d;
+  --task-canvas: #151a17;
+  --task-ink: #e9eee9;
+  --task-muted: #a5b0a8;
+  --task-line: #354039;
+  --task-accent: #e38a68;
+  --task-sage: #a8c1af;
+  background-image: linear-gradient(#4350472b 1px, transparent 1px), linear-gradient(90deg, #4350472b 1px, transparent 1px);
+}
+html[data-theme="dark"] .task-manager-stable > .desk-heading {
+  background-color: var(--task-paper);
+  background-image: linear-gradient(115deg, #1b211d 0%, #1b211d 60%, #26312a 100%), linear-gradient(#84948724 1px, transparent 1px), linear-gradient(90deg, #84948724 1px, transparent 1px);
+}
+html[data-theme="dark"] .task-manager-stable > .desk-heading h1,
+html[data-theme="dark"] .task-manager-stable .task-table td { color: var(--task-ink); }
+html[data-theme="dark"] .task-manager-stable .task-stats .desk-stat,
+html[data-theme="dark"] .task-manager-stable .desk-task-controls,
+html[data-theme="dark"] .task-manager-stable .task-results { background: var(--task-paper); }
+html[data-theme="dark"] .task-manager-stable .desk-task-controls > .desk-segments,
+html[data-theme="dark"] .task-manager-stable .task-table th { background: #252e28; }
+html[data-theme="dark"] .task-manager-stable .desk-task-controls > .desk-segments button.on { background: #d9e5dc; color: #1a211c; }
+html[data-theme="dark"] .task-manager-stable .desk-task-filters .desk-select-trigger,
+html[data-theme="dark"] .task-manager-stable .desk-task-filters .desk-search { background: #151a17; color: var(--task-ink); }
+html[data-theme="dark"] .task-manager-stable .task-table tbody tr:hover { background: #242d27; }
+html[data-theme="dark"] .task-manager-stable .desk-person i { background: #2b3b30; color: #c3d7c8; }
+
+/* Sul telefono la tabella diventa una lista di schede; il percorso di lettura è verticale e orientato al pollice. */
+@media (max-width: 760px) {
+  .task-manager-stable { gap: 10px; padding: 0; background-size: 22px 22px; }
+  .task-manager-stable > .desk-heading {
+    display: grid;
+    align-items: start;
+    gap: 16px;
+    min-height: 0;
+    padding: 20px 17px;
+    background-size: auto, 14px 14px, 14px 14px;
+  }
+  .task-manager-stable > .desk-heading h1 { margin-top: 7px; font-size: 30px; }
+  .task-manager-stable > .desk-heading p { max-width: 34ch; margin-top: 7px; font-size: 13px; }
+  .task-manager-stable > .desk-heading > .desk-primary { width: 100%; min-height: 48px; }
+  .task-manager-stable .task-stats {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: none;
+  }
+  .task-manager-stable .task-stats::-webkit-scrollbar { display: none; }
+  .task-manager-stable .task-stats .desk-stat {
+    min-width: 126px;
+    min-height: 75px;
+    padding: 11px 13px;
+    scroll-snap-align: start;
+  }
+  .task-manager-stable .task-stats .desk-stat span { font-size: 10px; }
+  .task-manager-stable .task-stats .desk-stat b { font-size: 23px; }
+  .task-manager-stable .desk-task-controls { gap: 12px; padding: 11px; }
+  .task-manager-stable .desk-task-controls > .desk-segments {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    flex-wrap: nowrap;
+    width: calc(100% + 2px);
+    margin: -1px;
+    padding: 4px;
+    background: var(--task-canvas);
+  }
+  .task-manager-stable .desk-task-controls > .desk-segments button { flex: 0 0 auto; min-height: 42px; padding: 0 12px; font-size: 12px; }
+  .task-manager-stable .desk-task-filters { grid-template-columns: 1fr 1fr; gap: 9px; }
+  .task-manager-stable .desk-task-filters .desk-select-field,
+  .task-manager-stable .desk-task-filters > label:last-child { min-width: 0; font-size: 10px; }
+  .task-manager-stable .desk-task-filters > label:last-child { grid-column: 1 / -1; }
+  .task-manager-stable .desk-task-filters .desk-select-trigger,
+  .task-manager-stable .desk-task-filters .desk-search { min-height: 46px; height: 46px; font-size: 16px; }
+  .task-manager-stable .task-results { height: auto; min-height: 0; overflow: visible; border: 0; background: transparent; box-shadow: none; }
+  .task-manager-stable .task-table { display: block; min-width: 0; }
+  .task-manager-stable .task-table thead { display: none; }
+  .task-manager-stable .task-table tbody { display: grid; gap: 10px; }
+  .task-manager-stable .task-table tbody tr {
+    display: grid;
+    grid-template-columns: 30px minmax(0, 1fr) auto;
+    grid-template-areas: "status title workflow" "status project project" "person person person" "priority due due";
+    height: auto;
+    max-height: none;
+    min-height: 142px;
+    padding: 11px 12px;
+    border: 1px solid var(--task-line);
+    border-left: 3px solid var(--task-sage);
+    background: var(--task-paper);
+    box-shadow: 0 4px 13px #2533290a;
+  }
+  .task-manager-stable .task-table tbody tr:hover { background: var(--task-paper); }
+  .task-manager-stable .task-table tbody td {
+    display: flex;
+    align-items: center;
+    width: auto;
+    height: auto;
+    min-width: 0;
+    padding: 5px 4px;
+    border: 0;
+    font-size: 12px;
+  }
+  .task-manager-stable .task-table td:nth-child(1) { grid-area: status; align-items: start; padding-top: 9px; }
+  .task-manager-stable .task-table td:nth-child(2) { grid-area: title; display: block; padding-top: 5px; }
+  .task-manager-stable .task-table td:nth-child(2) b { font-size: 15px; }
+  .task-manager-stable .task-table td:nth-child(2) small { font-size: 11px; }
+  .task-manager-stable .task-table td:nth-child(3) { grid-area: project; gap: 7px; padding-top: 1px; font-size: 12px; }
+  .task-manager-stable .task-table td:nth-child(3)::before,
+  .task-manager-stable .task-table td:nth-child(4)::before,
+  .task-manager-stable .task-table td:nth-child(5)::before,
+  .task-manager-stable .task-table td:nth-child(6)::before {
+    color: var(--task-muted);
+    font-family: inherit;
+    font-size: 9px;
+    font-weight: 750;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+  }
+  .task-manager-stable .task-table td:nth-child(3)::before { content: "COMMESSA"; }
+  .task-manager-stable .task-table td:nth-child(4) { grid-area: person; gap: 8px; margin-top: 3px; padding-top: 9px; border-top: 1px solid var(--task-line); }
+  .task-manager-stable .task-table td:nth-child(4)::before { content: "REFERENTE"; margin-right: auto; }
+  .task-manager-stable .task-table td:nth-child(5) { grid-area: priority; gap: 6px; }
+  .task-manager-stable .task-table td:nth-child(5)::before { content: "PRIORITÀ"; }
+  .task-manager-stable .task-table td:nth-child(6) { grid-area: due; justify-content: flex-end; gap: 8px; }
+  .task-manager-stable .task-table td:nth-child(6)::before { content: "SCADENZA"; }
+  .task-manager-stable .task-table td:nth-child(6) small { margin: 0 0 0 3px; font-size: 11px; }
+  .task-manager-stable .task-table td:nth-child(7) { grid-area: workflow; justify-content: end; padding-top: 5px; }
+  .task-manager-stable .desk-person { font-size: 12px; }
+  .task-manager-stable .desk-person i { width: 26px; height: 26px; }
+  .task-manager-stable .desk-badge { padding: 4px 7px; font-size: 9px; }
+  .task-manager-stable .desk-flow-dot { width: 24px; height: 24px; }
+  html[data-theme="dark"] .task-manager-stable .task-table tbody tr { background: var(--task-paper); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .task-manager-stable *, .task-manager-stable *::before, .task-manager-stable *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+}
