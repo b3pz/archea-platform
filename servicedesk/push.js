@@ -88,7 +88,7 @@
     if (!supported() && isIOS() && !standalone()) {
       html = '<b>🔔 Notifiche sul telefono</b><span>Tocca Condividi → «Aggiungi alla schermata Home», poi apri ARCHEA dall\'icona: lì si attivano.</span>';
     } else if (supported() && Notification.permission === 'default') {
-      html = '<b>🔔 Ricevi le notifiche anche a sito chiuso</b><span>Ticket, messaggi in chat, inviti in calendario, Off topic.</span><button class="primary" type="button" id="pushOn">Attiva le notifiche</button>';
+      html = '<b>🔔 Ricevi le notifiche anche a sito chiuso</b><span>Task assegnate o da verificare, ticket, messaggi in chat e inviti in calendario.</span><button class="primary" type="button" id="pushOn">Attiva le notifiche</button>';
     } else if (supported() && Notification.permission === 'denied') {
       html = '<b>🔕 Notifiche bloccate</b><span>Riattivale dalle impostazioni del browser (lucchetto accanto all\'indirizzo), poi ricarica.</span>';
     }

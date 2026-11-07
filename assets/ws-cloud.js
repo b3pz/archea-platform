@@ -5,8 +5,8 @@
   var S = {
     started: false, loaded: false, version: 0,
     data: { progetti: [], task: [], ore: [], note: [], team: [], staff: [] },
-    server: { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} },   // id -> JSON salvato
-    perms: [], people: [], pmNames: [], listeners: new Set(), timer: 0, pending: 0, me: null
+    server: { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} },   // id -> JSON e revisione server
+    perms: [], people: [], pmNames: [], listeners: new Set(), timer: 0, pending: 0, me: null, queues: {}
   };
 
   function cfg() { return window.ARCHEA_CONFIG || {}; }
@@ -36,13 +36,13 @@
   async function loadAll() {
     var rows = [], from = 0;
     for (var i = 0; i < 20; i++) {
-      var part = await api('/rest/v1/ws_records?select=collection,id,data&order=collection.asc,id.asc&offset=' + from + '&limit=1000');
+      var part = await api('/rest/v1/ws_records?select=collection,id,data,revision&order=collection.asc,id.asc&offset=' + from + '&limit=1000');
       rows = rows.concat(part || []);
       if (!part || part.length < 1000) break;
       from += 1000;
     }
     var data = { progetti: [], task: [], ore: [], note: [], team: [], staff: [] }, server = { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} };
-    rows.forEach(function (r) { if (!data[r.collection]) return; data[r.collection].push(r.data); server[r.collection][r.id] = JSON.stringify(r.data); });
+    rows.forEach(function (r) { if (!data[r.collection]) return; data[r.collection].push(r.data); server[r.collection][r.id] = { json: JSON.stringify(r.data), revision: Number(r.revision || 1) }; });
     if (S.pending) return; // non sovrascrivere modifiche in corso
     S.data = data; S.server = server; S.loaded = true; emit();
   }
@@ -60,7 +60,7 @@
       }
     } catch (e) {}
     S.people = list.map(function (p) {
-      return { id: p.id, nome: p.nome || 'Collega', ruolo: (p.ruolo === 'SUPER_IT' || pmIds.indexOf(p.id) >= 0) ? 'responsabile' : 'membro', inRiepiloghiOre: true };
+      return { id: p.id, nome: p.nome || 'Collega', ruolo: pmIds.indexOf(p.id) >= 0 ? 'responsabile' : 'membro', inRiepiloghiOre: true };
     });
   }
 
@@ -91,45 +91,35 @@
   function stop() { clearInterval(S.timer); S.started = false; S.loaded = false; S.data = { progetti: [], task: [], ore: [], note: [], team: [], staff: [] }; S.server = { progetti: {}, task: {}, ore: {}, note: {}, team: {}, staff: {} }; emit(); }
 
   async function persist(col, next) {
-    var srv = S.server[col], seen = {}, writes = [];
+    var srv = S.server[col], seen = {}, upserts = [], deletes = [];
     next.forEach(function (row) {
       var id = keyOf(col, row); if (!id) return;
       seen[id] = 1;
       var js = JSON.stringify(row);
-      if (srv[id] === undefined) writes.push(['POST', id, row, js]);
-      else if (srv[id] !== js) writes.push(['PATCH', id, row, js]);
+      if (srv[id] === undefined) upserts.push({ id: id, data: row, expected_revision: null });
+      else if (srv[id].json !== js) upserts.push({ id: id, data: row, expected_revision: srv[id].revision });
     });
-    Object.keys(srv).forEach(function (id) { if (!seen[id]) writes.push(['DELETE', id]); });
-    if (!writes.length) return;
-    S.pending++;
-    var failed = null;
-    for (var i = 0; i < writes.length; i++) {
-      var w = writes[i], q = '?collection=eq.' + col + '&id=eq.' + encodeURIComponent(w[1]);
-      try {
-        if (w[0] === 'POST') { await api('/rest/v1/ws_records', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: { collection: col, id: w[1], data: w[2] } }); srv[w[1]] = w[3]; }
-        else if (w[0] === 'PATCH') {
-          var res = await api('/rest/v1/ws_records' + q, { method: 'PATCH', headers: { Prefer: 'return=representation' }, body: { data: w[2] } });
-          if (!res || !res.length) throw new Error('permesso');
-          srv[w[1]] = JSON.stringify(res[0].data || w[2]);
-        } else {
-          var del = await api('/rest/v1/ws_records' + q, { method: 'DELETE', headers: { Prefer: 'return=representation' } });
-          if (!del || !del.length) throw new Error('permesso');
-          delete srv[w[1]];
-        }
-      } catch (e) { failed = e; }
-    }
-    S.pending--;
-    if (failed) {
-      toast(/permesso|row-level|policy|42501/i.test(failed.message)
-        ? (col === 'task' || col === 'progetti' || col === 'team' ? 'Solo il PM può creare progetti, assegnare task o cambiarne titolo e scadenze.' : 'Non hai il permesso per questa modifica.')
-        : 'Salvataggio non riuscito: ' + failed.message);
-      loadAll().catch(function () {});
-    }
+    Object.keys(srv).forEach(function (id) { if (!seen[id]) deletes.push({ id: id, expected_revision: srv[id].revision }); });
+    if (!upserts.length && !deletes.length) return;
+    // ARCHEA: una RPC transazionale evita salvataggi parziali e revisioni concorrenti perse.
+    var result = await api('/rest/v1/rpc/ws_apply_changes', { method: 'POST', body: { p_collection: col, p_upserts: upserts, p_deletes: deletes } });
+    ((result && result.upserts) || []).forEach(function (row) {
+      srv[row.id] = { json: JSON.stringify(row.data), revision: Number(row.revision) };
+    });
+    ((result && result.deletes) || []).forEach(function (id) { delete srv[id]; });
   }
   function set(col, next) {
     if (!Array.isArray(next)) return;
-    S.data[col] = next; emit();
-    persist(col, next).catch(function (e) { toast('Salvataggio non riuscito: ' + e.message); });
+    S.data[col] = next; S.pending++; emit();
+    S.queues[col] = (S.queues[col] || Promise.resolve()).then(function () {
+      return persist(col, S.data[col]);
+    }).catch(function (e) {
+      // ARCHEA: la transazione è annullata per intero; ricarica i dati e indica come riprovare.
+      toast('Salvataggio non riuscito; nessuna modifica parziale è stata registrata. Riapri la scheda e reinserisci i dati. ' + e.message);
+    }).finally(function () {
+      S.pending = Math.max(0, S.pending - 1);
+      if (!S.pending) loadAll().catch(function () {});
+    });
   }
 
   window.ArcheaWsCloud = {
@@ -138,6 +128,9 @@
     loaded: function () { return S.loaded; },
     version: function () { return S.version; },
     isPM: function () { return S.perms.indexOf('gestione_progetti') >= 0; },
+    isVice: function () { var id = S.me && S.me.id; return !!id && S.data.team.some(function (t) { return (t.viceIds || []).indexOf(id) >= 0; }); },
+    // ARCHEA: il menu del Workspace usa gli stessi permessi cumulabili letti dal database.
+    permissions: function () { return S.perms.slice(); },
     people: function () { return S.people; },
     staff: function () { return S.staff || []; },
     subscribe: function (f) { S.listeners.add(f); return function () { S.listeners.delete(f); }; }

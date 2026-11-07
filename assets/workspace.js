@@ -10737,15 +10737,20 @@ function sj({ children: t }) {
           base =
             (n == null ? void 0 : n.persone.find((I) => I.id === baseId)) ??
             Vn.find((I) => I.id === baseId);
+        const cloud = window.ArcheaWsCloud,
+          sdPerms = cloud && cloud.permissions ? cloud.permissions() : [],
+          // ARCHEA: solo il gruppo PM concede la gestione dei progetti.
+          isPM = sdPerms.indexOf("gestione_progetti") >= 0,
+          isVice = !!(cloud && cloud.isVice && cloud.isVice()),
+          // ARCHEA: IT e HR derivano dai gruppi; PM non eredita i privilegi senior.
+          effectiveAppRole = LiveUser.sdRole === "SUPER_IT" ? "architect" : sdPerms.indexOf("gestione_it") >= 0 ? "it_manager" : sdPerms.indexOf("gestione_hr") >= 0 ? "hr_manager" : "architect";
         // Pianificazione e aggiornamenti 0.14 leggono il profilo da qui
         try {
           sessionStorage.setItem("archea-demo-user", baseId);
           sessionStorage.setItem("archea-live", "1");
           sessionStorage.setItem("archea-platform-profile",
-            LiveUser.sdRole === "SUPER_IT" ? "platform_owner" : LiveUser.sdRole === "HR" ? "hr_manager" : "resource");
+            LiveUser.sdRole === "SUPER_IT" ? "platform_owner" : sdPerms.indexOf("gestione_hr") >= 0 ? "hr_manager" : sdPerms.indexOf("gestione_it") >= 0 ? "it_manager" : "resource");
         } catch {}
-        const cloud = window.ArcheaWsCloud,
-          isPM = LiveUser.sdRole === "SUPER_IT" || !!(cloud && cloud.isPM());
         return {
           ...base,
           // con progetti e task condivisi ognuno è sé stesso: id e nome dell'account reale
@@ -10753,12 +10758,14 @@ function sj({ children: t }) {
           personaId: baseId,
           nome: LiveUser.nome,
           email: LiveUser.email,
-          // PM: vede e valida le task di tutti (Task Manager di Francesco)
+          // ARCHEA: il gruppo PM governa soltanto i progetti inclusi nelle sue squadre.
           ruolo: isPM ? "responsabile" : "membro",
-          appRole: isPM && !["partner_architect", "senior_architect"].includes(appRole) ? "senior_architect" : !isPM && ["partner_architect", "senior_architect"].includes(appRole) ? "architect" : appRole,
+          appRole: effectiveAppRole,
           isPM,
+          isVice,
           isDeveloper: LiveUser.sdRole === "SUPER_IT", // console sviluppatore: solo super admin
           technicalRole: null,
+          sdPerms,
           live: !0,
           sdRole: LiveUser.sdRole,
         };
@@ -10792,6 +10799,7 @@ function sj({ children: t }) {
         persone: [me, ...people.filter((x) => x.id !== LiveUser.id)],
         progetti: cloud.get("progetti"),
         task: cloud.get("task"),
+        team: cloud.get("team"),
         ore: cloud.get("ore"),
         note: cloud.get("note"),
         meta: { ...n.meta, source: "live", label: "Dati condivisi ARCHEA" },
@@ -10897,7 +10905,7 @@ const Fd = (t) =>
       .split(/[,;/&\n]+/)
       .map((n) => n.trim())
       .filter(Boolean),
-  Mt = (t, n) => rj(t).some((s) => se(s) === se(n.nome)),
+  Mt = (t, n) => t.assegnatarioId ? t.assegnatarioId === n.id : rj(t).some((s) => se(s) === se(n.nome)),
   Vr = ({ name: t, size: n = 40, active: s = !1, onClick: r, label: i }) => {
     const a = { width: n, height: n, fontSize: n * 0.34 },
       l = `avatar${s ? " active" : ""}`;
@@ -12254,7 +12262,7 @@ function yj() {
       x.find((P) => P.id === (n == null ? void 0 : n.id)) ??
       x[0],
     f = C.useMemo(
-      () => (t && j ? t.ore.filter((P) => se(P.persona) === se(j.nome)) : []),
+      () => (t && j ? t.ore.filter((P) => P.personaId ? P.personaId === j.id : se(P.persona) === se(j.nome)) : []),
       [t, j],
     ),
     g = co(i, l, c),
@@ -17138,7 +17146,7 @@ function Gj({ data: t, viewer: n, today: s, en: r, setTab: i }) {
       .map((A) => ({
         person: A,
         hours: t.ore
-          .filter((w) => w.persona === A.nome && d.has(w.progettoCodice))
+          .filter((w) => (w.personaId ? w.personaId === A.id : w.persona === A.nome) && d.has(w.progettoCodice))
           .reduce((w, B) => w + (Number(B.ore) || 0), 0),
       }))
       .sort((A, w) => w.hours - A.hours)
@@ -20604,7 +20612,7 @@ function hv({ tasks: t, hours: n, projects: s, events: todayEvents = [] }) {
       (M) =>
         (u === "all" || M.progettoCodice === u) &&
         (x === "all" || He(M, i) === x) &&
-        (f === "all" || M.assegnatario === f),
+        (f === "all" || (M.assegnatarioId ? M.assegnatarioId === f : M.assegnatario === f)),
     ),
     v = {
       open: c.filter((M) => qe(M, i)).length,
@@ -20612,10 +20620,10 @@ function hv({ tasks: t, hours: n, projects: s, events: todayEvents = [] }) {
       late: c.filter((M) => Ce(M, i) === "scaduta").length,
     },
     h = n
-      .filter((M) => M.persona === r.nome && M.data === i)
+      .filter((M) => (M.personaId ? M.personaId === r.id : M.persona === r.nome) && M.data === i)
       .reduce((M, q) => M + Number(q.ore || 0), 0),
     p = c.filter((M) => qe(M, i)).slice(0, 6),
-    y = n.filter((M) => M.persona === r.nome),
+    y = n.filter((M) => M.personaId ? M.personaId === r.id : M.persona === r.nome),
     O = o.filter((M) => normalizeProjectStatus(M.stato) === "Active"),
     k = Array.from({ length: 7 }, (M, q) => {
       const Z = new Date(`${i}T12:00:00Z`);
@@ -21332,19 +21340,20 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
   var Aa, ie, Vs;
   const { data: r, viewer: i, today: a } = Y(),
     l = s || r.progetti,
-    o = ["senior_architect", "partner_architect", "property"].includes(
+    // ARCHEA: il gruppo PM abilita la vista e le azioni sulle task della squadra.
+    o = i.isPM || i.isVice || ["senior_architect", "partner_architect", "property"].includes(
       i.appRole,
     ),
     c = ["architect", "senior_architect", "partner_architect"].includes(
       i.appRole,
-    ),
+    ) || i.isPM || i.isVice,
     d = o ? t : Yn(i, t, Mt),
     [u, m] = C.useState("open"),
     [x, j] = C.useState(""),
     [f, g] = C.useState("all"),
     [b, v] = C.useState("all"),
     [h, p] = C.useState(
-      () => sessionStorage.getItem("archea-task-focus") || null,
+      () => new URLSearchParams(location.search).get("task") || sessionStorage.getItem("archea-task-focus") || null,
     ),
     [y, O] = C.useState(!1),
     [k, z] = C.useState(!1),
@@ -21353,6 +21362,7 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
       () => ({
         progettoCodice: (E == null ? void 0 : E.codice) || "",
         assegnatario: i.nome,
+        assegnatarioId: i.id,
         tipologia: "Coordination",
         priorita: "Media",
         titolo: "",
@@ -21384,19 +21394,19 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
       const K = He(R, a),
         ce = u === "all" || (u === "open" ? K !== "validata" : K === u),
         ze = f === "all" || R.progettoCodice === f,
-        Ft = b === "all" || R.assegnatario === b,
+        Ft = b === "all" || (R.assegnatarioId ? R.assegnatarioId === b : R.assegnatario === b),
         Hr =
           `${R.titolo || ""} ${R.descrizione || ""} ${R.progettoCodice || ""} ${R.assegnatario || ""} ${R.tipologia || ""}`.toLowerCase();
       return ce && ze && Ft && Hr.includes(N);
     }),
     S = t.find((R) => R.id === h) || null,
     L = (R, K) =>
-      S && n((ce) => ce.map((ze) => (ze.id === S.id ? { ...ze, [R]: K } : ze))),
-    H = (R, K) => $((ce) => ({ ...ce, [R]: K })),
+      S && n((ce) => ce.map((ze) => (ze.id === S.id ? { ...ze, ...(typeof R === "object" ? R : { [R]: K }) } : ze))),
+    H = (R, K) => $( (ce) => ({ ...ce, ...(typeof R === "object" ? R : { [R]: K }) })),
     _ = (R) => {
       if (
         (R == null || R.preventDefault(),
-        !c || !P.titolo.trim() || !P.progettoCodice || !P.assegnatario)
+        !c || !P.titolo.trim() || !P.progettoCodice || !P.assegnatario || !P.assegnatarioId)
       )
         return;
       const K = cv(P.progettoCodice),
@@ -21404,6 +21414,7 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
           ...P,
           numero: Yd(t, P.progettoCodice),
           assegnatario: o ? P.assegnatario : i.nome,
+          assegnatarioId: o ? P.assegnatarioId : i.id,
           id: en("demo-task"),
           completed: !1,
           validated: !1,
@@ -21536,7 +21547,7 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
       meta: R.stato,
     })),
     Us = r.persone.map((R) => ({
-      value: R.nome,
+      value: R.id,
       label: R.nome,
       meta: R.ruolo || "",
     })),
@@ -21636,11 +21647,11 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
                       }),
                       e.jsx(fe, {
                         label: "Assegnatario",
-                        value: S.assegnatario || "",
+                        value: S.assegnatarioId || ((r.persone.find((R) => R.nome === S.assegnatario) || {}).id || ""),
                         options: Us,
                         disabled: !o,
                         searchable: !0,
-                        onChange: (R) => L("assegnatario", R),
+                        onChange: (R) => { const person = r.persone.find((X) => X.id === R); L({ assegnatarioId: R, assegnatario: person ? person.nome : "" }); },
                       }),
                       e.jsx(fe, {
                         label: "Tipologia",
@@ -22251,11 +22262,11 @@ function pv({ tasks: t, setTasks: n, projects: s }) {
                   }),
                   e.jsx(fe, {
                     label: "Assegnatario",
-                    value: o ? P.assegnatario : i.nome,
+                    value: o ? P.assegnatarioId : i.id,
                     options: Us,
                     disabled: !o,
                     searchable: !0,
-                    onChange: (R) => H("assegnatario", R),
+                    onChange: (R) => { const person = r.persone.find((X) => X.id === R); H({ assegnatarioId: R, assegnatario: person ? person.nome : "" }); },
                   }),
                   e.jsx(fe, {
                     label: "Tipologia",
@@ -22351,7 +22362,7 @@ function mv({ hours: t, setHours: n }) {
     }),
     [o, c] = C.useState("settimana"),
     [d, u] = C.useState(i),
-    m = t.filter((y) => y.persona === r.nome),
+    m = t.filter((y) => y.personaId ? y.personaId === r.id : y.persona === r.nome),
     x = co(o, d, { from: d, to: d }),
     j = uo(m, x),
     f = Ip(Math.max(1, ...j.barre.map((y) => y.ore))),
@@ -22360,7 +22371,7 @@ function mv({ hours: t, setHours: n }) {
       y.preventDefault(),
         !(!a.progettoCodice || !a.data || Number(a.ore) <= 0) &&
           (n((O) => [
-            { ...a, persona: r.nome, id: en("demo-hours"), ore: Number(a.ore) },
+            { ...a, persona: r.nome, personaId: r.id, id: en("demo-hours"), ore: Number(a.ore) },
             ...O,
           ]),
           l((O) => ({ ...O, nota: "" })));
@@ -23568,14 +23579,14 @@ function yv({
   setStaffProfiles: r,
 }) {
   var A;
-  const { data: i, today: a } = Y(),
+  const { data: i, today: a, viewer: viewer } = Y(),
     [l, o] = C.useState(((A = t[0]) == null ? void 0 : A.codice) || ""),
     [c, d] = C.useState(!1),
     [u, m] = C.useState(null),
     [x, j] = C.useState(!1),
     [f, g] = ke("archea-project-manager-people", []),
     [b, v] = ke("archea-project-manager-removed-people", []),
-    [h, p] = useWsMap("team", "archea-project-manager-assignments", {}, Y().viewer),
+    [h, p, viceState] = useWsMap("team", "archea-project-manager-assignments", {}, viewer),
     [y, O] = C.useState({
       codice: "",
       nome: "",
@@ -23591,6 +23602,7 @@ function yv({
     E = [...i.persone, ...f].filter((w) => !b.includes(w.id)),
     U = t.find((w) => w.codice === l) || t[0],
     P = h[U == null ? void 0 : U.codice] || [],
+    projectVices = viceState.value[(U == null ? void 0 : U.codice)] || [],
     $ = t.find((w) => w.codice === u),
     N = (w, B) => {
       n((T) => T.map((D) => (D.codice === w ? { ...D, stato: B } : D))),
@@ -23599,6 +23611,7 @@ function yv({
     I = (w) => {
       const B = P.includes(w) ? P.filter((T) => T !== w) : [...P, w];
       p((T) => ({ ...T, [U.codice]: B })),
+        !B.includes(w) && viceState.set((T) => ({ ...T, [U.codice]: (T[U.codice] || []).filter((X) => X !== w) })),
         r((T) => {
           const D = { ...T };
           Object.keys(D).forEach((M) => {
@@ -23623,6 +23636,10 @@ function yv({
             D
           );
         });
+    },
+    toggleVice = (w) => {
+      if (!viewer.isPM || !P.includes(w) || !U) return;
+      viceState.set((T) => ({ ...T, [U.codice]: T[U.codice]?.includes(w) ? T[U.codice].filter((X) => X !== w) : [...(T[U.codice] || []), w] }));
     },
     S = (w) => {
       w.preventDefault();
@@ -23668,6 +23685,7 @@ function yv({
           const D = { ...T };
           return delete D[w], D;
         }),
+        viceState.set((T) => { const D = { ...T }; delete D[w]; return D; }),
         r((T) =>
           Object.fromEntries(
             Object.entries(T).map(([D, X]) => [
@@ -23688,11 +23706,11 @@ function yv({
         title: "Project Manager",
         subtitle:
           "Gestisci in un unico spazio commesse, stati, organico e assegnazioni.",
-        action: e.jsxs("button", {
+        action: viewer.isPM ? e.jsxs("button", {
           className: "desk-primary",
           onClick: () => d(!0),
           children: [e.jsx(tt, {}), "Aggiungi progetto"],
-        }),
+        }) : null,
       }),
       e.jsxs("section", {
         className: "desk-panel desk-pm-projects",
@@ -23732,6 +23750,7 @@ function yv({
                       type: "button",
                       className: `project-state ${projectStatusSlug(w.stato)}`,
                       onClick: () => m(w.codice),
+                      disabled: !viewer.isPM,
                       children: [normalizeProjectStatus(w.stato), e.jsx(_t, {})],
                     }),
                   ],
@@ -23763,7 +23782,7 @@ function yv({
                   e.jsxs("strong", {
                     children: [P.length, " assegnate · ", E.length, " totali"],
                   }),
-                  e.jsxs("button", {
+                  viewer.isPM && e.jsxs("button", {
                     className: "desk-primary",
                     onClick: () => j(!0),
                     children: [e.jsx(tt, {}), "Aggiungi risorsa"],
@@ -23788,7 +23807,8 @@ function yv({
                   children: [
                     e.jsxs("button", {
                       type: "button",
-                      onClick: () => U && I(w.id),
+                      onClick: () => viewer.isPM && U && I(w.id),
+                      disabled: !viewer.isPM,
                       children: [
                         e.jsx("i", { children: Lt(w.nome) }),
                         e.jsxs("span", {
@@ -23808,7 +23828,13 @@ function yv({
                         }),
                       ],
                     }),
-                    e.jsx("button", {
+                    viewer.isPM && B && e.jsx("button", {
+                      type: "button",
+                      className: "desk-pm-vice-toggle",
+                      onClick: () => toggleVice(w.id),
+                      children: projectVices.includes(w.id) ? "Rimuovi vice" : "Nomina vice",
+                    }),
+                    viewer.isPM && e.jsx("button", {
                       type: "button",
                       className: "desk-pm-remove-person",
                       onClick: () => H(w.id),
@@ -23855,7 +23881,7 @@ function yv({
                 ),
               ),
             }),
-            e.jsx("button", {
+              viewer.isPM && e.jsx("button", {
               type: "button",
               className: "desk-delete-project",
               onClick: () => _($.codice),
@@ -27347,7 +27373,7 @@ function Rv({ tasks: t, hours: n }) {
       .map((T) => ({
         ...T,
         hours: n
-          .filter((D) => D.persona === T.nome)
+          .filter((D) => D.personaId ? D.personaId === T.id : D.persona === T.nome)
           .reduce((D, X) => D + Number(X.ore || 0), 0),
       }))
       .filter((T) => T.hours)
@@ -27994,14 +28020,17 @@ function CameraIcon({ size: t = 22 }) {
 }
 const OffTopicEntry = ["offtopic", "Off topic", OffTopicIcon, "Eventi, consigli e mercatino tra colleghi"];
 const FotoCantiereEntry = ["fotocantiere", "Foto cantiere", CameraIcon, "Scatta e archivia le foto per commessa"];
-// Cosa vede ogni ruolo (account registrati). SUPER_IT: tutto.
+// Cosa vede ogni ruolo (account registrati). I gruppi operativi restano cumulabili.
 //   USER: apre ticket e segue le sue task · HR: + organico, persone e spostamenti · IT: + gestione IT e utenti
 const LIVE_BASE_TABS = ["oggi", "taskmanager", "servicedesk", "calendario", "chat", "offtopic", "fotocantiere", "altro"];
 function liveAllowed(n) {
-  if (!n || !n.live || n.sdRole === "SUPER_IT") return null;
-  const pm = n.isPM ? ["projectmanager", "progetti", "avanzamento", "ore", "insight", "note"] : [];
-  if (n.sdRole === "HR" || n.sdRole === "IT") return [...LIVE_BASE_TABS, "bio", ...pm];
-  return [...LIVE_BASE_TABS, ...pm];
+  if (!n || !n.live) return null;
+  // ARCHEA: Super IT resta tecnico; le sezioni operative arrivano dai gruppi.
+  if (n.sdRole === "SUPER_IT") return LIVE_BASE_TABS;
+  const permissions = Array.isArray(n.sdPerms) ? n.sdPerms : [];
+  const pm = n.isPM || n.isVice ? ["projectmanager", "progetti", "ore"] : [];
+  const hr = permissions.includes("gestione_hr") ? ["bio"] : [];
+  return [...LIVE_BASE_TABS, ...hr, ...pm];
 }
 function liveFilter(n, list, key = (V) => V[0]) {
   const a = liveAllowed(n);
@@ -28021,15 +28050,21 @@ function useWs(col, key, initial, viewer) {
 function useWsMap(col, key, initial, viewer) {
   const [list, setList] = useWs(col, key + "-list", [], viewer),
     local = ke(key, initial),
+    [localVices, setLocalVices] = ke(key + "-vice", {}),
     on = !!(viewer && viewer.live && window.ArcheaWsCloud);
-  if (!on) return local;
+  if (!on) return [local[0], local[1], { value: localVices, set: setLocalVices }];
   const map = Object.fromEntries(list.map((r) => [r.id, r.persone || []]));
+  const vices = Object.fromEntries(list.map((r) => [r.id, r.viceIds || []]));
   return [
     map,
     (v) => {
       const next = typeof v == "function" ? v(map) : v;
-      setList(Object.entries(next).map(([id, persone]) => ({ id, persone })));
+      setList(Object.entries(next).map(([id, persone]) => ({ id, persone, viceIds: vices[id] || [] })));
     },
+    { value: vices, set: (v) => {
+      const next = typeof v == "function" ? v(vices) : v;
+      setList((current) => current.filter((r) => Object.prototype.hasOwnProperty.call(next, r.id)).map((r) => ({ ...r, viceIds: next[r.id] || [] })));
+    } },
   ];
 }
 function withOffTopic(list) {
@@ -28453,7 +28488,7 @@ function _v() {
           unread: !0,
           taskId: V.id,
         })),
-      ...(A
+      ...(A || n.isPM || n.isVice
         ? o
             .filter((V) => V.completed && !V.validated)
             .map((V) => ({
@@ -28467,7 +28502,7 @@ function _v() {
         : []),
       ...o
         .filter(
-          (V) => V.assegnatario === n.nome && V.notValidated && !V.completed,
+          (V) => (V.assegnatarioId ? V.assegnatarioId === n.id : V.assegnatario === n.nome) && V.notValidated && !V.completed,
         )
         .map((V) => ({
           id: `correction-${V.id}`,
@@ -28510,6 +28545,7 @@ function _v() {
             ],
           ]
         : []),
+      ...(n.live && (n.isPM || n.isVice) && !A ? [["projectmanager", "Project Manager", Ss, "Progetti, task e ore del progetto assegnato"]] : []),
       ["calendario", "Calendario", Wt, "Agenda e appuntamenti"],
       ["prenota", "Prenotazioni", Wt, "Auto, materiali e sale"],
       ["servicedesk", "Service Desk IT", ServiceDeskIcon, "Ticket, asset e assistenza IT"],
@@ -28696,7 +28732,7 @@ function _v() {
                             ? e.jsx(Iv, { staffProfiles: g, projects: j })
                             : ie === "bio"
                               ? e.jsx(zv, { staffProfiles: g, projects: j })
-                              : ie === "projectmanager" && A
+                              : ie === "projectmanager" && (A || n.isPM || n.isVice)
                                 ? e.jsx(yv, {
                                     projects: j,
                                     setProjects: f,

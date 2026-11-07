@@ -62,7 +62,7 @@ Deno.serve(async (req) =&gt; {
   webpush.setVapidDetails(&quot;mailto:it@archea.it&quot;, cfg.public_key, cfg.private_key);
   const subs = await rest(`push_subscriptions?user_id=eq.${n.user_id}&amp;select=id,endpoint,p256dh,auth`);
   const payload = JSON.stringify({
-    id: n.id, title: n.title || &quot;ARCHEA&quot;, body: n.message || &quot;&quot;, ticket_id: n.ticket_id || null,
+    id: n.id, title: n.title || &quot;ARCHEA&quot;, body: n.message || &quot;&quot;, ticket_id: n.ticket_id || null, task_id: n.task_id || null,
   });
 
   let sent = 0, removed = 0;

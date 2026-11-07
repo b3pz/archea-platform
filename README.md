@@ -11,22 +11,24 @@ Il Service Desk è una sezione del Workspace ("Service Desk IT") e usa lo **stes
 
 Solo con un **account ARCHEA registrato** (email e password su Supabase). Non esistono account di prova: chi non ha un account lo chiede al reparto IT, che lo crea da **Service Desk → Utenti e gruppi**.
 
-Dopo l'accesso si vedono tutti i moduli del Workspace (task, progetti, ore, contabilità, Pianificazione…) più le funzioni su Supabase: Service Desk, Calendario comune, Chat, Foto cantiere e Off topic. Chi ha già un profilo nel Workspace (es. Francesco) tiene il suo menu.
+Dopo l'accesso il menu operativo deriva dai gruppi assegnati all'account. I dati Workspace sono caricati da Supabase; i progetti e le task demo non vengono usati come dati reali.
 
 ### Ruoli
 
-`profiles.ruolo` su Supabase decide cosa si vede. Ogni ruolo ha tutto quello del ruolo sopra, più qualcosa:
+`profiles.ruolo` distingue solo account ordinari e amministrazione tecnica. Le funzioni operative si sommano tramite gruppi; un account può essere, ad esempio, IT+PM o HR+PM. Ogni persona usa l'UUID stabile del proprio account Supabase, generato quando l'account viene creato: non occorre preparare ID vuoti in anticipo, e il modello è progettato per almeno 300 account.
 
 | Ruolo | Cosa fa |
 |---|---|
-| `USER` | Apre ticket e segue i suoi; vede le sue task (Oggi, Task Manager); calendario, chat, foto, Off topic |
-| `HR` | + Organico, Persone, Movimenti (ingressi in studio, uscite, spostamenti), Planimetrie |
-| `IT` | + Coda ticket, Censimento, Dashboard; crea e gestisce utenti **Utente** e **HR** |
-| `SUPER_IT` (super admin) | Tutto: tutti i moduli del Workspace, Pianificazione, console sviluppatore; è l'unico che crea o modifica account **IT**, assegna i ruoli IT e super admin e cambia i gruppi che gestiscono gli utenti |
+| `USER` | Accesso base; vede e aggiorna le task a lui assegnate e registra le proprie ore sui progetti di cui è membro |
+| Gruppo `IT` | Assistenza, ticket, asset e amministrazione utenti ordinari secondo i permessi assegnati |
+| Gruppo `HR` | Persone, ingressi/uscite, movimenti e planimetrie |
+| Gruppo `PM` | Progetti, task e ore dei soli progetti della propria squadra; può nominare vice PM per singolo progetto |
+| Gruppo `BIM` | Creato senza permessi applicativi finché non vengono definiti |
+| `SUPER_IT` | Amministrazione tecnica; non eredita automaticamente le funzioni operative. Solo Super IT assegna gruppi privilegiati e nomina altri Super IT |
 
-Le regole sono nel database (`20261107_ruoli.sql`), non solo nei pulsanti.
+Le regole sono nel database, non solo nei pulsanti. Il vice PM può gestire task e ore del progetto delegato, ma non cambiare la squadra né nominare altri vice.
 
-**PM (Project Manager)** non è un ruolo a parte ma un gruppo: si aggiunge a chiunque da *Utenti e gruppi → Modifica → Gruppi → Project Manager*. Il PM crea progetti e task, le assegna e vede l'avanzamento del team e di ogni persona; l'utente vede e aggiorna solo le sue task. Progetti, task, ore e note sono condivisi su Supabase (`ws_records`, `assets/ws-cloud.js`).
+Task e ore sono salvate su Supabase (`ws_records`, `assets/ws-cloud.js`). Il server verifica ID assegnatario, appartenenza al progetto, date, stato e ore; i salvataggi di una raccolta sono atomici e usano revisioni per rilevare modifiche concorrenti. I PM e i vice non accedono alle Note.
 
 ## Attivare le funzioni nuove (una volta sola)
 

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'archea-platform-v3.2.1';
+const CACHE_NAME = 'archea-platform-v3.2.3';
 const APP_SHELL = [
   './',
   './config/platform.js?v=2.3.0',
   './config/help.js?v=2.0.0',
-  './assets/workspace.js?v=3.0.4',
+  './assets/workspace.js?v=3.0.6',
   './assets/workspace.css?v=1.2.0',
   './assets/platform.css?v=3.0.6',
   './assets/planning-suite.css?v=1.2.0',
@@ -70,7 +70,9 @@ self.addEventListener('push', event => {
   let d = {};
   try { d = event.data ? event.data.json() : {}; } catch (e) { d = { title: 'ARCHEA', body: event.data ? event.data.text() : '' }; }
   const base = self.registration.scope;
-  const url = base + (d.ticket_id ? `?ticket=${encodeURIComponent(d.ticket_id)}` : '') + '#/servicedesk';
+  const url = d.task_id
+    ? base + `?task=${encodeURIComponent(d.task_id)}#/taskmanager`
+    : base + (d.ticket_id ? `?ticket=${encodeURIComponent(d.ticket_id)}` : '') + '#/servicedesk';
   event.waitUntil(self.registration.showNotification(d.title || 'ARCHEA', {
     body: d.body || '',
     icon: base + 'icons/archea-apple-touch-icon.png',

@@ -2648,8 +2648,433 @@ revoke all on function public.guard_exit_ticket_completion() from public, anon, 
 drop trigger if exists guard_exit_ticket_completion on public.tickets;
 create trigger guard_exit_ticket_completion before update of stato on public.tickets
 for each row execute function public.guard_exit_ticket_completion();
+
+-- ================================================================
+-- 20261107180000_task_workflow.sql
+-- ================================================================
+-- ARCHEA Platform · Identità, autorizzazioni, validazione e salvataggi atomici per task e ore.
+-- I dati restano compatibili con il Workspace JSON, ma il database applica vincoli e scope.
+
+alter table public.ws_records add column if not exists revision bigint not null default 1;
+alter table public.notifications add column if not exists task_id text;
+create index if not exists ws_records_collection_project on public.ws_records (collection, (data-&gt;&gt;&#x27;progettoCodice&#x27;));
+create index if not exists ws_records_team_people on public.ws_records using gin ((data-&gt;&#x27;persone&#x27;)) where collection = &#x27;team&#x27;;
+create index if not exists ws_records_team_vice on public.ws_records using gin ((data-&gt;&#x27;viceIds&#x27;)) where collection = &#x27;team&#x27;;
+create index if not exists notifications_user_task_created on public.notifications (user_id, task_id, created_at desc) where task_id is not null;
+
+-- Una persona è membro solo se il suo UUID compare nella squadra del progetto.
+create or replace function public.ws_person_in_project(p_user uuid, p_code text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select p_user is not null and p_code is not null and exists (
+    select 1 from public.ws_records t
+    where t.collection = &#x27;team&#x27; and t.id = p_code
+      and coalesce(t.data-&gt;&#x27;persone&#x27;, &#x27;[]&#x27;::jsonb) ? p_user::text
+  );
+$$;
+
+-- I vice sono delegati sul singolo progetto, senza iscriverli al gruppo PM globale.
+create or replace function public.ws_is_project_vice(p_code text, p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = public as $$
+  select p_user is not null and p_code is not null and exists (
+    select 1 from public.ws_records t
+    where t.collection = &#x27;team&#x27; and t.id = p_code
+      and coalesce(t.data-&gt;&#x27;persone&#x27;, &#x27;[]&#x27;::jsonb) ? p_user::text
+      and coalesce(t.data-&gt;&#x27;viceIds&#x27;, &#x27;[]&#x27;::jsonb) ? p_user::text
+  );
+$$;
+
+create or replace function public.ws_is_any_project_vice(p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = public as $$
+  select p_user is not null and exists (
+    select 1 from public.ws_records t
+    where t.collection=&#x27;team&#x27; and coalesce(t.data-&gt;&#x27;viceIds&#x27;,&#x27;[]&#x27;::jsonb) ? p_user::text
+  );
+$$;
+
+create or replace function public.ws_is_project_manager(p_code text, p_user uuid default auth.uid())
+returns boolean language sql stable security definer set search_path = public as $$
+  select p_user is not null and p_code is not null and (
+    (p_user = auth.uid() and public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(p_code))
+    or public.ws_is_project_vice(p_code, p_user)
+  );
+$$;
+revoke all on function public.ws_person_in_project(uuid,text), public.ws_is_project_vice(text,uuid), public.ws_is_any_project_vice(uuid), public.ws_is_project_manager(text,uuid) from public, anon;
+grant execute on function public.ws_person_in_project(uuid,text), public.ws_is_project_vice(text,uuid), public.ws_is_any_project_vice(uuid), public.ws_is_project_manager(text,uuid) to authenticated;
+
+-- Task e ore si riferiscono agli UUID Supabase, non ai nomi visualizzati.
+create or replace function public.ws_assigned_to_me(assegnatario text)
+returns boolean language sql stable security definer set search_path = public as $$
+  select auth.uid() is not null and assegnatario = auth.uid()::text;
+$$;
+revoke all on function public.ws_assigned_to_me(text) from public, anon;
+grant execute on function public.ws_assigned_to_me(text) to authenticated;
+
+-- RLS: PM e vice vedono il progetto delegato; i vice non possono cambiare squadra/progetto.
+drop policy if exists ws_read on public.ws_records;
+create policy ws_read on public.ws_records for select to authenticated using (
+  case
+    when collection = &#x27;staff&#x27; then public.ws_is_hr()
+    -- RETURNING dell&#x27;RPC deve poter leggere la riga appena creata: il controllo di
+    -- appartenenza non può ancora trovare il progetto/la squadra nella stessa INSERT.
+    when collection = &#x27;progetti&#x27; and public.has_perm(&#x27;gestione_progetti&#x27;)
+      then public.ws_is_project_manager(id) or created_by = auth.uid()
+    when collection = &#x27;team&#x27; and public.has_perm(&#x27;gestione_progetti&#x27;)
+      then public.ws_is_project_manager(id) or created_by = auth.uid()
+    when collection in (&#x27;progetti&#x27;,&#x27;team&#x27;) and public.ws_is_project_vice(id) then true
+    when collection = &#x27;task&#x27; and public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;) then true
+    when collection = &#x27;task&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatarioId&#x27;)
+    when collection = &#x27;ore&#x27; and public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;) then true
+    when collection = &#x27;ore&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;personaId&#x27;)
+    when collection = &#x27;note&#x27; and (public.has_perm(&#x27;gestione_progetti&#x27;) or public.ws_is_any_project_vice()) then false
+    else collection in (&#x27;progetti&#x27;,&#x27;note&#x27;,&#x27;team&#x27;) or created_by = auth.uid()
+  end
+);
+
+drop policy if exists ws_insert on public.ws_records;
+create policy ws_insert on public.ws_records for insert to authenticated with check (
+  case
+    when collection = &#x27;staff&#x27; then public.ws_is_hr()
+    when collection = &#x27;progetti&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;)
+    when collection = &#x27;team&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;)
+    when collection = &#x27;task&#x27; then public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;)
+      or (public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatarioId&#x27;) and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;))
+    when collection = &#x27;ore&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;personaId&#x27;)
+      and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;)
+    when collection = &#x27;note&#x27; then not public.has_perm(&#x27;gestione_progetti&#x27;) and not public.ws_is_any_project_vice()
+    else false
+  end
+);
+
+drop policy if exists ws_update on public.ws_records;
+create policy ws_update on public.ws_records for update to authenticated using (
+  case
+    when collection = &#x27;staff&#x27; then public.ws_is_hr()
+    when collection = &#x27;progetti&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;team&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;task&#x27; then public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;)
+      or public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatarioId&#x27;)
+    when collection = &#x27;ore&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;personaId&#x27;)
+      and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;)
+    when collection = &#x27;note&#x27; then not public.has_perm(&#x27;gestione_progetti&#x27;) and not public.ws_is_any_project_vice() and created_by = auth.uid()
+    else false
+  end
+) with check (
+  case
+    when collection = &#x27;staff&#x27; then public.ws_is_hr()
+    when collection = &#x27;progetti&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;team&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;task&#x27; then public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;)
+      or (public.ws_assigned_to_me(data-&gt;&gt;&#x27;assegnatarioId&#x27;) and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;))
+    when collection = &#x27;ore&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;personaId&#x27;)
+      and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;)
+    when collection = &#x27;note&#x27; then not public.has_perm(&#x27;gestione_progetti&#x27;) and not public.ws_is_any_project_vice() and created_by = auth.uid()
+    else false
+  end
+);
+
+drop policy if exists ws_delete on public.ws_records;
+create policy ws_delete on public.ws_records for delete to authenticated using (
+  case
+    when collection = &#x27;staff&#x27; then public.ws_is_hr()
+    when collection = &#x27;progetti&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;team&#x27; then public.has_perm(&#x27;gestione_progetti&#x27;) and public.ws_pm_can_manage_project(id)
+    when collection = &#x27;task&#x27; then public.ws_is_project_manager(data-&gt;&gt;&#x27;progettoCodice&#x27;)
+    when collection = &#x27;ore&#x27; then public.ws_assigned_to_me(data-&gt;&gt;&#x27;personaId&#x27;)
+      and public.ws_person_in_project(auth.uid(), data-&gt;&gt;&#x27;progettoCodice&#x27;)
+    when collection = &#x27;note&#x27; then not public.has_perm(&#x27;gestione_progetti&#x27;)
+      and not public.ws_is_any_project_vice() and created_by = auth.uid()
+    else false
+  end
+);
+
+-- Convalida i documenti lato server, anche se il client viene aggirato o modificato.
+create or replace function public.ws_validate_record()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_code text;
+  v_user uuid;
+  v_hours numeric;
+  v_start date;
+  v_due date;
+  v_name text;
+  v_vice jsonb;
+begin
+  if new.collection = &#x27;team&#x27; then
+    if jsonb_typeof(coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb)) &lt;&gt; &#x27;array&#x27;
+       or jsonb_typeof(coalesce(new.data-&gt;&#x27;viceIds&#x27;,&#x27;[]&#x27;::jsonb)) &lt;&gt; &#x27;array&#x27; then
+      raise exception &#x27;Squadra o vice non validi&#x27;;
+    end if;
+    if not exists (select 1 from public.ws_records p where p.collection=&#x27;progetti&#x27; and p.id=new.id) then
+      raise exception &#x27;La squadra deve appartenere a un progetto esistente&#x27;;
+    end if;
+    if exists (
+      select 1 from jsonb_array_elements_text(coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb)) x
+      left join public.profiles p on p.id=case when x.value ~* &#x27;^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$&#x27; then x.value::uuid else null end
+      where p.id is null
+    ) then raise exception &#x27;La squadra contiene una persona senza account valido&#x27;; end if;
+    v_vice := coalesce(new.data-&gt;&#x27;viceIds&#x27;,&#x27;[]&#x27;::jsonb);
+    if exists (select 1 from jsonb_array_elements_text(v_vice) x where not (coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb) ? x)) then
+      select coalesce(jsonb_agg(x.value),&#x27;[]&#x27;::jsonb) into v_vice
+      from jsonb_array_elements_text(v_vice) x
+      where coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb) ? x.value;
+      new.data := jsonb_set(new.data,&#x27;{viceIds}&#x27;,v_vice,true);
+    end if;
+    if tg_op = &#x27;UPDATE&#x27; and old.data-&gt;&#x27;viceIds&#x27; is distinct from new.data-&gt;&#x27;viceIds&#x27;
+       and auth.uid() is not null and not public.has_perm(&#x27;gestione_progetti&#x27;) then
+      raise exception &#x27;Solo il PM del progetto può nominare o rimuovere un vice&#x27;;
+    end if;
+    if auth.uid() is not null and not public.has_perm(&#x27;gestione_progetti&#x27;) then
+      raise exception &#x27;Solo un PM può modificare la squadra&#x27;;
+    end if;
+    if auth.uid() is not null and tg_op = &#x27;UPDATE&#x27;
+       and not (coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb) ? auth.uid()::text) then
+      raise exception &#x27;Il PM deve restare nella squadra del progetto&#x27;;
+    end if;
+    return new;
+  end if;
+
+  if new.collection not in (&#x27;task&#x27;,&#x27;ore&#x27;) then return new; end if;
+  v_code := nullif(btrim(new.data-&gt;&gt;&#x27;progettoCodice&#x27;),&#x27;&#x27;);
+  if v_code is null or not exists (
+    select 1 from public.ws_records p where p.collection=&#x27;progetti&#x27; and p.id=v_code
+  ) then raise exception &#x27;Seleziona un progetto esistente&#x27;; end if;
+  if not exists (
+    select 1 from public.ws_records t where t.collection=&#x27;team&#x27; and t.id=v_code
+  ) then raise exception &#x27;Il progetto non ha una squadra assegnata&#x27;; end if;
+
+  if new.collection = &#x27;task&#x27; then
+    if nullif(btrim(new.data-&gt;&gt;&#x27;titolo&#x27;),&#x27;&#x27;) is null or char_length(new.data-&gt;&gt;&#x27;titolo&#x27;) &gt; 300 then
+      raise exception &#x27;La task deve avere un titolo (massimo 300 caratteri)&#x27;;
+    end if;
+    if coalesce(new.data-&gt;&gt;&#x27;assegnatarioId&#x27;,&#x27;&#x27;) !~* &#x27;^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$&#x27; then
+      raise exception &#x27;Assegna la task a una persona registrata&#x27;;
+    end if;
+    v_user := (new.data-&gt;&gt;&#x27;assegnatarioId&#x27;)::uuid;
+    if not exists (select 1 from public.profiles p where p.id=v_user)
+       or not public.ws_person_in_project(v_user,v_code) then
+      raise exception &#x27;L’assegnatario deve essere una persona della squadra del progetto&#x27;;
+    end if;
+    if coalesce(new.data-&gt;&gt;&#x27;inizio&#x27;,&#x27;&#x27;) !~ &#x27;^\d{4}-\d{2}-\d{2}$&#x27;
+       or coalesce(new.data-&gt;&gt;&#x27;scadenza&#x27;,&#x27;&#x27;) !~ &#x27;^\d{4}-\d{2}-\d{2}$&#x27; then
+      raise exception &#x27;Inserisci date di inizio e scadenza valide&#x27;;
+    end if;
+    begin
+      v_start := (new.data-&gt;&gt;&#x27;inizio&#x27;)::date;
+      v_due := (new.data-&gt;&gt;&#x27;scadenza&#x27;)::date;
+    exception when others then raise exception &#x27;Inserisci date di calendario valide&#x27;;
+    end;
+    if v_start &gt; v_due then raise exception &#x27;La scadenza non può precedere la data di inizio&#x27;; end if;
+    if coalesce((new.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false) and not coalesce((new.data-&gt;&gt;&#x27;completed&#x27;)::boolean,false) then
+      raise exception &#x27;Una task si valida solo dopo il completamento&#x27;;
+    end if;
+    if coalesce((new.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false) and coalesce((new.data-&gt;&gt;&#x27;notValidated&#x27;)::boolean,false) then
+      raise exception &#x27;Una task non può essere validata e respinta insieme&#x27;;
+    end if;
+    select coalesce(nome,email) into v_name from public.profiles where id=v_user;
+    new.data := jsonb_set(new.data,&#x27;{assegnatario}&#x27;,to_jsonb(v_name),true);
+    return new;
+  end if;
+
+  if coalesce(new.data-&gt;&gt;&#x27;personaId&#x27;,&#x27;&#x27;) !~* &#x27;^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$&#x27; then
+    raise exception &#x27;La registrazione ore deve appartenere a una persona registrata&#x27;;
+  end if;
+  v_user := (new.data-&gt;&gt;&#x27;personaId&#x27;)::uuid;
+  if not exists (select 1 from public.profiles p where p.id=v_user)
+     or not public.ws_person_in_project(v_user,v_code) then
+    raise exception &#x27;La persona deve appartenere alla squadra del progetto&#x27;;
+  end if;
+  if coalesce(new.data-&gt;&gt;&#x27;data&#x27;,&#x27;&#x27;) !~ &#x27;^\d{4}-\d{2}-\d{2}$&#x27; then
+    raise exception &#x27;Inserisci una data valida per le ore&#x27;;
+  end if;
+  begin v_start := (new.data-&gt;&gt;&#x27;data&#x27;)::date;
+  exception when others then raise exception &#x27;Inserisci una data di calendario valida per le ore&#x27;; end;
+  if coalesce(new.data-&gt;&gt;&#x27;ore&#x27;,&#x27;&#x27;) !~ &#x27;^\d+(\.\d+)?$&#x27; then raise exception &#x27;Le ore devono essere un numero&#x27;; end if;
+  v_hours := (new.data-&gt;&gt;&#x27;ore&#x27;)::numeric;
+  if v_hours &lt;= 0 or v_hours &gt; 24 or mod(v_hours * 2,1) &lt;&gt; 0 then
+    raise exception &#x27;Le ore devono essere tra 0,5 e 24, a intervalli di 30 minuti&#x27;;
+  end if;
+  select coalesce(nome,email) into v_name from public.profiles where id=v_user;
+  new.data := jsonb_set(new.data,&#x27;{persona}&#x27;,to_jsonb(v_name),true);
+  return new;
+end $$;
+revoke all on function public.ws_validate_record() from public, anon, authenticated;
+drop trigger if exists ws_validate_record on public.ws_records;
+create trigger ws_validate_record before insert or update on public.ws_records
+for each row execute function public.ws_validate_record();
+
+create or replace function public.ws_guard_project_delete()
+returns trigger language plpgsql security definer set search_path = public as $$
+begin
+  if old.collection=&#x27;progetti&#x27; and exists (
+    select 1 from public.ws_records r
+    where r.id=old.id and r.collection in (&#x27;task&#x27;,&#x27;ore&#x27;,&#x27;note&#x27;,&#x27;team&#x27;)
+  ) then
+    raise exception &#x27;Il progetto contiene task, ore o documenti: archivialo invece di eliminarlo&#x27;;
+  end if;
+  return old;
+end $$;
+revoke all on function public.ws_guard_project_delete() from public, anon, authenticated;
+drop trigger if exists ws_guard_project_delete on public.ws_records;
+create trigger ws_guard_project_delete before delete on public.ws_records
+for each row execute function public.ws_guard_project_delete();
+
+-- Revisioni ottimistiche e incremento nel database: un client obsoleto non sovrascrive un altro.
+create or replace function public.ws_guard()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  pm_only text[] := array[&#x27;id&#x27;,&#x27;numero&#x27;,&#x27;titolo&#x27;,&#x27;assegnatario&#x27;,&#x27;assegnatarioId&#x27;,&#x27;progettoCodice&#x27;,&#x27;inizio&#x27;,&#x27;scadenza&#x27;,&#x27;priorita&#x27;,&#x27;tipologia&#x27;,
+                          &#x27;validated&#x27;,&#x27;notValidated&#x27;,&#x27;validatedBy&#x27;,&#x27;validatedAt&#x27;,&#x27;correctionBy&#x27;,&#x27;approvedBy&#x27;,&#x27;createdBy&#x27;];
+begin
+  if tg_op = &#x27;UPDATE&#x27; then
+    new.created_by := old.created_by;
+    new.created_at := old.created_at;
+    new.revision := old.revision + 1;
+  else
+    new.revision := 1;
+  end if;
+  new.updated_by := auth.uid();
+  new.updated_at := now();
+  if new.collection = &#x27;team&#x27; and auth.uid() is not null then
+    if not public.has_perm(&#x27;gestione_progetti&#x27;) then raise exception &#x27;Solo il gruppo PM può modificare la squadra&#x27;; end if;
+    if tg_op = &#x27;INSERT&#x27; then
+      if not exists (select 1 from public.ws_records p where p.collection=&#x27;progetti&#x27; and p.id=new.id and p.created_by=auth.uid())
+         or not (coalesce(new.data-&gt;&#x27;persone&#x27;,&#x27;[]&#x27;::jsonb) ? auth.uid()::text) then
+        raise exception &#x27;Puoi inizializzare solo un progetto creato da te e devi far parte della squadra&#x27;;
+      end if;
+    elsif not public.ws_pm_in_project(old.id) and not exists (
+      select 1 from public.ws_records p where p.collection=&#x27;progetti&#x27; and p.id=old.id and p.created_by=auth.uid()
+    ) then
+      raise exception &#x27;Puoi modificare solo la squadra di un progetto assegnato a te&#x27;;
+    end if;
+  end if;
+  if tg_op = &#x27;UPDATE&#x27; and new.collection=&#x27;task&#x27;
+     and not public.ws_is_project_manager(old.data-&gt;&gt;&#x27;progettoCodice&#x27;) then
+    new.data := (new.data - pm_only) || (select coalesce(jsonb_object_agg(k,v),&#x27;{}&#x27;::jsonb)
+      from jsonb_each(old.data) as e(k,v) where k=any(pm_only));
+  end if;
+  return new;
+end $$;
+revoke all on function public.ws_guard() from public, anon, authenticated;
+
+-- RPC atomica per un&#x27;intera raccolta: tutte le modifiche passano o nessuna viene salvata.
+create or replace function public.ws_apply_changes(p_collection text, p_upserts jsonb, p_deletes jsonb)
+returns jsonb language plpgsql security invoker set search_path = public as $$
+declare
+  item jsonb;
+  v_id text;
+  v_expected bigint;
+  v_saved public.ws_records%rowtype;
+  v_upserted jsonb := &#x27;[]&#x27;::jsonb;
+  v_deleted jsonb := &#x27;[]&#x27;::jsonb;
+begin
+  if auth.uid() is null then raise exception &#x27;Accesso richiesto&#x27;; end if;
+  if p_collection not in (&#x27;progetti&#x27;,&#x27;task&#x27;,&#x27;ore&#x27;,&#x27;note&#x27;,&#x27;team&#x27;,&#x27;staff&#x27;) then raise exception &#x27;Raccolta non valida&#x27;; end if;
+  if jsonb_typeof(coalesce(p_upserts,&#x27;[]&#x27;::jsonb)) &lt;&gt; &#x27;array&#x27; or jsonb_typeof(coalesce(p_deletes,&#x27;[]&#x27;::jsonb)) &lt;&gt; &#x27;array&#x27; then
+    raise exception &#x27;Modifiche non valide&#x27;;
+  end if;
+  for item in select value from jsonb_array_elements(coalesce(p_upserts,&#x27;[]&#x27;::jsonb)) loop
+    v_id := nullif(item-&gt;&gt;&#x27;id&#x27;,&#x27;&#x27;);
+    if v_id is null or jsonb_typeof(item-&gt;&#x27;data&#x27;) &lt;&gt; &#x27;object&#x27; then raise exception &#x27;Riga priva di ID o dati validi&#x27;; end if;
+    if item-&gt;&gt;&#x27;expected_revision&#x27; is null or item-&gt;&#x27;expected_revision&#x27; = &#x27;null&#x27;::jsonb then
+      insert into public.ws_records(collection,id,data) values (p_collection,v_id,item-&gt;&#x27;data&#x27;) returning * into v_saved;
+    else
+      v_expected := (item-&gt;&gt;&#x27;expected_revision&#x27;)::bigint;
+      update public.ws_records set data=item-&gt;&#x27;data&#x27;
+        where collection=p_collection and id=v_id and revision=v_expected returning * into v_saved;
+      if not found then raise exception &#x27;Conflitto: questa riga è stata modificata da un altro utente. Ricarica e ripeti la modifica&#x27;; end if;
+    end if;
+    v_upserted := v_upserted || jsonb_build_array(jsonb_build_object(&#x27;id&#x27;,v_saved.id,&#x27;data&#x27;,v_saved.data,&#x27;revision&#x27;,v_saved.revision));
+  end loop;
+  for item in select value from jsonb_array_elements(coalesce(p_deletes,&#x27;[]&#x27;::jsonb)) loop
+    v_id := nullif(item-&gt;&gt;&#x27;id&#x27;,&#x27;&#x27;);
+    v_expected := (item-&gt;&gt;&#x27;expected_revision&#x27;)::bigint;
+    delete from public.ws_records where collection=p_collection and id=v_id and revision=v_expected;
+    if not found then raise exception &#x27;Conflitto: la riga da eliminare è cambiata. Ricarica e ripeti la modifica&#x27;; end if;
+    v_deleted := v_deleted || jsonb_build_array(v_id);
+  end loop;
+  return jsonb_build_object(&#x27;upserts&#x27;,v_upserted,&#x27;deletes&#x27;,v_deleted);
+end $$;
+revoke all on function public.ws_apply_changes(text,jsonb,jsonb) from public, anon;
+grant execute on function public.ws_apply_changes(text,jsonb,jsonb) to authenticated;
+
+-- Notifiche persistenti per assegnazione, proposta, completamento, correzione e validazione.
+create or replace function public.ws_notify_task()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare
+  v_code text := new.data-&gt;&gt;&#x27;progettoCodice&#x27;;
+  v_assignee uuid;
+  v_actor uuid := coalesce(auth.uid(),new.updated_by,new.created_by);
+  v_message text;
+begin
+  if coalesce(new.data-&gt;&gt;&#x27;assegnatarioId&#x27;,&#x27;&#x27;) ~* &#x27;^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$&#x27; then
+    v_assignee := (new.data-&gt;&gt;&#x27;assegnatarioId&#x27;)::uuid;
+  end if;
+  if tg_op = &#x27;INSERT&#x27; then
+    if coalesce((new.data-&gt;&gt;&#x27;approvalPending&#x27;)::boolean,false) then
+      v_message := &#x27;Nuova proposta task · &#x27; || coalesce(new.data-&gt;&gt;&#x27;titolo&#x27;,new.id) || &#x27; · &#x27; || v_code;
+      insert into public.notifications(user_id,title,message,is_read,task_id)
+      select distinct m.user_id,&#x27;Task da approvare&#x27;,left(v_message,500),false,new.id
+      from public.access_group_members m join public.access_groups g on g.id=m.group_id
+      where &#x27;gestione_progetti&#x27;=any(g.permessi) and m.user_id&lt;&gt;v_actor
+        and public.ws_person_in_project(m.user_id,v_code);
+    elsif v_assignee is not null and v_assignee&lt;&gt;v_actor then
+      insert into public.notifications(user_id,title,message,is_read,task_id)
+      values(v_assignee,&#x27;Nuova task assegnata&#x27;,left(coalesce(new.data-&gt;&gt;&#x27;titolo&#x27;,new.id) || &#x27; · &#x27; || v_code,500),false,new.id);
+    end if;
+    return new;
+  end if;
+  if old.data-&gt;&gt;&#x27;assegnatarioId&#x27; is distinct from new.data-&gt;&gt;&#x27;assegnatarioId&#x27; and v_assignee is not null and v_assignee&lt;&gt;v_actor then
+    insert into public.notifications(user_id,title,message,is_read,task_id)
+    values(v_assignee,&#x27;Task assegnata&#x27;,left(coalesce(new.data-&gt;&gt;&#x27;titolo&#x27;,new.id) || &#x27; · &#x27; || v_code,500),false,new.id);
+  end if;
+  if not coalesce((old.data-&gt;&gt;&#x27;completed&#x27;)::boolean,false) and coalesce((new.data-&gt;&gt;&#x27;completed&#x27;)::boolean,false)
+     and not coalesce((new.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false) then
+    v_message := &#x27;Task completata da verificare · &#x27; || coalesce(new.data-&gt;&gt;&#x27;titolo&#x27;,new.id) || &#x27; · &#x27; || v_code;
+    insert into public.notifications(user_id,title,message,is_read,task_id)
+    select distinct recipient,&#x27;Task da verificare&#x27;,left(v_message,500),false,new.id from (
+      select m.user_id as recipient from public.access_group_members m join public.access_groups g on g.id=m.group_id
+      where &#x27;gestione_progetti&#x27;=any(g.permessi) and public.ws_person_in_project(m.user_id,v_code)
+      union select jsonb_array_elements_text(coalesce(t.data-&gt;&#x27;viceIds&#x27;,&#x27;[]&#x27;::jsonb))::uuid
+      from public.ws_records t where t.collection=&#x27;team&#x27; and t.id=v_code
+    ) q where recipient&lt;&gt;v_actor;
+  end if;
+  if (not coalesce((old.data-&gt;&gt;&#x27;notValidated&#x27;)::boolean,false) and coalesce((new.data-&gt;&gt;&#x27;notValidated&#x27;)::boolean,false))
+     or (not coalesce((old.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false) and coalesce((new.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false)) then
+    insert into public.notifications(user_id,title,message,is_read,task_id)
+    select v_assignee,case when coalesce((new.data-&gt;&gt;&#x27;validated&#x27;)::boolean,false) then &#x27;Task validata&#x27; else &#x27;Correzioni richieste&#x27; end,
+      left(coalesce(new.data-&gt;&gt;&#x27;titolo&#x27;,new.id) || &#x27; · &#x27; || coalesce(new.data-&gt;&gt;&#x27;commenti&#x27;,&#x27;&#x27;),500),false,new.id
+    where v_assignee is not null and v_assignee&lt;&gt;v_actor;
+  end if;
+  return new;
+end $$;
+revoke all on function public.ws_notify_task() from public, anon, authenticated;
+drop trigger if exists ws_notify_task on public.ws_records;
+create trigger ws_notify_task after insert or update on public.ws_records
+for each row when (new.collection=&#x27;task&#x27;) execute function public.ws_notify_task();
+
+-- Il payload conserva l&#x27;identificativo task per aprire direttamente il Task Manager.
+create or replace function public.push_on_notification()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare c record;
+begin
+  select function_url,hook_secret into c from public.push_config
+    where id=1 and public_key is not null and function_url is not null;
+  if c.function_url is null then return new; end if;
+  if not exists (select 1 from public.push_subscriptions where user_id=new.user_id) then return new; end if;
+  begin
+    perform net.http_post(
+      url:=c.function_url,
+      body:=jsonb_build_object(&#x27;id&#x27;,new.id,&#x27;user_id&#x27;,new.user_id,&#x27;title&#x27;,new.title,&#x27;message&#x27;,new.message,
+        &#x27;ticket_id&#x27;,new.ticket_id,&#x27;task_id&#x27;,new.task_id),
+      headers:=jsonb_build_object(&#x27;Content-Type&#x27;,&#x27;application/json&#x27;,&#x27;x-archea-hook&#x27;,c.hook_secret),
+      timeout_milliseconds:=8000);
+  exception when others then null;
+  end;
+  return new;
+end $$;
+revoke all on function public.push_on_notification() from public, anon, authenticated;
 </textarea>
-<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 2629 righe</p>
+<p>File: <code>supabase/SETUP_COMPLETO.sql</code> · 3054 righe</p>
 </main>
 <script>
 document.getElementById('copy').onclick=async()=>{const t=document.getElementById('sql');let ok=false;
