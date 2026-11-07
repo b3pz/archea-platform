@@ -24,6 +24,7 @@ const START_ACTIONS = {
   scan:           ['Scansiona asset', 'Apri la scheda con la fotocamera', 'censimento'],
   censimento:     ['Censimento', 'Asset, verifiche e storico', 'censimento'],
   persone:        ['Persone', 'Anagrafica e asset assegnati', 'persone'],
+  licenze:        ['Inventario licenze', 'Posti, assegnazioni, disponibilità e acquisti', 'licenze'],
   movimenti:      ['Movimenti', 'Ingressi, uscite e spostamenti', 'movimenti'],
   'hr-new':       ['Nuovo movimento', 'Ingresso, uscita o cambio sede', 'hr-new'],
   'hr-history':   ['Storico movimenti', 'Movimenti da confermare', 'hr-history'],
@@ -47,14 +48,14 @@ START_ACTIONS['hr-new'] = ['Ingresso, uscita o spostamento', 'Nuovo arrivo, chi 
 // Inizio: poche "cartelle" grandi; dentro ognuna le sue funzioni (restano nascoste finché non la apri)
 // [id, titolo, descrizione, icona, azioni]
 function startGroups() {
-  const it = isITRole(), hrOnly = isHR() && !it, pm = typeof hasPerm === 'function' && hasPerm('gestione_progetti');
+  const it = isITRole(), hr = isHR(), pm = typeof hasPerm === 'function' && hasPerm('gestione_progetti');
   const admin = typeof hasPerm === 'function' && hasPerm('gestione_utenti');
   const g = [];
   // le foto di cantiere stanno con i progetti: nel lavoro di tutti, e nella cartella Progetti per i PM
   g.push(['lavoro', 'Il mio lavoro', 'Le tue task, i tuoi ticket, le foto di cantiere', 'mine', ['ws:taskmanager', 'new', 'mine', 'cantiere', 'ws:oggi']]);
   if (pm) g.push(['pm', 'Progetti e cantieri', 'Crea progetti, assegna task, foto di cantiere', 'cantiere', ['ws:projectmanager', 'ws:progetti', 'cantiere', 'ws:ore']]);
-  if (it) g.push(['it', 'Reparto IT', 'Ticket da gestire, asset e censimento', 'it', ['it', 'home', 'scan', 'censimento', 'calendar', 'prenotazioni', 'eliminazioni']]);
-  if (hrOnly) g.push(['hr', 'HR · Persone', 'Ingressi, uscite, spostamenti e organico', 'persone', ['hr-new', 'persone', 'hr-history', 'hr-stats', 'ws:bio', 'planimetrie', 'mappa']]);
+  if (it) g.push(['it', 'Reparto IT', 'Ticket da gestire, asset, censimento e licenze', 'it', ['it', 'home', 'scan', 'censimento', 'calendar', 'prenotazioni', 'eliminazioni', 'licenze']]);
+  if (hr) g.push(['hr', hr && it ? 'HR · Persone' : 'HR · Persone', 'Ingressi, uscite, spostamenti e organico', 'persone', ['hr-new', 'persone', 'hr-history', 'hr-stats', 'ws:bio', 'planimetrie', 'mappa']]);
   if (it) g.push(['persone', 'Persone e spazi', 'Anagrafica, movimenti, planimetrie', 'persone', ['persone', 'movimenti', 'ws:bio', 'planimetrie', 'mappa']]);
   g.push(['calendario', 'Calendario e prenotazioni', 'Appuntamenti, sale, auto e materiale', 'agenda', ['appt', 'room', 'car', 'agenda', ...(it ? [] : ['booking'])]]);
   g.push(['comunicazione', 'Comunicazione', 'Chat con i colleghi e Off topic', 'chat', ['chat', 'offtopic']]);

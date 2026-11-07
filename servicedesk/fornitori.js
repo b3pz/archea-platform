@@ -9,7 +9,7 @@ function fornCanSee() { return true; }
 function fornCanEdit() { return true; }
 function fornCanDelete(s) {
   const ambito = s.ambito;
-  if (s.created_by === user.id || profile?.ruolo === 'SUPER_IT') return true;
+  if (s.created_by === user.id) return true;
   if (isITRole() && ambito !== 'PROGETTI') return true;
   return typeof hasPerm === 'function' && hasPerm('gestione_progetti') && ambito !== 'IT';
 }
@@ -123,17 +123,19 @@ function fornForm(s) {
 const SW_TIPI = { LICENZA: 'Licenza', PROGRAMMA: 'Programma', ACCOUNT: 'Account' };
 async function personSoftwarePanel(personId, personAssets) {
   const box = $('personSoftware'); if (!box || !isITRole()) return;
-  let rows = [], sups = [];
+  let rows = [], sups = [], catalog = [];
   try {
-    [rows, sups] = await Promise.all([
+    [rows, sups, catalog] = await Promise.all([
       select('person_software', `select=*,suppliers(nome),assets(asset_code)&person_id=eq.${personId}&order=stato.asc,nome.asc`),
-      select('suppliers', 'select=id,nome&order=nome.asc')
+      select('suppliers', 'select=id,nome&order=nome.asc'),
+      select('software_catalog', 'select=id,nome,tipo&attivo=eq.true&order=nome.asc')
     ]);
   } catch (err) { box.innerHTML = `<h3>Licenze e programmi</h3>${fornSetupMsg(err)}`; return; }
   const today = new Date().toISOString().slice(0, 10), soon = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
   const scad = r => !r.scadenza ? '' : r.scadenza < today ? `<span class="badge danger">scaduta ${dateOnly(r.scadenza)}</span>` : r.scadenza <= soon ? `<span class="badge warn">scade ${dateOnly(r.scadenza)}</span>` : `<small>scade ${dateOnly(r.scadenza)}</small>`;
   const assetOpts = cur => `<option value="">—</option>${personAssets.map(a => `<option value="${a.id}" ${String(cur) === String(a.id) ? 'selected' : ''}>${esc(a.asset_code)} · ${esc([a.brand, a.model].filter(Boolean).join(' ') || a.category || '')}</option>`).join('')}`;
   const supOpts = cur => `<option value="">—</option>${sups.map(s => `<option value="${s.id}" ${String(cur) === String(s.id) ? 'selected' : ''}>${esc(s.nome)}</option>`).join('')}`;
+  const catalogOpts = cur => `<option value="">Altro / non catalogato</option>${catalog.map(c => `<option value="${c.id}" ${String(cur) === String(c.id) ? 'selected' : ''}>${esc(c.nome)}</option>`).join('')}`;
   box.innerHTML = `
     <div class="panel-head-row"><div><h3>Licenze, programmi e account</h3><p class="muted-line">Cosa usa questa persona e dove è installato. Non inserire le chiavi di licenza.</p></div><button class="secondary" id="swAdd">+ Aggiungi</button></div>
     <div id="swForm"></div>
@@ -145,7 +147,9 @@ async function personSoftwarePanel(personId, personAssets) {
         <button class="secondary compact" data-sw="${r.id}">Modifica</button>
       </div>`).join('') || '<div class="empty">Nessuna licenza o programma registrato.</div>'}</div>`;
   const form = r => {
+    const catalogMatch = r?.catalog_id ? String(r.catalog_id) : String(catalog.find(c => c.nome.toLowerCase() === String(r?.nome || '').toLowerCase())?.id || '');
     $('swForm').innerHTML = `<form id="swF" class="formgrid sw-form">
+      <label class="full">Voce catalogo<select id="swCat">${catalogOpts(catalogMatch)}</select></label>
       <label>Tipo<select id="swTipo">${Object.entries(SW_TIPI).map(([k, v]) => `<option value="${k}" ${(r?.tipo || 'LICENZA') === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
       <label>Nome<input id="swNome" required value="${esc(r?.nome || '')}" placeholder="Es. AutoCAD, Revit, Microsoft 365"></label>
       <label>Versione / piano<input id="swVer" value="${esc(r?.versione || '')}"></label>
@@ -158,10 +162,19 @@ async function personSoftwarePanel(personId, personAssets) {
       <label class="full">Note<input id="swNote" value="${esc(r?.note || '')}"></label>
       <div class="full button-row"><button class="primary">${r ? 'Salva' : 'Aggiungi'}</button><button type="button" class="secondary" id="swCancel">Annulla</button>${r ? '<button type="button" class="secondary danger-outline" id="swDel">Elimina</button>' : ''}<span id="swRes" class="muted-line"></span></div>
     </form>`;
+    const syncCatalog = () => {
+      const item = catalog.find(c => String(c.id) === $('swCat').value);
+      if (item) {
+        $('swNome').value = item.nome;
+        $('swTipo').value = item.tipo === 'ACCOUNT' ? 'ACCOUNT' : item.tipo === 'DISPOSITIVO' ? 'PROGRAMMA' : 'LICENZA';
+      }
+    };
+    $('swCat').onchange = syncCatalog;
+    if (catalogMatch) syncCatalog();
     $('swCancel').onclick = () => { $('swForm').innerHTML = ''; };
     $('swF').onsubmit = async e => {
       e.preventDefault();
-      const row = { person_id: personId, tipo: $('swTipo').value, nome: $('swNome').value.trim(), versione: $('swVer').value.trim() || null,
+      const row = { person_id: personId, catalog_id: +$('swCat').value || null, tipo: $('swTipo').value, nome: $('swNome').value.trim(), versione: $('swVer').value.trim() || null,
         supplier_id: +$('swSup').value || null, asset_id: +$('swAsset').value || null, riferimento: $('swRif').value.trim() || null,
         data_inizio: $('swDal').value || null, scadenza: $('swScad').value || null, stato: $('swStato').value, note: $('swNote').value.trim() || null, updated_at: new Date().toISOString() };
       try { if (r) await update('person_software', `id=eq.${r.id}`, row); else await insert('person_software', row, false); toast('Salvato'); personSoftwarePanel(personId, personAssets); }
@@ -174,4 +187,34 @@ async function personSoftwarePanel(personId, personAssets) {
   };
   $('swAdd').onclick = () => form(null);
   box.querySelectorAll('[data-sw]').forEach(b => b.onclick = () => form(rows.find(x => String(x.id) === b.dataset.sw)));
+}
+
+// Capacità licenze: solo quantità aggregate, mai chiavi o credenziali.
+async function licenseCapacityView() {
+  if (!isITRole()) return userHome();
+  page('Licenze', 'Posti acquistati, assegnazioni attive e rinnovi');
+  $('content').innerHTML = '<p class="empty">Caricamento…</p>';
+  try {
+    const [rows, report] = await Promise.all([
+      select('software_catalog', 'select=*&order=attivo.desc,nome.asc'),
+      rpc('license_capacity_report', {})
+    ]);
+    const reportById = new Map((report || []).map(x => [String(x.id), x]));
+    $('content').innerHTML = `<div class="panel">
+      <div class="panel-head-row"><div><h2>Capacità licenze</h2><p class="muted-line">Le assegnazioni attive sono conteggiate automaticamente. Quantità acquistate non verificate sono marcate.</p></div><button class="primary" id="licAdd">+ Aggiungi prodotto</button></div>
+      <div class="tablewrap"><table><thead><tr><th>Prodotto</th><th>Posti acquistati</th><th>Assegnate</th><th>Libere</th><th>Da acquistare</th><th>Rinnovo</th><th></th></tr></thead><tbody>${rows.map(r=>{const q=reportById.get(String(r.id))||{};return `<tr><td><b>${esc(r.nome)}</b><small class="muted-line">${esc(r.fornitore||'')} · ${esc(r.tipo)}</small></td><td>${r.posti_acquistati}${r.conteggio_verificato?'':' <span class="badge warn">Da verificare</span>'}</td><td>${q.assegnate??'—'}</td><td>${q.libere??'—'}</td><td>${q.da_acquistare??'—'}</td><td>${r.rinnovo_at?dateOnly(r.rinnovo_at):'—'}</td><td><button class="secondary compact" data-lic="${r.id}">Modifica</button></td></tr>`}).join('')||'<tr><td colspan="7">Catalogo vuoto</td></tr>'}</tbody></table></div>
+      <p class="muted-line">Disponibilità = posti acquistati meno assegnazioni attive. Verifica i numeri prima di usarli per acquisti.</p><div id="licForm"></div></div>`;
+    const form = (r=null) => {
+      $('licForm').innerHTML = `<form id="licF" class="formgrid"><h3 class="full">${r?'Modifica prodotto':'Nuovo prodotto'}</h3>
+        <label>Nome<input id="licNome" required maxlength="160" value="${esc(r?.nome||'')}"></label><label>Fornitore<input id="licVendor" value="${esc(r?.fornitore||'')}"></label>
+        <label>Tipo<select id="licTipo">${['LICENZA','ACCOUNT','SERVIZIO','DISPOSITIVO'].map(t=>`<option ${r?.tipo===t?'selected':''}>${t}</option>`).join('')}</select></label>
+        <label>Posti acquistati<input id="licSeats" type="number" min="0" step="1" value="${r?.posti_acquistati??0}"></label><label>Scorta minima<input id="licMin" type="number" min="0" step="1" value="${r?.scorta_minima??0}"></label>
+        <label>Rinnovo<input id="licRenew" type="date" value="${esc(r?.rinnovo_at||'')}"></label><label>Costo unitario (€)<input id="licCost" type="number" min="0" step="0.01" value="${r?.costo_unitario??''}"></label>
+        <label class="full"><input id="licVerified" type="checkbox" ${r?.conteggio_verificato?'checked':''}> Quantità riconciliata e verificata</label><label class="full">Note<input id="licNote" value="${esc(r?.note||'')}"></label>
+        <div class="full button-row"><button class="primary">Salva</button><button type="button" id="licCancel" class="secondary">Annulla</button><span id="licErr" class="err"></span></div></form>`;
+      $('licCancel').onclick=()=>{$('licForm').innerHTML=''};
+      $('licF').onsubmit=async e=>{e.preventDefault();const data={nome:$('licNome').value.trim(),fornitore:$('licVendor').value.trim()||null,tipo:$('licTipo').value,posti_acquistati:+$('licSeats').value,scorta_minima:+$('licMin').value,rinnovo_at:$('licRenew').value||null,costo_unitario:$('licCost').value?+$('licCost').value:null,conteggio_verificato:$('licVerified').checked,note:$('licNote').value.trim()||null,updated_at:new Date().toISOString(),updated_by:user.id};try{if(r)await update('software_catalog',`id=eq.${r.id}`,data);else await insert('software_catalog',data,false);licenseCapacityView()}catch(err){$('licErr').textContent=err.message}};
+    };
+    $('licAdd').onclick=()=>form();document.querySelectorAll('[data-lic]').forEach(b=>b.onclick=()=>form(rows.find(x=>String(x.id)===b.dataset.lic)));
+  } catch(err) { $('content').innerHTML=`<div class="empty"><b>Catalogo licenze non disponibile.</b><br>${fornSetupMsg(err)}</div>`; }
 }

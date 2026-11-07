@@ -78,12 +78,14 @@ Il database è **Supabase** (PostgreSQL + Auth + Storage + Edge Functions). In f
    - si lancia `python3 tools/genera_setup.py`;
    - si prova `supabase/SETUP_COMPLETO.sql` **due volte di seguito** su un PostgreSQL locale;
    - si prova la regola (policy) con almeno un utente che **può** e uno che **non può**.
-7. Ruoli: `USER`, `HR`, `IT`, `SUPER_IT`. Permessi dei gruppi:
+7. Ruoli: `USER` (base) e `SUPER_IT` (amministrazione tecnica). Le funzioni operative sono cumulative tramite gruppi: `IT`, `HR`, `PM` e `BIM`; un utente può appartenere a più gruppi. Super IT non eredita permessi operativi. Permessi dei gruppi:
    - `gestione_utenti`;
+   - `gestione_it`;
+   - `gestione_hr`;
    - `moderazione_offtopic`;
    - `gestione_calendario`;
    - `gestione_mappe`;
-   - `gestione_progetti` (= PM).
+   - `gestione_progetti` (= PM). BIM resta senza permessi applicativi finché non sono definiti.
    
    Il vincolo `access_groups_permessi_validi` deve elencarli **tutti** in ogni migrazione che lo ricrea.
 8. Ogni modifica importante lascia traccia: chi (`created_by` / `updated_by` + nome) e quando. Esempi: movimenti, fornitori, task.

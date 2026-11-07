@@ -4,17 +4,17 @@
  */
 
 const PERMS = {
-  gestione_utenti: ['Gestire utenti e gruppi', 'Vede la lista degli utenti, li aggiunge, li modifica, li disattiva o li elimina, e gestisce i gruppi.'],
+  gestione_utenti: ['Gestire account ordinari', 'Aggiunge e gestisce account base; i gruppi con permessi sono assegnati solo da SUPER_IT.'],
   moderazione_offtopic: ['Moderare Off topic', 'Mette in evidenza, chiude ed elimina argomenti e risposte di tutti.'],
   gestione_calendario: ['Gestire il calendario', 'Modifica e annulla le prenotazioni di tutti e gestisce sale e auto (anche chi può prenotarle).'],
   gestione_mappe: ['Disegnare le planimetrie', 'Crea e modifica le piante: muri, stanze, postazioni, WRKA, TV e accessori.'],
-  gestione_progetti: ['Project Manager', 'Crea i progetti, assegna le task e vede l\'avanzamento del team e di ogni persona.']
+  gestione_progetti: ['PM', 'Gestisce progetti, task e ore solo dei progetti assegnati alla propria squadra.'],
+  gestione_it: ['Operatività IT', 'Coda ticket, censimento, asset e strumenti del reparto IT.'],
+  gestione_hr: ['Operatività HR', 'Persone, ingressi, uscite, spostamenti e dati riservati HR.']
 };
 const RUOLI_LABEL = {
-  USER: ['Utente', 'Apre ticket e segue le sue task. Calendario, chat, foto e Off topic.'],
-  HR: ['HR', 'In più: persone, ingressi in studio, uscite e spostamenti, planimetrie.'],
-  IT: ['IT', 'In più: coda ticket, censimento, dashboard e creazione utenti (Utente e HR).'],
-  SUPER_IT: ['Super admin', 'Tutto: anche gli account IT, i gruppi che gestiscono gli utenti e la console.']
+  USER: ['Utente', 'Account base. Le funzioni operative arrivano dai gruppi assegnati.'],
+  SUPER_IT: ['Super admin tecnico', 'Amministra piattaforma, utenti e gruppi; le funzioni operative richiedono gruppi separati.']
 };
 
 let MY_PERMS = [];
@@ -24,15 +24,15 @@ async function loadPerms() {
   try {
     MY_PERMS = (await rpc('my_permissions')) || [];
   } catch (e) {
-    // migrazione non ancora eseguita: si mantiene il comportamento di prima (IT = tutto)
-    MY_PERMS = isITRole() ? Object.keys(PERMS) : [];
+    // Se la funzione non è disponibile, chiudiamo l'accesso invece di inventare permessi.
+    MY_PERMS = [];
   }
   try {
     MY_GROUPS = (await select('access_group_members', `select=group_id&user_id=eq.${user.id}`)).map(r => r.group_id);
   } catch (e) { MY_GROUPS = []; }
   applyPermNav();
 }
-function hasPerm(p) { return isSuperIT() || MY_PERMS.includes(p); }
+function hasPerm(p) { return MY_PERMS.includes(p); }
 function applyPermNav() {
   document.querySelectorAll('nav button[data-view="utenti"]').forEach(b => b.classList.toggle('hidden', !hasPerm('gestione_utenti')));
 }
@@ -117,7 +117,7 @@ function usRender() {
           <td data-label="Gruppi">${u.gruppi.length ? u.gruppi.map(g => `<span class="us-chip">${esc(usGroupName(g))}</span>`).join(' ') : '<small class="muted-line">nessuno</small>'}</td>
           <td data-label="Stato"><span class="us-status ${cls}">${st}</span></td>
           <td data-label="Ultimo accesso">${u.last_sign_in_at ? fmt(u.last_sign_in_at) : '<small class="muted-line">mai</small>'}</td>
-          <td>${!isSuperIT() && ['IT', 'SUPER_IT'].includes(u.ruolo) && u.id !== user.id
+          <td>${!isSuperIT() && u.ruolo === 'SUPER_IT' && u.id !== user.id
             ? '<small class="muted-line">Solo super admin</small>'
             : `<button class="secondary compact" data-usedit="${esc(u.id)}">Modifica</button>`}</td>
         </tr>`;
@@ -139,8 +139,8 @@ function usRandomPassword() {
 function usForm(u, prefill = null) {
   const isNew = !u;
   if (prefill) u = null;
-  const roles = Object.keys(RUOLI_LABEL).filter(r => isSuperIT() || ['USER', 'HR'].includes(r) || (u && u.ruolo === r));
-  const lockedTarget = !isNew && !isSuperIT() && ['IT', 'SUPER_IT'].includes(u.ruolo) && u.id !== user.id;
+  const roles = Object.keys(RUOLI_LABEL).filter(r => r === 'USER' || (isSuperIT() && r === 'SUPER_IT') || (u && u.ruolo === r));
+  const lockedTarget = !isNew && !isSuperIT() && u.ruolo === 'SUPER_IT' && u.id !== user.id;
   const isSelf = u && u.id === user.id;
   $('content').innerHTML = `
     <div class="panel us-form">
@@ -153,7 +153,7 @@ function usForm(u, prefill = null) {
           ${isSelf ? '<p class="muted-line">Non puoi cambiare il tuo ruolo.</p>' : ''}
         </div>
         <div class="full"><b>Gruppi</b> <span class="optional">(danno permessi in più)</span>
-          <div class="us-groups">${usState.groups.length ? usState.groups.map(g => `<label class="us-role"><input type="checkbox" value="${g.id}" ${u?.gruppi?.includes(g.id) ? 'checked' : ''} ${!isSuperIT() && (g.permessi || []).includes('gestione_utenti') ? 'disabled title="Solo il super admin"' : ''}><span><b>${esc(g.nome)}</b><small>${(g.permessi || []).map(p => (PERMS[p] || [p])[0]).join(' · ') || 'Nessun permesso: serve per riservare sale o auto'}</small></span></label>`).join('') : '<p class="muted-line">Nessun gruppo. Creane uno nella scheda "Gruppi e permessi".</p>'}</div>
+          <div class="us-groups">${usState.groups.length ? usState.groups.map(g => `<label class="us-role"><input type="checkbox" value="${g.id}" ${u?.gruppi?.includes(g.id) ? 'checked' : ''} ${!isSuperIT() && (g.permessi || []).length ? 'disabled title="Solo il super admin tecnico può assegnare gruppi con permessi"' : ''}><span><b>${esc(g.nome)}</b><small>${(g.permessi || []).map(p => (PERMS[p] || [p])[0]).join(' · ') || 'Nessun permesso: serve per riservare sale o auto'}</small></span></label>`).join('') : '<p class="muted-line">Nessun gruppo. Creane uno nella scheda "Gruppi e permessi".</p>'}</div>
         </div>
         ${isNew ? `
           <div class="full"><b>Come entra la prima volta</b>
@@ -176,7 +176,13 @@ function usForm(u, prefill = null) {
   $('usBack').onclick = usRender;
   $('usGen').onclick = () => { $('usPass').value = usRandomPassword(); };
   document.querySelectorAll('input[name="usMode"]').forEach(r => r.onchange = () => { $('usPassRow').classList.toggle('hidden', r.value === 'invite' && r.checked); });
-  const groupsChecked = () => [...document.querySelectorAll('.us-groups input:checked')].map(x => +x.value);
+  const groupsChecked = () => {
+    const selected = [...document.querySelectorAll('.us-groups input:checked')].map(x => +x.value);
+    if (!isSuperIT() && u) {
+      usState.groups.filter(g => (g.permessi || []).length && u.gruppi.includes(g.id)).forEach(g => selected.push(g.id));
+    }
+    return [...new Set(selected)];
+  };
   const roleChecked = () => document.querySelector('input[name="usRuolo"]:checked')?.value;
 
   $('usForm').onsubmit = async e => {
@@ -234,7 +240,7 @@ function usGroupsHtml() {
     <div class="us-group-grid">${usState.groups.map(g => {
       const members = usState.users.filter(u => u.gruppi.includes(g.id));
       return `<article class="panel us-group">
-        <div class="ag-form-head"><h3>${esc(g.nome)}</h3><button class="secondary compact" data-gedit="${g.id}">Modifica</button></div>
+        <div class="ag-form-head"><h3>${esc(g.nome)}</h3>${isSuperIT() || !(g.permessi || []).length ? `<button class="secondary compact" data-gedit="${g.id}">Modifica</button>` : '<small class="muted-line">Modificabile solo da SUPER_IT</small>'}</div>
         ${g.descrizione ? `<p class="muted-line">${esc(g.descrizione)}</p>` : ''}
         <div>${(g.permessi || []).length ? g.permessi.map(p => `<span class="us-chip perm">${esc((PERMS[p] || [p])[0])}</span>`).join(' ') : '<small class="muted-line">Nessun permesso</small>'}</div>
         <p class="us-members"><b>${members.length}</b> ${members.length === 1 ? 'persona' : 'persone'}${members.length ? ': ' + members.map(m => esc(m.nome || m.email)).join(', ') : ''}</p>
@@ -255,7 +261,8 @@ function usGroupForm(g) {
         <label>Nome del gruppo<input id="ugNome" required minlength="2" maxlength="60" value="${esc(g?.nome || '')}" placeholder="Es. Segreteria"></label>
         <label>Descrizione <span class="optional">(facoltativa)</span><input id="ugDesc" value="${esc(g?.descrizione || '')}" placeholder="A cosa serve questo gruppo"></label>
         <div class="full"><b>Permessi del gruppo</b>
-          <div class="us-roles">${Object.entries(PERMS).map(([k, [l, d]]) => `<label class="us-role"><input type="checkbox" name="ugPerm" value="${k}" ${g?.permessi?.includes(k) ? 'checked' : ''}><span><b>${l}</b><small>${d}</small></span></label>`).join('')}</div>
+          ${!isSuperIT() ? '<p class="muted-line">Solo SUPER_IT può creare o modificare gruppi con permessi.</p>' : ''}
+          <div class="us-roles">${Object.entries(PERMS).map(([k, [l, d]]) => `<label class="us-role"><input type="checkbox" name="ugPerm" value="${k}" ${g?.permessi?.includes(k) ? 'checked' : ''} ${!isSuperIT() ? 'disabled' : ''}><span><b>${l}</b><small>${d}</small></span></label>`).join('')}</div>
         </div>
         <div class="full ag-people"><b>Persone nel gruppo</b>
           <input id="ugSearch" placeholder="Cerca una persona…">

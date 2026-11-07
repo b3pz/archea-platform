@@ -416,15 +416,23 @@ function bookingStatusBadge(s){
   return `<span class="badge ${cls}">${esc(s||'RICHIESTA')}</span>`;
 }
 function currentITName(){return profile?.nome||user?.email||'IT'}
-function isITRole(){return profile?.ruolo==='IT'||profile?.ruolo==='SUPER_IT'}
+function isITRole(){return typeof hasPerm==='function'&&hasPerm('gestione_it')}
 function isSuperIT(){return profile?.ruolo==='SUPER_IT'}
-function isHR(){return profile?.ruolo==='HR'}
+function isHR(){return typeof hasPerm==='function'&&hasPerm('gestione_hr')}
 function isHROrIT(){return isHR()||isITRole()}
-function canImportHR(){return isHR()||isSuperIT()}
-function canManageHRValues(){return isHR()||isSuperIT()}
-function canApproveHR(){return isHR()||isSuperIT()}
+function canImportHR(){return isHR()}
+function canManageHRValues(){return isHR()}
+function canApproveHR(){return isHR()}
 function canRequestConflictResolution(){return isITRole()}
 function canConfirmConflictResolution(){return isSuperIT()}
+async function itProfiles(){
+  const groups=await select('access_groups','select=id,permessi');
+  const ids=groups.filter(g=>(g.permessi||[]).includes('gestione_it')).map(g=>g.id);
+  if(!ids.length)return [];
+  const members=await select('access_group_members',`select=user_id&group_id=in.(${ids.join(',')})`);
+  const users=[...new Set(members.map(m=>m.user_id))];
+  return users.length?select('profiles',`select=id,nome,email,ruolo&id=in.(${users.join(',')})&order=nome.asc`):[];
+}
 function assetStatusBadge(s){
   const cls={
     'DISPONIBILE':'asset-available',
@@ -516,7 +524,7 @@ async function home(){
     return;
   }
 
-  const its=await select('profiles','select=id,nome,email,ruolo&ruolo=in.(IT,SUPER_IT)&order=nome.asc');
+  const its=await itProfiles();
   if(epoch!==navigationEpoch)return;
   const workload=its.map(itp=>({
     nome:itp.nome||itp.email,
@@ -716,7 +724,7 @@ async function it(){
   page('Gestione IT','Coda operativa del reparto');
 
   const d=await select('tickets','select=*&order=updated_at.desc.nullslast,created_at.desc');
-  const its=await select('profiles','select=id,nome,email,ruolo&ruolo=in.(IT,SUPER_IT)&order=nome.asc');
+  const its=await itProfiles();
   if(epoch!==navigationEpoch)return;
 
   let filter='OPEN',search='',category='',assignee='',order='old';
@@ -2924,7 +2932,7 @@ async function detail(id){
     try{collabs=await select('ticket_collaborators',`select=*,profiles(nome,email)&ticket_id=eq.${id}`)}catch{}
   }
 
-  const its=isITRole()?await select('profiles','select=id,nome,email,ruolo&ruolo=in.(IT,SUPER_IT)&order=nome.asc'):[];
+  const its=isITRole()?await itProfiles():[];
   const apHtml=ap.length?`<div class="appointment"><b>Appuntamento</b>${ap.map(a=>`<div class="appointment-row"><strong>${fmt(a.start_at)} • ${esc(a.modalita)} • ${a.durata_minuti} min</strong><span class="appointment-status ${(a.status||'PROPOSTO').toLowerCase()}">${a.status||'PROPOSTO'}</span></div>`).join('')}</div>`:'';
 
   $('content').innerHTML=`
@@ -3054,8 +3062,8 @@ async function detail(id){
   if(isITRole()){
     async function checks(){
       const d=await select('checklist_items',`select=*&ticket_id=eq.${id}&order=id.asc`);
-      $('checks').innerHTML=d.length?d.map(x=>`<label class="check"><input type="checkbox" data-c="${x.id}" ${x.completato?'checked':''}><span>${esc(x.testo)}</span><small>${x.completato?`${esc(x.completed_by||'')} • ${fmt(x.completed_at)}`:''}</small></label>`).join(''):'<p>Nessuna attività.</p>';
-      document.querySelectorAll('[data-c]').forEach(c=>c.onchange=()=>update('checklist_items',`id=eq.${+c.dataset.c}`,{completato:c.checked,completed_at:c.checked?new Date().toISOString():null,completed_by:c.checked?profile.nome:null}));
+      $('checks').innerHTML=d.length?d.map(x=>`<label class="check"><input type="checkbox" data-c="${x.id}" ${x.completato?'checked':''} ${x.completato&&x.person_software_id?'disabled':''}><span>${esc(x.testo)}${x.person_software_id?'<small class="muted-line">La spunta registra la revoca e libera il posto nel conteggio.</small>':''}</span><small>${x.completato?`${esc(x.completed_by||'')} • ${fmt(x.completed_at)}`:''}</small></label>`).join(''):'<p>Nessuna attività.</p>';
+      document.querySelectorAll('[data-c]').forEach(c=>c.onchange=async()=>{const item=d.find(x=>String(x.id)===c.dataset.c);if(c.checked&&!window.confirm(`Confermi di aver eseguito fisicamente questa attività?\n\n${item?.testo||''}`)){c.checked=false;return}c.disabled=true;try{await update('checklist_items',`id=eq.${+c.dataset.c}`,{completato:c.checked});await checks()}catch(err){toast(`Non salvato: ${err.message}`);await checks()}});
     }
     $('checkForm').onsubmit=async e=>{e.preventDefault();if(!$('checkText').value.trim())return;await insert('checklist_items',{ticket_id:id,testo:$('checkText').value.trim()},false);$('checkText').value='';checks()};
     checks();
@@ -3423,11 +3431,11 @@ function nav(v){
   if(v==='utenti')return usersView();
   if(v==='planimetrie')return planimetrieView();
   if(v==='fornitori'&&typeof fornitoriView==='function')return fornitoriView();
+  if(v==='licenze'&&typeof licenseCapacityView==='function')return licenseCapacityView();
   if(v==='cantiere')return cantiereView();
 
-  if(isHR()){
-    if(!normalUserViews.includes(v)&&!hrViews.includes(v))return userHome();
-  }else if(!isITRole()&&!normalUserViews.includes(v)){
+  const itViews=['home','it','calendar','prenotazioni','movimenti','persone','censimento','mappa','eliminazioni','planimetrie','fornitori','licenze'];
+  if(!normalUserViews.includes(v)&&!(isHR()&&hrViews.includes(v))&&!(isITRole()&&itViews.includes(v))){
     return userHome();
   }
 

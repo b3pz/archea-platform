@@ -15,7 +15,7 @@ const CORS = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
-const RUOLI = ["USER", "HR", "IT", "SUPER_IT"];
+const RUOLI = ["USER", "SUPER_IT"];
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...CORS, "Content-Type": "application/json" } });
@@ -50,8 +50,24 @@ Deno.serve(async (req) => {
 
   const setGroups = async (userId: string, groups: unknown) => {
     if (!Array.isArray(groups)) return;
+    const requested = [...new Set(groups.map((g) => Number(g)).filter(Number.isFinite))];
+    if (!callerIsSuper) {
+      const [{ data: requestedRows, error: groupsErr }, { data: existingRows, error: membersErr }] = await Promise.all([
+        admin.from("access_groups").select("id, permessi").in("id", requested),
+        admin.from("access_group_members").select("group_id").eq("user_id", userId),
+      ]);
+      if (groupsErr) throw groupsErr;
+      if (membersErr) throw membersErr;
+      const existingIds = new Set((existingRows ?? []).map((m) => Number(m.group_id)));
+      if ((requestedRows ?? []).some((g) => (g.permessi ?? []).length > 0 && !existingIds.has(Number(g.id)))) {
+        throw new Error("Solo SUPER_IT può assegnare gruppi con permessi");
+      }
+      const { data: currentGroups, error: currentErr } = await admin.from("access_groups").select("id, permessi").in("id", (existingRows ?? []).map((m) => m.group_id));
+      if (currentErr) throw currentErr;
+      for (const g of currentGroups ?? []) if ((g.permessi ?? []).length > 0) requested.push(g.id);
+    }
     await admin.from("access_group_members").delete().eq("user_id", userId);
-    const rows = groups.map((g) => ({ group_id: Number(g), user_id: userId })).filter((r) => Number.isFinite(r.group_id));
+    const rows = requested.map((group_id) => ({ group_id, user_id: userId }));
     if (rows.length) {
       const { error } = await admin.from("access_group_members").insert(rows);
       if (error) throw error;

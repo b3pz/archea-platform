@@ -33,4 +33,7 @@ Dopo `npm run build` si fa commit anche della cartella `v2/`: GitHub Pages pubbl
 | Utenti e gruppi | da fare |
 | Workspace: progetti, task, ore, organico, PM | da fare (riscrittura: il sorgente aggiornato non esiste) |
 
+## Modello autorizzazioni (3.3.0)
+Il profilo ha solo il ruolo base `USER` oppure `SUPER_IT`. Le capacità operative si sommano tramite gruppi `IT`, `HR`, `PM` e `BIM`. `SUPER_IT` gestisce la piattaforma e non eredita automaticamente i permessi operativi. Il catalogo licenze e le checklist di uscita sono ancora nel Service Desk legacy.
+
 Le voci non ancora portate compaiono nel menu con l'icona ↗ e aprono il sito attuale.

@@ -1,17 +1,17 @@
 // Ruoli, permessi e menu: logica pura, senza React, così si può testare.
 
-export type Ruolo = 'USER' | 'HR' | 'IT' | 'SUPER_IT';
-export type Permesso = 'gestione_utenti' | 'moderazione_offtopic' | 'gestione_calendario' | 'gestione_mappe' | 'gestione_progetti';
+export type Ruolo = 'USER' | 'SUPER_IT';
+export type Permesso = 'gestione_utenti' | 'moderazione_offtopic' | 'gestione_calendario' | 'gestione_mappe' | 'gestione_progetti' | 'gestione_it' | 'gestione_hr';
 
 export interface Profilo { id: string; email: string; nome: string | null; ruolo: Ruolo }
 
 export interface Utente { profilo: Profilo; permessi: Permesso[] }
 
-export const isIT = (u: Utente) => u.profilo.ruolo === 'IT' || u.profilo.ruolo === 'SUPER_IT';
-export const isHR = (u: Utente) => u.profilo.ruolo === 'HR' || u.profilo.ruolo === 'SUPER_IT';
-export const has = (u: Utente, p: Permesso) => u.profilo.ruolo === 'SUPER_IT' || u.permessi.includes(p);
+export const isIT = (u: Utente) => u.permessi.includes('gestione_it');
+export const isHR = (u: Utente) => u.permessi.includes('gestione_hr');
+export const has = (u: Utente, p: Permesso) => u.permessi.includes(p);
 
-export const ETICHETTA_RUOLO: Record<Ruolo, string> = { USER: 'Utente', HR: 'HR', IT: 'Reparto IT', SUPER_IT: 'Super admin' };
+export const ETICHETTA_RUOLO: Record<Ruolo, string> = { USER: 'Utente', SUPER_IT: 'Super admin tecnico' };
 
 /** Una voce del menu: o una pagina della nuova app (to) o una funzione ancora nel sito attuale (legacy). */
 export interface Voce { key: string; label: string; to?: string; legacy?: string }
@@ -23,7 +23,7 @@ const old = (hash: string) => `../#/${hash}`;
 
 /** Il menu a sinistra, uguale per tutti nella forma: cambia solo quali gruppi e voci si vedono. */
 export function gruppiMenu(u: Utente): Gruppo[] {
-  const it = isIT(u), hrSolo = isHR(u) && !it, pm = has(u, 'gestione_progetti'), admin = has(u, 'gestione_utenti');
+  const it = isIT(u), hr = isHR(u), pm = has(u, 'gestione_progetti'), admin = has(u, 'gestione_utenti');
   const g: Gruppo[] = [];
   g.push({ id: 'lavoro', titolo: 'Il mio lavoro', icona: 'lavoro', voci: [
     { key: 'new', label: 'Apri un ticket', to: '/ticket/nuovo' },
@@ -41,7 +41,7 @@ export function gruppiMenu(u: Utente): Gruppo[] {
     { key: 'coda', label: 'Coda ticket', to: '/it/coda' },
     { key: 'censimento', label: 'Censimento e asset', legacy: old('servicedesk') },
   ] });
-  if (hrSolo || it) g.push({ id: 'persone', titolo: hrSolo ? 'HR · Persone' : 'Persone e spazi', icona: 'persone', voci: [
+  if (hr || it) g.push({ id: 'persone', titolo: hr && it ? 'Persone e spazi' : hr ? 'HR · Persone' : 'Persone e spazi', icona: 'persone', voci: [
     { key: 'movimenti', label: 'Ingressi, uscite, spostamenti', legacy: old('servicedesk') },
     { key: 'organico', label: 'Organico', legacy: old('bio') },
     { key: 'planimetrie', label: 'Planimetrie e postazioni', legacy: old('servicedesk') },

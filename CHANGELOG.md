@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.3.0 — Gruppi operativi, BIM, inventario licenze e uscite verificabili
+
+- **Ruoli e gruppi**: `USER` è il ruolo base; `SUPER_IT` amministra la piattaforma e non eredita i permessi IT/HR/PM. IT, HR, PM e BIM sono gruppi cumulabili; solo Super IT assegna i gruppi con permessi e nomina altri Super IT.
+- **PM**: progetti, task, ore e note sono limitati ai progetti della propria squadra; chi crea un progetto può inizializzare la squadra includendo sé stesso.
+- **Uscite**: checklist obbligatoria per account AD, Google Workspace/Gmail, Office, licenze assegnate, asset e take-out; il database impedisce la chiusura finché manca un'attività. La conferma registra chi e quando e libera il posto di licenza.
+- **Licenze**: nuovo catalogo con posti acquistati, assegnazioni attive, disponibilità, soglia minima, acquisto necessario e rinnovo. Le quantità partono non verificate e vanno riconciliate; password e codici del workbook non vengono importati.
+- **BIM**: creato come gruppo senza permessi applicativi fino alla definizione delle sue funzioni.
+- Da eseguire: `SETUP_COMPLETO.sql`; poi distribuire gli aggiornamenti del Service Desk e della Edge Function `admin-users`.
+
 ## 3.2.0 — Sottochat di progetto, fornitori per tutti, regole per chi sviluppa
 
 - **Sottochat di progetto**: nella chat di un progetto «+ Sottochat» apre una chat a parte con colleghi anche fuori dalla squadra (collaborazioni), senza cambiare la chat del progetto. Chi la crea sceglie le persone; gli altri possono uscirne.
