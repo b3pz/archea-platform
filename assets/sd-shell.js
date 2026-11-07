@@ -104,7 +104,7 @@
     // "Fornitori" è la rubrica vera del Service Desk (non il modulo dimostrativo): per i PM sta qui, per l'IT nella barra in alto
     const tabs = (window.__archeaTabs || []).filter(([id]) => id !== 'servicedesk' && id !== 'fornitori');
     let pmSup = false;
-    try { pmSup = ready && sdWin && sdWin.hasPerm('gestione_progetti') && !sdWin.isITRole(); } catch (e) {}
+    try { pmSup = ready && sdWin && !sdWin.isITRole(); } catch (e) {} // la rubrica è per tutti; l'IT la trova nella barra in alto
     if (pmSup) tabs.push(['sd:fornitori', 'Fornitori']);
     const used = new Set();
     const groups = GROUPS.map(([id, title, ic, ids]) => {

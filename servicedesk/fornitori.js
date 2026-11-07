@@ -4,9 +4,12 @@
 const FORN_AMBITI = { IT: 'IT', PROGETTI: 'Progetti', ENTRAMBI: 'IT e progetti' };
 const fornState = { list: [], q: '', ambito: '', progetto: '' };
 
-function fornCanSee() { return isITRole() || (typeof hasPerm === 'function' && hasPerm('gestione_progetti')); }
-function fornCanEdit(ambito) {
-  if (profile?.ruolo === 'SUPER_IT') return true;
+// la rubrica la usano e la aggiornano tutti: resta scritto chi ha creato e chi ha modificato ogni fornitore
+function fornCanSee() { return true; }
+function fornCanEdit() { return true; }
+function fornCanDelete(s) {
+  const ambito = s.ambito;
+  if (s.created_by === user.id || profile?.ruolo === 'SUPER_IT') return true;
   if (isITRole() && ambito !== 'PROGETTI') return true;
   return typeof hasPerm === 'function' && hasPerm('gestione_progetti') && ambito !== 'IT';
 }
@@ -52,6 +55,7 @@ function fornRender() {
           ${s.telefono ? `<span>📞 ${esc(s.telefono)}</span>` : ''}
           ${s.email ? `<span>✉️ ${esc(s.email)}</span>` : ''}
           ${(s.progetti || []).length ? `<span class="forn-prj">${s.progetti.map(p => `<em>${esc(p)}</em>`).join('')}</span>` : ''}
+          ${s.updated_by_name ? `<small class="forn-who">Modificato da ${esc(s.updated_by_name)}</small>` : ''}
         </button>`).join('') || '<div class="empty">Nessun fornitore. Aggiungi il primo con «+ Aggiungi fornitore».</div>'}</div>
     </div>`;
   $('fQ').oninput = e => { fornState.q = e.target.value; const pos = e.target.selectionStart; fornRender(); $('fQ').focus(); $('fQ').setSelectionRange(pos, pos); };
@@ -64,7 +68,7 @@ function fornRender() {
 function fornForm(s) {
   const isNew = !s;
   const amb = s?.ambito || fornDefaultAmbito();
-  const can = isNew || fornCanEdit(s.ambito);
+  const can = fornCanEdit();
   const ro = can ? '' : 'readonly disabled';
   const prj = (() => { try { return (window.top.ArcheaWsCloud?.get('progetti') || []).map(p => p.codice).filter(Boolean); } catch (e) { return []; } })();
   $('content').innerHTML = `
@@ -73,7 +77,7 @@ function fornForm(s) {
       <form id="fForm" class="formgrid">
         <label>Nome / ragione sociale<input id="fNome" required minlength="2" value="${esc(s?.nome || '')}" ${ro}></label>
         <label>Categoria<input id="fCat" value="${esc(s?.categoria || '')}" placeholder="Es. Hardware, Software, Impresa edile, Strutturista" ${ro}></label>
-        <label>Rubrica<select id="fAmbito" ${ro}>${Object.entries(FORN_AMBITI).filter(([k]) => isNew ? fornCanEdit(k) : true).map(([k, v]) => `<option value="${k}" ${amb === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
+        <label>Rubrica<select id="fAmbito" ${ro}>${Object.entries(FORN_AMBITI).map(([k, v]) => `<option value="${k}" ${amb === k ? 'selected' : ''}>${v}</option>`).join('')}</select></label>
         <label>Referente<input id="fRef" value="${esc(s?.referente || '')}" ${ro}></label>
         <label>Telefono<input id="fTel" type="tel" value="${esc(s?.telefono || '')}" ${ro}></label>
         <label>Email<input id="fMail" type="email" value="${esc(s?.email || '')}" ${ro}></label>
@@ -83,9 +87,10 @@ function fornForm(s) {
         <label class="full">Commesse collegate <span class="optional">(codici separati da virgola)</span><input id="fPrjIn" list="fPrjList" value="${esc((s?.progetti || []).join(', '))}" placeholder="Es. P51, P62" ${ro}></label>
         <datalist id="fPrjList">${prj.map(p => `<option value="${esc(p)}">`).join('')}</datalist>
         <label class="full">Note<textarea id="fNote" rows="3" ${ro}>${esc(s?.note || '')}</textarea></label>
+        ${!isNew ? `<p class="full muted-line forn-who">Aggiunto da <b>${esc(s.created_by_name || '—')}</b> il ${fmt(s.created_at)}${s.updated_by_name ? ` · ultima modifica di <b>${esc(s.updated_by_name)}</b> il ${fmt(s.updated_at)}` : ''}</p>` : ''}
         <div class="full button-row">
           ${can ? `<button class="primary" id="fSave">${isNew ? 'Salva fornitore' : 'Salva modifiche'}</button>` : '<span class="muted-line">Puoi solo consultarlo: lo modifica chi gestisce questa rubrica.</span>'}
-          ${!isNew && can ? '<button type="button" class="secondary danger-outline" id="fDel">Elimina</button>' : ''}
+          ${!isNew && fornCanDelete(s) ? '<button type="button" class="secondary danger-outline" id="fDel">Elimina</button>' : ''}
           ${s?.email ? `<a class="secondary btnlink" href="mailto:${esc(s.email)}">Scrivi email</a>` : ''}
           ${s?.telefono ? `<a class="secondary btnlink" href="tel:${esc(s.telefono.replace(/\s+/g, ''))}">Chiama</a>` : ''}
           <span id="fRes" class="muted-line"></span>
@@ -101,7 +106,7 @@ function fornForm(s) {
       referente: $('fRef').value.trim() || null, telefono: $('fTel').value.trim() || null, email: $('fMail').value.trim() || null,
       sito: $('fWeb').value.trim() || null, partita_iva: $('fPiva').value.trim() || null, indirizzo: $('fAddr').value.trim() || null,
       progetti: [...new Set($('fPrjIn').value.split(/[,;\s]+/).map(x => x.trim().toUpperCase()).filter(Boolean))],
-      note: $('fNote').value.trim() || null, updated_at: new Date().toISOString()
+      note: $('fNote').value.trim() || null
     };
     try {
       if (isNew) await insert('suppliers', row, false); else await update('suppliers', `id=eq.${s.id}`, row);

@@ -1,5 +1,12 @@
 # Changelog
 
+## 3.2.0 — Sottochat di progetto, fornitori per tutti, regole per chi sviluppa
+
+- **Sottochat di progetto**: nella chat di un progetto «+ Sottochat» apre una chat a parte con colleghi anche fuori dalla squadra (collaborazioni), senza cambiare la chat del progetto. Chi la crea sceglie le persone; gli altri possono uscirne.
+- **Fornitori**: tutti possono aggiungere e correggere; su ogni fornitore resta scritto chi l'ha aggiunto e chi l'ha modificato per ultimo (lo scrive il database). Eliminare: chi l'ha creato, IT, PM, Super admin.
+- **AGENTS.md** (+ CLAUDE.md): regole obbligatorie per persone e AI che scrivono codice: framework, struttura, database, sicurezza, come aggiungere parti nuove.
+- Da eseguire: `SETUP_COMPLETO.sql`.
+
 ## 3.1.0 — Movimenti dalla mappa, licenze della persona, rubrica fornitori
 
 - **Prima pagina per ruolo**: IT Dashboard, HR Statistiche HR, PM *Il lavoro di oggi*, utente le sue richieste. Barra delle funzioni in alto; a sinistra il resto, raggruppato (Il mio lavoro, Progetti e cantieri, Comunicazione, Studio). Chat, Calendario, Off topic e Foto cantiere a schermo libero.

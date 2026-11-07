@@ -3399,7 +3399,7 @@ function setActiveNavigation(view){
 function nav(v){
   navigationEpoch++;
   document.documentElement.classList.remove('sd-on-start');
-  const normalUserViews=['new','mine'];
+  const normalUserViews=['new','mine','fornitori'];
   const hrViews=['persone','hr-new','hr-history','hr-stats','mappa'];
 
   if(currentView!==v){

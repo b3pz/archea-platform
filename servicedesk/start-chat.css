@@ -206,3 +206,7 @@ html[data-theme="dark"] .push-banner{background:color-mix(in srgb,#ff7a4d 12%,#1
 html[data-theme="dark"] .start-sec{background:#1b1d1b;border-color:#2e332f}
 html[data-theme="dark"] .start-act{background:#232623}
 @media (max-width:760px){.start-sections{grid-template-columns:1fr}.start-act{padding:14px}}
+
+/* Sottochat di progetto: rientrate sotto il loro progetto */
+.chat-contact.sub { padding-left: 26px; }
+.chat-contact.sub .chat-avatar { width: 30px; height: 30px; font-size: 14px; }

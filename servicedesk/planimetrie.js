@@ -365,9 +365,9 @@ function plConfirmMove(m, back) {
         $('plBack').onclick = back;
         toast('Spostamento registrato');
       } catch (err) {
+        await plLoadData().catch(() => {}); plRender();
         $('plSide').innerHTML = `<span class="badge danger">Non registrato</span><h3>Lo spostamento non è stato salvato</h3><p class="error">${esc(err.message)}</p><div class="button-row"><button class="secondary" id="plBack">Torna alla pianta</button></div>`;
         $('plBack').onclick = back;
-        await plLoadData().catch(() => {}); plRender();
       }
     };
   };

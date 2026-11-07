@@ -1841,3 +1841,92 @@ create policy psw_it on public.person_software for all to authenticated
   using (public.is_it_role()) with check (public.is_it_role());
 grant select, insert, update, delete on public.person_software to authenticated;
 grant usage, select on sequence public.person_software_id_seq to authenticated;
+
+-- ================================================================
+-- 20261108_fornitori_tutti.sql
+-- ================================================================
+-- ARCHEA Platform · Rubrica fornitori aperta a tutti, con traccia di chi modifica
+-- Si può rieseguire senza danni. Richiede licenze_fornitori.
+--
+-- Tutti gli account possono aggiungere e correggere fornitori: si vede sempre chi l'ha
+-- creato e chi l'ha modificato per ultimo. Eliminare resta a chi l'ha creato, all'IT
+-- (fornitori IT), ai PM (fornitori di progetto) e al Super admin.
+
+alter table public.suppliers add column if not exists created_by_name text;
+alter table public.suppliers add column if not exists updated_by uuid references auth.users(id) on delete set null;
+alter table public.suppliers add column if not exists updated_by_name text;
+
+create or replace function public.suppliers_stamp()
+returns trigger language plpgsql security definer set search_path = public as $$
+declare who text;
+begin
+  select coalesce(nullif(nome, ''), email) into who from public.profiles where id = auth.uid();
+  if tg_op = 'INSERT' then
+    new.created_by := auth.uid(); new.created_by_name := who; new.created_at := now();
+  else
+    new.created_by := old.created_by; new.created_by_name := old.created_by_name; new.created_at := old.created_at;
+  end if;
+  new.updated_by := auth.uid(); new.updated_by_name := who; new.updated_at := now();
+  return new;
+end $$;
+drop trigger if exists suppliers_stamp on public.suppliers;
+create trigger suppliers_stamp before insert or update on public.suppliers
+  for each row execute function public.suppliers_stamp();
+
+drop policy if exists sup_insert on public.suppliers;
+create policy sup_insert on public.suppliers for insert to authenticated with check (auth.uid() is not null);
+drop policy if exists sup_update on public.suppliers;
+create policy sup_update on public.suppliers for update to authenticated using (auth.uid() is not null) with check (auth.uid() is not null);
+drop policy if exists sup_delete on public.suppliers;
+create policy sup_delete on public.suppliers for delete to authenticated
+  using (created_by = auth.uid() or public.supplier_can_edit(ambito));
+
+-- ================================================================
+-- 20261108_sottochat.sql
+-- ================================================================
+-- ARCHEA Platform · Sottochat di progetto
+-- Si può rieseguire senza danni. Richiede chat_gruppi.
+--
+-- Dentro la chat di un progetto chiunque ne faccia parte può aprire una SOTTOCHAT e invitarci
+-- anche colleghi che non sono nella squadra (collaborazioni), senza toccare la chat di base
+-- che resta legata alla squadra del progetto.
+
+alter table public.chat_groups add column if not exists parent_id bigint references public.chat_groups(id) on delete cascade;
+alter table public.chat_groups drop constraint if exists chat_groups_tipo_check;
+alter table public.chat_groups add constraint chat_groups_tipo_check check (tipo in ('GRUPPO', 'PROGETTO', 'SOTTOGRUPPO'));
+alter table public.chat_groups drop constraint if exists chat_groups_sotto_parent;
+alter table public.chat_groups add constraint chat_groups_sotto_parent check ((tipo = 'SOTTOGRUPPO') = (parent_id is not null));
+create index if not exists chat_groups_parent on public.chat_groups (parent_id);
+
+-- chi crea un gruppo o una sottochat la gestisce (nome, persone, eliminazione)
+create or replace function public.chat_is_group_admin(gid bigint)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.chat_groups g where g.id = gid and g.tipo in ('GRUPPO', 'SOTTOGRUPPO') and g.created_by = auth.uid());
+$$;
+
+create or replace function public.chat_is_project(gid bigint)
+returns boolean language sql stable security definer set search_path = public as $$
+  select exists (select 1 from public.chat_groups g where g.id = gid and g.tipo = 'PROGETTO');
+$$;
+revoke all on function public.chat_is_project(bigint) from public, anon;
+grant execute on function public.chat_is_project(bigint) to authenticated;
+
+drop policy if exists cg_insert on public.chat_groups;
+create policy cg_insert on public.chat_groups for insert to authenticated with check (
+  created_by = auth.uid() and progetto_codice is null and (
+    (tipo = 'GRUPPO' and parent_id is null)
+    or (tipo = 'SOTTOGRUPPO' and public.chat_is_member(parent_id) and public.chat_is_project(parent_id))
+  )
+);
+drop policy if exists cg_update on public.chat_groups;
+create policy cg_update on public.chat_groups for update to authenticated
+  using (tipo in ('GRUPPO', 'SOTTOGRUPPO') and created_by = auth.uid())
+  with check (tipo in ('GRUPPO', 'SOTTOGRUPPO') and created_by = auth.uid());
+drop policy if exists cg_delete on public.chat_groups;
+create policy cg_delete on public.chat_groups for delete to authenticated
+  using (tipo in ('GRUPPO', 'SOTTOGRUPPO') and created_by = auth.uid());
+
+drop policy if exists cgm_delete on public.chat_group_members;
+create policy cgm_delete on public.chat_group_members for delete to authenticated
+  using (public.chat_is_group_admin(group_id)
+         or (user_id = auth.uid() and exists (select 1 from public.chat_groups g where g.id = group_id and g.tipo in ('GRUPPO', 'SOTTOGRUPPO'))));

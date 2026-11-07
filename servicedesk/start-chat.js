@@ -260,14 +260,18 @@ function chatRender() {
   const q = normSearch(chatState.search);
   const list = threads.filter(t => !q || normSearch(t.contact.nome).includes(q));
   const glist = gthreads.filter(t => !q || normSearch(t.group.nome).includes(q));
-  const projects = glist.filter(t => t.group.tipo === 'PROGETTO'), groups = glist.filter(t => t.group.tipo !== 'PROGETTO');
+  const projects = glist.filter(t => t.group.tipo === 'PROGETTO'), groups = glist.filter(t => t.group.tipo === 'GRUPPO');
+  // sottochat: sotto il loro progetto; chi è stato invitato senza far parte della squadra le vede da sole
+  const subs = glist.filter(t => t.group.tipo === 'SOTTOGRUPPO');
+  const subsOf = id => subs.filter(t => t.group.parent_id === id);
+  const orphanSubs = subs.filter(t => !projects.some(p => p.group.id === t.group.parent_id));
   const active = threads.find(t => t.contact.id === chatState.active);
   const ag = gthreads.find(t => t.group.id === chatState.activeGroup);
   const conv = active ? chatState.messages.filter(m => (m.sender_id === me && m.recipient_id === active.contact.id) || (m.sender_id === active.contact.id && m.recipient_id === me)) : [];
   const gconv = ag ? chatState.gmessages.filter(m => m.group_id === ag.group.id) : [];
   const gItem = t => `
-    <button class="chat-contact ${t.group.id === chatState.activeGroup ? 'active' : ''}" data-chatg="${t.group.id}">
-      <span class="chat-avatar ${t.group.tipo === 'PROGETTO' ? 'proj' : 'grp'}">${t.group.tipo === 'PROGETTO' ? '▦' : esc(chatInitials(t.group.nome))}</span>
+    <button class="chat-contact ${t.group.id === chatState.activeGroup ? 'active' : ''}${t.group.tipo === 'SOTTOGRUPPO' ? ' sub' : ''}" data-chatg="${t.group.id}">
+      <span class="chat-avatar ${t.group.tipo === 'PROGETTO' ? 'proj' : 'grp'}">${t.group.tipo === 'PROGETTO' ? '▦' : t.group.tipo === 'SOTTOGRUPPO' ? '↳' : esc(chatInitials(t.group.nome))}</span>
       <span class="chat-contact-text"><b>${esc(t.group.nome)}</b>
         <small>${t.last ? esc((t.last.sender_id === me ? 'Tu' : chatName(t.last.sender_id).split(' ')[0]) + ': ' + t.last.body) : `${t.count} persone`}</small></span>
       <span class="chat-meta">${t.last ? `<small>${chatTime(t.last.created_at)}</small>` : ''}${t.unread ? `<em>${t.unread}</em>` : ''}</span>
@@ -280,7 +284,7 @@ function chatRender() {
       <aside class="chat-list">
         <input id="chatSearch" placeholder="Cerca un collega, un gruppo o un progetto…" value="${esc(chatState.search)}">
         <div class="chat-contacts">
-          ${projects.length ? head('Progetti') + projects.map(gItem).join('') : ''}
+          ${projects.length || orphanSubs.length ? head('Progetti') + projects.map(t => gItem(t) + subsOf(t.group.id).map(gItem).join('')).join('') + orphanSubs.map(gItem).join('') : ''}
           ${chatState.groupsOk ? head('Gruppi', '<button class="text-btn" id="chatNewGroup" type="button">+ Nuovo gruppo</button>') + (groups.length ? groups.map(gItem).join('') : '<p class="chat-hint">Crea un gruppo per scrivere a più colleghi insieme.</p>') : ''}
           ${head('Colleghi')}
           ${list.length ? list.map(t => `
@@ -311,7 +315,8 @@ function chatRender() {
           <header class="chat-head">
             <button id="chatBack" class="chat-back" type="button" aria-label="Torna alle chat">←</button>
             <span class="chat-avatar ${ag.group.tipo === 'PROGETTO' ? 'proj' : 'grp'}">${ag.group.tipo === 'PROGETTO' ? '▦' : esc(chatInitials(ag.group.nome))}</span>
-            <div><b>${esc(ag.group.nome)}</b><small>${ag.group.tipo === 'PROGETTO' ? 'Chat del progetto · ' : ''}${ag.count} persone</small></div>
+            <div><b>${esc(ag.group.nome)}</b><small>${ag.group.tipo === 'PROGETTO' ? 'Chat del progetto · ' : ag.group.tipo === 'SOTTOGRUPPO' ? 'Sottochat del progetto · ' : ''}${ag.count} persone</small></div>
+            ${ag.group.tipo === 'PROGETTO' ? '<button class="secondary compact chat-head-btn" id="chatSub" type="button" title="Collaborazione con altri colleghi, senza cambiare la chat del progetto">+ Sottochat</button>' : ''}
             <button class="secondary compact chat-head-btn" id="chatMembers" type="button">Persone</button>
           </header>
           <div id="chatMessages" class="chat-messages">
@@ -334,6 +339,7 @@ function chatRender() {
   document.querySelectorAll('[data-chatg]').forEach(b => b.onclick = () => chatOpenGroup(+b.dataset.chatg));
   if ($('chatNewGroup')) $('chatNewGroup').onclick = () => chatGroupForm(null);
   if ($('chatMembers')) $('chatMembers').onclick = () => chatGroupForm(ag);
+  if ($('chatSub')) $('chatSub').onclick = () => chatGroupForm(null, ag.group);
   if ($('chatBack')) $('chatBack').onclick = () => { chatState.active = null; chatState.activeGroup = null; chatRender(); };
   const box = $('chatMessages');
   if (box) box.scrollTop = box.scrollHeight;
@@ -345,9 +351,10 @@ function chatRender() {
 }
 
 // Nuovo gruppo / persone del gruppo
-function chatGroupForm(t) {
+function chatGroupForm(t, parent) {
   const me = user.id;
   const g = t && t.group;
+  const isSub = (g && g.tipo === 'SOTTOGRUPPO') || !!parent;
   const isProject = g && g.tipo === 'PROGETTO';
   const canEdit = !g || (!isProject && g.created_by === me);
   const current = g ? chatState.members.filter(m => m.group_id === g.id).map(m => m.user_id) : [me];
@@ -355,15 +362,16 @@ function chatGroupForm(t) {
   const ov = document.createElement('div');
   ov.className = 'scanner-overlay chat-modal';
   ov.innerHTML = `<div class="scanner-card">
-    <div class="scanner-head"><div><span class="eyebrow">CHAT</span><h3>${g ? esc(g.nome) : 'Nuovo gruppo'}</h3></div><button class="ghost compact" id="cgClose">Chiudi</button></div>
+    <div class="scanner-head"><div><span class="eyebrow">${isSub ? 'SOTTOCHAT DI PROGETTO' : 'CHAT'}</span><h3>${g ? esc(g.nome) : parent ? 'Nuova sottochat' : 'Nuovo gruppo'}</h3></div><button class="ghost compact" id="cgClose">Chiudi</button></div>
+    ${parent ? `<p class="muted-line">Per collaborare su una parte di <b>${esc(parent.nome)}</b> anche con colleghi che non sono nella squadra. La chat del progetto resta com'è.</p>` : ''}
     ${isProject ? '<p class="muted-line">Le persone di questa chat sono quelle della squadra del progetto: le sceglie il PM in "Project Manager".</p>' : ''}
-    ${canEdit ? `<label>Nome del gruppo<input id="cgName" maxlength="80" value="${esc(g ? g.nome : '')}" placeholder="Es. Ufficio Firenze, Pausa pranzo…"></label>` : ''}
+    ${canEdit ? `<label>Nome del gruppo<input id="cgName" maxlength="80" value="${esc(g ? g.nome : parent ? (parent.progetto_codice || parent.nome.split(' ·')[0]) + ' · ' : '')}" placeholder="${parent ? 'Es. P51 · Facciate con lo strutturista' : 'Es. Ufficio Firenze, Pausa pranzo…'}"></label>` : ''}
     <input id="cgSearch" placeholder="Cerca un collega…">
     <div class="cg-people">${people.map(p => `<label class="cg-person"><input type="checkbox" value="${esc(p.id)}" ${current.includes(p.id) ? 'checked' : ''} ${!canEdit || p.id === me ? 'disabled' : ''}><span class="chat-avatar">${esc(chatInitials(p.nome))}</span><span>${esc(p.nome)}</span></label>`).join('')}</div>
     <div class="button-row">
-      ${canEdit ? `<button class="primary" id="cgSave">${g ? 'Salva' : 'Crea gruppo'}</button>` : ''}
-      ${g && !isProject && g.created_by !== me ? '<button class="secondary danger-outline" id="cgLeave">Esci dal gruppo</button>' : ''}
-      ${g && !isProject && g.created_by === me ? '<button class="secondary danger-outline" id="cgDelete">Elimina gruppo</button>' : ''}
+      ${canEdit ? `<button class="primary" id="cgSave">${g ? 'Salva' : parent ? 'Crea sottochat' : 'Crea gruppo'}</button>` : ''}
+      ${g && !isProject && g.created_by !== me ? `<button class="secondary danger-outline" id="cgLeave">Esci ${isSub ? 'dalla sottochat' : 'dal gruppo'}</button>` : ''}
+      ${g && !isProject && g.created_by === me ? `<button class="secondary danger-outline" id="cgDelete">Elimina ${isSub ? 'sottochat' : 'gruppo'}</button>` : ''}
       <span id="cgMsg" class="muted-line"></span>
     </div></div>`;
   document.body.appendChild(ov);
@@ -378,7 +386,7 @@ function chatGroupForm(t) {
     if (!g && !chosen.length) { ov.querySelector('#cgMsg').textContent = 'Scegli almeno un collega'; return; }
     try {
       let gid = g && g.id;
-      if (!g) { const rows = await insert('chat_groups', { nome, tipo: 'GRUPPO', created_by: me }); gid = rows[0].id; }
+      if (!g) { const rows = await insert('chat_groups', parent ? { nome, tipo: 'SOTTOGRUPPO', parent_id: parent.id, created_by: me } : { nome, tipo: 'GRUPPO', created_by: me }); gid = rows[0].id; }
       else if (nome !== g.nome) await update('chat_groups', `id=eq.${gid}`, { nome });
       const before = g ? current.filter(id => id !== me) : [];
       const add = chosen.filter(id => !before.includes(id)), remove = before.filter(id => !chosen.includes(id));
